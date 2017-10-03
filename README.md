@@ -1,1 +1,5 @@
-# Sejong_Dynamic_Control_Toolkit
+# Sejong Dynamic Control Toolkit
+
+- robotics dynamic control libraries
+- various whole-body controllers
+
