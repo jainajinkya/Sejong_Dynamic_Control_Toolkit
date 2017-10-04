@@ -1,0 +1,14 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/donghyunkim/Sejong_Dynamic_Control_Toolkit/Simulator/srSimulator/common/utils.cpp
+utils.h
+/Users/donghyunkim/Sejong_Dynamic_Control_Toolkit/Simulator/srSimulator/common/utils.h
+
+/Users/donghyunkim/Sejong_Dynamic_Control_Toolkit/Simulator/srSimulator/common/utils.h
+

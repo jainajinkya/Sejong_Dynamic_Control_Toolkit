@@ -1,0 +1,15 @@
+FILE(GLOB_RECURSE headers *.h)
+FILE(GLOB_RECURSE sources *.cpp)
+add_library(Hume_Controller SHARED ${sources} ${headers} ../../Scenario/Factory.h ../../Scenario/Factory.cpp ../../Scenario/Parameter.h ../../Scenario/Parameter.cpp)
+add_subdirectory(Hume_Model)
+
+target_link_libraries (Hume_Controller SJutils)
+target_link_libraries (Hume_Controller SJfilters)
+target_link_libraries (Hume_Controller hume_model)
+target_link_libraries (Hume_Controller WBOSC)
+target_link_libraries (Hume_Controller SJPlanner)
+
+install(TARGETS Hume_Controller DESTINATION "${INSTALL_LIB_DIR}")
+install(FILES ${headers} DESTINATION "${INSTALL_INCLUDE_DIR}/ControlSystem/Hume_Controller")
+FILE(GLOB_RECURSE Scenario_headers ../../Scenario/*.h)
+install(FILES ${Scenario_headers} DESTINATION "${INSTALL_INCLUDE_DIR}/Scenario")

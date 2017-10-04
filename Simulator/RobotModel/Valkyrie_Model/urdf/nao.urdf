@@ -1,0 +1,456 @@
+<?xml version="1.0" ?>
+<robot name="naoH25V50" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <link name="torso">
+    <inertial>
+      <mass value="1.04956"/>
+      <inertia ixx="0.00308361" ixy="1.43116e-05" ixz="-3.30211e-05" iyy="0.0028835" iyz="-2.70793e-05" izz="0.0015924"/>
+      <origin rpy="0 0 0" xyz="-0.00413 0 0.04342"/>
+    </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="torso"/>
+    <child link="imu"/>
+    <origin rpy="0 0 0" xyz="-0.008 0.006 0.028"/>
+    <axis xyz="0 0 1.0"/>
+  </joint>
+  <link name="imu">
+    <inertial>
+      <mass value="0.0000000000001"/>
+      <inertia ixx="1.0e-10" ixy="0" ixz="0" iyy="1.0e-10" iyz="0.0" izz="1.0e-10"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </inertial>
+  </link>
+  
+  <joint name="HeadYaw" type="continuous">
+    <parent link="torso"/>
+    <child link="Neck"/>
+    <origin rpy="0 0 0" xyz="0 0 0.1265"/>
+    <axis xyz="0 0 1.0"/>
+  </joint>
+  <link name="Neck">
+    <inertial>
+      <mass value="0.07842"/>
+      <inertia ixx="1.60324e-05" ixy="1.57e-09" ixz="3.16276e-09" iyy="1.70394e-05" iyz="-5.295e-08" izz="5.53372e-06"/>
+      <origin rpy="0 0 0" xyz="-1e-05 0 -0.02742"/>
+    </inertial>
+  </link>
+  
+  <joint name="HeadPitch" type="continuous">
+    <parent link="Neck"/>
+    <child link="Head"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 -1.0 0"/>
+  </joint>
+  <link name="Head">
+    <inertial>
+      <mass value="0.60533"/>
+      <inertia ixx="0.000957766" ixy="8.78814e-06" ixz="5.33702e-06" iyy="0.000816836" iyz="-2.99579e-05" izz="0.000984976"/>
+      <origin rpy="0 0 0" xyz="-0.00112 0 0.05258"/>
+    </inertial>
+  </link>
+  
+  <joint name="LHipYawPitch" type="continuous">
+    <parent link="torso"/>
+    <child link="LPelvis"/>
+    <origin rpy="0 0 0" xyz="0 0.05 -0.085"/>
+    <axis xyz="0 0.7071067814 -0.7071067814"/>
+  </joint>
+  <link name="LPelvis">
+    <inertial>
+      <mass value="0.06981"/>
+      <inertia ixx="2.3407e-05" ixy="1.07922e-06" ixz="-1.76003e-06" iyy="4.76355e-05" iyz="2.76058e-06" izz="4.97021e-05"/>
+      <origin rpy="0 0 0" xyz="-0.00781 -0.01114 0.02661"/>
+    </inertial>
+  </link>
+
+  <joint name="LHipRoll" type="continuous">
+    <parent link="LPelvis"/>
+    <child link="LHip"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="-1.0 0 0"/>
+  </joint>
+  <link name="LHip">
+    <inertial>
+      <mass value="0.14053"/>
+      <inertia ixx="2.38445e-05" ixy="-6.53605e-07" ixz="7.12893e-06" iyy="6.08246e-05" iyz="-2.14072e-07" izz="5.43691e-05"/>
+      <origin rpy="0 0 0" xyz="-0.01549 0.00029 -0.00515"/>
+    </inertial>
+  </link>
+
+  <joint name="LHipPitch" type="continuous">
+    <parent link="LHip"/>
+    <child link="LThigh"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="LThigh">
+    <inertial>
+      <mass value="0.38968"/>
+      <inertia ixx="0.000509844" ixy="2.11296e-06" ixz="5.64129e-05" iyy="0.000465358" iyz="-7.91029e-06" izz="0.000301098"/>
+      <origin rpy="0 0 0" xyz="0.00138 0.00221 -0.05373"/>
+    </inertial>
+  </link>
+
+  <joint name="LKneePitch" type="continuous">
+    <parent link="LThigh"/>
+    <child link="LTibia"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.1"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="LTibia">
+    <inertial>
+      <mass value="0.30142"/>
+      <inertia ixx="0.000446171" ixy="3.70584e-06" ixz="-3.09008e-05" iyy="0.000388084" iyz="6.01953e-06" izz="0.000185516"/>
+      <origin rpy="0 0 0" xyz="0.00453 0.00225 -0.04936"/>
+    </inertial>
+  </link>
+
+  <joint name="LAnklePitch" type="continuous">
+    <parent link="LTibia"/>
+    <child link="LAnklePitch_link"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.1029"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="LAnklePitch_link">
+    <inertial>
+      <mass value="0.13416"/>
+      <inertia ixx="3.22034e-05" ixy="-8.83212e-09" ixz="4.27549e-06" iyy="6.7943e-05" iyz="2.84849e-07" izz="5.48269e-05"/>
+      <origin rpy="0 0 0" xyz="0.00045 0.00029 0.00685"/>
+    </inertial>
+  </link>
+
+  <joint name="LAnkleRoll" type="continuous">
+    <parent link="LAnklePitch_link"/>
+    <child link="l_ankle"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="-1.0 0 0"/>
+  </joint>
+  <link name="l_ankle">
+    <inertial>
+      <mass value="0.17184"/>
+      <inertia ixx="8.72911e-05" ixy="8.71925e-06" ixz="-2.10563e-06" iyy="0.000353024" iyz="3.73459e-07" izz="0.000412846"/>
+      <origin rpy="0 0 0" xyz="0.02542 0.0033 -0.03239"/>
+    </inertial>
+  </link>
+
+  <joint name="RHipYawPitch" type="continuous">
+    <parent link="torso"/>
+    <child link="RPelvis"/>
+    <origin rpy="0 0 0" xyz="0 -0.05 -0.085"/>
+    <axis xyz="0 0.7071067814 0.7071067814"/>
+    <mimic joint="LHipYawPitch" multiplier="1.0" offset="0"/>
+  </joint>
+  <link name="RPelvis">
+    <inertial>
+      <mass value="0.06981"/>
+      <inertia ixx="3.18766e-05" ixy="-1.07152e-06" ixz="-1.77295e-06" iyy="5.18361e-05" iyz="-7.00664e-06" izz="5.39657e-05"/>
+      <origin rpy="0 0 0" xyz="-0.00781 0.01114 0.02661"/>
+    </inertial>
+  </link>
+
+  <joint name="RHipRoll" type="continuous">
+    <parent link="RPelvis"/>
+    <child link="RHip"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="1.0 0 0"/>
+  </joint>
+  <link name="RHip">
+    <inertial>
+      <mass value="0.14053"/>
+      <inertia ixx="2.38475e-05" ixy="6.12085e-07" ixz="7.10235e-06" iyy="6.0824e-05" iyz="2.12392e-07" izz="5.43727e-05"/>
+      <origin rpy="0 0 0" xyz="-0.01549 -0.00029 -0.00515"/>
+    </inertial>
+  </link>
+
+  <joint name="RHipPitch" type="continuous">
+    <parent link="RHip"/>
+    <child link="RThigh"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="RThigh">
+    <inertial>
+      <mass value="0.38968"/>
+      <inertia ixx="0.000510607" ixy="-2.02799e-06" ixz="5.69893e-05" iyy="0.0004665" iyz="7.09563e-06" izz="0.000301333"/>
+      <origin rpy="0 0 0" xyz="0.00138 -0.00221 -0.05373"/>
+    </inertial>
+  </link>
+
+  <joint name="RKneePitch" type="continuous">
+    <parent link="RThigh"/>
+    <child link="RTibia"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.1"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="RTibia">
+    <inertial>
+      <mass value="0.30142"/>
+      <inertia ixx="0.000446921" ixy="-3.96872e-06" ixz="-3.94009e-05" iyy="0.000387711" iyz="-5.00034e-06" izz="0.000183741"/>
+      <origin rpy="0 0 0" xyz="0.00453 -0.00225 -0.04936"/>
+    </inertial>
+  </link>
+
+  <joint name="RAnklePitch" type="continuous">
+    <parent link="RTibia"/>
+    <child link="RAnklePitch_link"/>
+    <origin rpy="0 0 0" xyz="0 0 -0.1029"/>
+    <axis xyz="0 1.0 0"/>
+  </joint>
+  <link name="RAnklePitch_link">
+    <inertial>
+      <mass value="0.13416"/>
+      <inertia ixx="3.22017e-05" ixy="4.68321e-08" ixz="4.28821e-06" iyy="6.79885e-05" iyz="-2.71089e-07" izz="5.48747e-05"/>
+      <origin rpy="0 0 0" xyz="0.00045 -0.00029 0.00685"/>
+    </inertial>
+  </link>
+
+  <joint name="RAnkleRoll" type="continuous">
+    <parent link="RAnklePitch_link"/>
+    <child link="r_ankle"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="1.0 0 0"/>
+  </joint>
+  <link name="r_ankle">
+    <inertial>
+      <mass value="0.17184"/>
+      <inertia ixx="8.71513e-05" ixy="-8.53992e-06" ixz="-2.35184e-06" iyy="0.000352156" iyz="-4.81708e-07" izz="0.000412125"/>
+      <origin rpy="0 0 0" xyz="0.02542 -0.0033 -0.03239"/>
+    </inertial>
+  </link>
+  <joint name="RLShoulderPitch" type="continuous">
+    <parent link="torso"/>
+    <child link="LShoulder"/>
+    <origin rpy="0 0 0" xyz="0 0.098 0.1"/>
+    <axis xyz="0 -1.0 0"/>
+  </joint>
+  <link name="LShoulder">
+    <inertial>
+      <mass value="0.09304"/>
+      <inertia ixx="1.83025e-05" ixy="2.06011e-06" ixz="1.88776e-09" iyy="1.39005e-05" iyz="-3.66592e-07" izz="2.01862e-05"/>
+      <origin rpy="0 0 0" xyz="-0.00165 -0.02663 0.00014"/>
+    </inertial>
+  </link>
+
+  <joint name="LShoulderRoll" type="continuous">
+    <parent link="LShoulder"/>
+    <child link="LBicep"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1.0"/>
+  </joint>
+  <link name="LBicep">
+    <inertial>
+      <mass value="0.15777"/>
+      <inertia ixx="8.7181e-05" ixy="-2.53381e-05" ixz="-1.4213e-05" iyy="0.000274712" iyz="4.71439e-07" izz="0.000241812"/>
+      <origin rpy="0 0 0" xyz="0.02455 0.00563 0.0033"/>
+    </inertial>
+  </link>
+
+  <joint name="LElbowYaw" type="continuous">
+    <parent link="LBicep"/>
+    <child link="LElbow"/>
+    <origin rpy="0 0 0" xyz="0.105 0.015 0"/>
+    <axis xyz="1.0 0 0"/>
+  </joint>
+  <link name="LElbow">
+    <inertial>
+      <mass value="0.06483"/>
+      <inertia ixx="5.59588e-06" ixy="4.21e-09" ixz="2.92241e-07" iyy="2.66179e-05" iyz="-1.84e-09" izz="2.76294e-05"/>
+      <origin rpy="0 0 0" xyz="-0.02744 0 -0.00014"/>
+    </inertial>
+  </link>
+
+  <joint name="LElbowRoll" type="continuous">
+    <parent link="LElbow"/>
+    <child link="LForeArm"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 1.0"/>
+  </joint>
+  <link name="LForeArm">
+    <inertial>
+      <!-- <mass value="0.26294"/> -->
+      <mass value="0.26294"/>
+      <inertia ixx="6.86477e-05" ixy="1.15465e-07" ixz="-2.87254e-06" iyy="0.000135756" iyz="2.67539e-06" izz="0.000133228"/>
+      <origin rpy="0 0 0" xyz="0.02556 0.00281 0.00076"/>
+    </inertial>
+  </link>
+
+  <joint name="RShoulderPitch" type="continuous">
+    <parent link="torso"/>
+    <child link="RShoulder"/>
+    <origin rpy="0 0 0" xyz="0 -0.098 0.1"/>
+    <axis xyz="0 -1.0 0"/>
+  </joint>
+  <link name="RShoulder">
+    <inertial>
+      <mass value="0.09304"/>
+      <inertia ixx="1.83025e-05" ixy="-2.06011e-06" ixz="1.88776e-09" iyy="1.39005e-05" iyz="3.66592e-07" izz="2.01862e-05"/>
+      <origin rpy="0 0 0" xyz="-0.00165 0.02663 0.00014"/>
+    </inertial>
+  </link>
+
+  <joint name="RShoulderRoll" type="continuous">
+    <parent link="RShoulder"/>
+    <child link="RBicep"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 -1.0"/>
+  </joint>
+  <link name="RBicep">
+    <inertial>
+      <mass value="0.15777"/>
+      <inertia ixx="0.000103401" ixy="5.48849e-05" ixz="-1.32643e-05" iyy="0.00027077" iyz="9.16707e-06" izz="0.000254529"/>
+      <origin rpy="0 0 0" xyz="0.02455 -0.00563 0.0033"/>
+    </inertial>
+  </link>
+
+  <joint name="RElbowYaw" type="continuous">
+    <parent link="RBicep"/>
+    <child link="RElbow"/>
+    <origin rpy="0 0 0" xyz="0.105 -0.015 0"/>
+    <axis xyz="-1.0 0 0"/>
+  </joint>
+  <link name="RElbow">
+    <inertial>
+      <mass value="0.06483"/>
+      <inertia ixx="5.59588e-06" ixy="4.21e-09" ixz="2.92241e-07" iyy="2.66179e-05" iyz="-1.84e-09" izz="2.76294e-05"/>
+      <origin rpy="0 0 0" xyz="-0.02744 0 -0.00014"/>
+    </inertial>
+  </link>
+
+  <joint name="RElbowRoll" type="continuous">
+    <parent link="RElbow"/>
+    <child link="RForeArm"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <axis xyz="0 0 -1.0"/>
+  </joint>
+  <link name="RForeArm">
+    <inertial>
+      <!-- <mass value="0.26294"/> -->
+      <mass value="0.26294"/>
+      <inertia ixx="6.86477e-05" ixy="1.13165e-05" ixz="-2.87254e-06" iyy="0.000135756" iyz="3.68003e-06" izz="0.000133228"/>
+      <origin rpy="0 0 0" xyz="0.02556 -0.00281 0.00076"/>
+    </inertial>
+  </link>
+
+  <!-- LEFT Foot Foot  -->
+  <!-- foot_left_outfront: attached on the l_ankle -->
+  <joint name="zleft_outfront" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="0.1 0.02 -0.0474"/>
+    <parent link="l_ankle"/>
+    <child link="lfoot_outfront" />
+  </joint>
+  <link name="lfoot_outfront">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- foot_left_infront: attached on the l_ankle -->
+  <joint name="zleft_infront" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="0.1 -0.02 -0.0474"/>
+    <parent link="l_ankle"/>
+    <child link="lfoot_infront" />
+  </joint>
+  <link name="lfoot_infront">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- foot_left_outback: attached on the l_ankle -->
+  <joint name="zleft_outback" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.02 -0.0474"/>
+    <parent link="l_ankle"/>
+    <child link="lfoot_outback" />
+  </joint>
+  <link name="lfoot_outback">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- foot_left_inback: attached on the l_ankle -->
+  <joint name="zleft_inback" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.02 -0.0474"/>
+    <parent link="l_ankle"/>
+    <child link="lfoot_inback" />
+  </joint>
+  <link name="lfoot_inback">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- RIGHT Foot Foot  -->
+  <!-- foot_right_outfront: attached on the l_ankle -->
+  <joint name="zright_outfront" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="0.1 -0.02 -0.0474"/>
+    <parent link="r_ankle"/>
+    <child link="rfoot_outfront" />
+  </joint>
+  <link name="rfoot_outfront">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- foot_right_infront: attached on the r_ankle -->
+  <joint name="zright_infront" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="0.1 0.02 -0.0474"/>
+    <parent link="r_ankle"/>
+    <child link="rfoot_infront" />
+  </joint>
+  <link name="rfoot_infront">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+    <!-- foot_right_outback: attached on the r_ankle -->
+  <joint name="zright_outback" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.02 -0.0474"/>
+    <parent link="r_ankle"/>
+    <child link="rfoot_outback" />
+  </joint>
+  <link name="rfoot_outback">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+
+  <!-- foot_right_inback: attached on the r_ankle -->
+  <joint name="zright_inback" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.02 -0.0474"/>
+    <parent link="r_ankle"/>
+    <child link="rfoot_inback" />
+  </joint>
+  <link name="rfoot_inback">
+    <inertial>
+      <mass value="0.000000000001"/>
+      <origin xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+    </inertial>
+  </link>
+</robot>
+
