@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libsrg.a  CMakeFiles/srg.dir/srg.cpp.o CMakeFiles/srg.dir/srgBitmap.cpp.o CMakeFiles/srg.dir/srgCamera.cpp.o CMakeFiles/srg.dir/srgColor.cpp.o CMakeFiles/srg.dir/srgFont.cpp.o CMakeFiles/srg.dir/srgGeometryDraw.cpp.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libsrg.a
