@@ -4,10 +4,22 @@
 
 cmake_minimum_required(VERSION 3.0)
 project(SDC_Toolkit)
+
+#------------------------------------------------------------------------
+#     Build Setup
+#------------------------------------------------------------------------
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_CXX_FLAGS "-std=c++11")
+
 include_directories ("${PROJECT_SOURCE_DIR}/")
 include_directories ("${PROJECT_SOURCE_DIR}/ExternalSource")
 include_directories ("${PROJECT_SOURCE_DIR}/WBC")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+# set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
+add_definitions(-O3)
+
 #------------------------------------------------------------------------
 #     System Selection
 #------------------------------------------------------------------------
@@ -30,16 +42,6 @@ add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 add_subdirectory (Simulator/srSimulator)
 # add_subdirectory (MachineLearning_Package)
-
-#------------------------------------------------------------------------
-#     Build Setup
-#------------------------------------------------------------------------
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "-std=c++11")
-
-# set (CMAKE_BUILD_TYPE Debug)
-set (CMAKE_BUILD_TYPE Release)
-add_definitions(-O3)
 
 #------------------------------------------------------------------------
 # Configuration

@@ -1,9 +1,11 @@
 #include "DracoSystem.hpp"
 #include "ControlSet/WBDC_Ctrl.hpp"
+#include "ControlSet/WBDC_Slip_ctrl.hpp"
 
 DracoSystem::DracoSystem(){
   printf("System\n");
-  controller_ = new WBDC_Ctrl();
+  // controller_ = new WBDC_Ctrl();
+  controller_ = new WBDC_Slip_ctrl();
 
   // Add more controllers here.
   // Uncomment the line with your own controller to use it

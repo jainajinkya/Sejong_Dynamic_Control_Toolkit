@@ -48,12 +48,13 @@ template <int DIM_RF, int DIM_SELECTED_TASK, int DIM_TASK>
     }
 
     for (int i(0); i<DIM_RF; ++i){
-      G[i][i] = 0.01;
+      G[i][i] = 1.0;
     }
-    G[1][1] = 0.00001;
+    G[1][1] = 0.0001;
     for (int i(DIM_RF); i<DIM_RF + DIM_SELECTED_TASK; ++i){
-      G[i][i] = 10000.;
+      G[i][i] = 1000.;
     }
+    G[DIM_SELECTED_TASK + DIM_RF - 1][DIM_SELECTED_TASK + DIM_RF - 1] = 0.1;
     std::cout<<G<<std::endl;
   }
 

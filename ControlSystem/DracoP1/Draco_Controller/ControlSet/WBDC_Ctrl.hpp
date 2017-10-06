@@ -36,7 +36,7 @@ protected:
 
   void _jpos_ctrl(sejong::Vector & gamma);
   void _body_ctrl(sejong::Vector & gamma);
-
+  void _body_ctrl2(sejong::Vector & gamma);
   int count_command_;
   double state_machine_time_;
   double start_time_;
