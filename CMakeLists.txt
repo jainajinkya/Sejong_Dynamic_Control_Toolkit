@@ -26,22 +26,24 @@ add_definitions(-O3)
 # SET (CTRL_SYS "Valkyrie")
 # SET (CTRL_SYS "Hume")
 # SET (CTRL_SYS "NAO")
-SET (CTRL_SYS "DracoP1")
+# SET (CTRL_SYS "DracoP1")
+SET (CTRL_SYS "Openchain3DoF")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 
 #------------------------------------------------------------------------
 #    Directory Selection
 #------------------------------------------------------------------------
+# add_subdirectory (Simulator/srSimulator)
+add_subdirectory (Simulator/RBDL_simulator)
 add_subdirectory (Utils)
 add_subdirectory (Filter)
 add_subdirectory (ExternalSource)
 add_subdirectory (Optimizer)
-# add_subdirectory (LocomotionPlanner)
 add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
-add_subdirectory (Simulator/srSimulator)
 # add_subdirectory (MachineLearning_Package)
+# add_subdirectory (LocomotionPlanner)
 
 #------------------------------------------------------------------------
 # Configuration
