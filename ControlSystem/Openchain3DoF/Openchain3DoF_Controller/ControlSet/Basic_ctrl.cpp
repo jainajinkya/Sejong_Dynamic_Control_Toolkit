@@ -82,11 +82,13 @@ void Basic_ctrl::_ee_ctrl(sejong::Vector & gamma){
 
   // Commanded acceleration
   double kp(10.);
-  double kd(2.);
+  double kd(1.0);
   sejong::Vector xddot(2);
   for(int i(0); i<2; ++i){ // (x, z)
     xddot[i] = ee_acc[i] + kp*(ee_des[i] - ee_pos[i]) + kd * (ee_vel_des[i] - ee_vel[i]);
   }
+
+  sejong::Vector jpos_cmd = kp * (jpos_ini_ - sp_->Q_ ) + kd * (-sp_->Qdot_);
 
   // Jacobian
   sejong::Matrix Jee, Jee_inv;
@@ -99,8 +101,14 @@ void Basic_ctrl::_ee_ctrl(sejong::Vector & gamma){
   robot_model_->getFullJacobianDot(sp_->Q_, sp_->Qdot_, SJLinkID::LK_EE, Jtmp);
   Jee_dot = Jtmp.block(0,0, 2, NUM_QDOT);
 
+  // Joint task
+  sejong::Matrix Nee = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - Jee_inv * Jee;
+  sejong::Matrix Jqee_inv;
+  _DynConsistent_Inverse(Nee, Jqee_inv);
+
   // Torque command
   sejong::Vector qddot = Jee_inv * (xddot - Jee_dot * sp_->Qdot_);
+  qddot = qddot + Jqee_inv * (jpos_cmd - qddot);
   gamma = A_ * qddot + coriolis_ + grav_;
 }
 
