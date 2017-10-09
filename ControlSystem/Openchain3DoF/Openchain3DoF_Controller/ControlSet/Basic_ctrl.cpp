@@ -12,15 +12,6 @@ Basic_ctrl::Basic_ctrl(): OC3Controller(),
                           act_pos_(2),
                           act_vel_(2)
 {
-  tau_min_.setZero();
-  tau_max_.setZero();
-  double torque_limit(175.);
-  // double torque_limit(75.);
-
-  for (int i(0); i<NUM_ACT_JOINT; ++i){
-    tau_max_(i,0) = torque_limit;
-    tau_min_(i,0) = -torque_limit;
-  }
   printf("[Basic Controller] Start\n");
 }
 

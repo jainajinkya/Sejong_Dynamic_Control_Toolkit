@@ -15,7 +15,7 @@ PlottingManager::PlottingManager():
   Py_Initialize();
 
   std::string cmd_string( "import sys; sys.path.append('" );
-  cmd_string.append( THIS_COM"/Simulator/RBDL_simulator/python/')" );
+  cmd_string.append( THIS_COM"/Simulator/RBDL_simulator/SimManager/')" );
   PyRun_SimpleString(cmd_string.c_str());
 
   // Now execute some python code (call python functions)

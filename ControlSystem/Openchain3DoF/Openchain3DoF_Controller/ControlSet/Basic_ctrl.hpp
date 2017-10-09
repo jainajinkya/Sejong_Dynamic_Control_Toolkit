@@ -34,9 +34,6 @@ protected:
   SJLinkID link_id_;
   int initialization_count_;
 
-  Eigen::Matrix<double, NUM_ACT_JOINT, 1> tau_min_;
-  Eigen::Matrix<double, NUM_ACT_JOINT, 1> tau_max_;
-  Eigen::Matrix<double, NUM_ACT_JOINT, 1> cmd_;
 };
 
 
