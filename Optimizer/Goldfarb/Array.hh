@@ -908,7 +908,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(unsigned int n, unsigned int m)
     : v(new T*[n])
   {
-    register unsigned int i;
+    unsigned int i;
     this->n = n; this->m = m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -919,7 +919,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(const T& a, unsigned int n, unsigned int m)
     : v(new T*[n])
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     this->n = n; this->m = m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -933,7 +933,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(const T* a, unsigned int n, unsigned int m)
     : v(new T*[n])
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     this->n = n; this->m = m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -947,7 +947,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(MType t, const T& a, const T& o, unsigned int n, unsigned int m)
     : v(new T*[n])
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     this->n = n; this->m = m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -971,7 +971,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(MType t, const GVect<T>& a, const T& o, unsigned int n, unsigned int m)
     : v(new T*[n])
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     this->n = n; this->m = m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -995,7 +995,7 @@ namespace GolDIdnani{
   GMatr<T>::GMatr(const GMatr<T>& rhs)
     : v(new T*[rhs.n])
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     n = rhs.n; m = rhs.m;
     v[0] = new T[m * n];
     for (i = 1; i < n; i++)
@@ -1020,7 +1020,7 @@ namespace GolDIdnani{
   // if matrix and rhs were different sizes, matrix
   // has been resized to match the size of rhs
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     if (this != &rhs)
       {
         resize(rhs.n, rhs.m);
@@ -1034,7 +1034,7 @@ namespace GolDIdnani{
   template <typename T>
   inline GMatr<T>& GMatr<T>::operator=(const T& a) // assign a to every element
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     for (i = 0; i < n; i++)
       for (j = 0; j < m; j++)
         v[i][j] = a;
@@ -1045,7 +1045,7 @@ namespace GolDIdnani{
   template <typename T>
   inline void GMatr<T>::resize(const unsigned int n, const unsigned int m)
   {
-    register unsigned int i;
+    unsigned int i;
     if (n == this->n && m == this->m)
       return;
     if (v != 0)
@@ -1063,7 +1063,7 @@ namespace GolDIdnani{
   template <typename T>
   inline void GMatr<T>::resize(const T& a, const unsigned int n, const unsigned int m)
   {
-    register unsigned int i, j;
+    unsigned int i, j;
     resize(n, m);
     for (i = 0; i < n; i++)
       for (j = 0; j < m; j++)
@@ -1085,7 +1085,7 @@ namespace GolDIdnani{
   template <typename T>
   inline GVect<T> GMatr<T>::extractColumn(const unsigned int j) const
   {
-    register unsigned int i;
+    unsigned int i;
     if (j >= m)
       throw std::logic_error("Error in extractRow: trying to extract a row out of matrix bounds");
     GVect<T> tmp(n);
@@ -1099,7 +1099,7 @@ namespace GolDIdnani{
   template <typename T>
   inline GVect<T> GMatr<T>::extractDiag() const
   {
-    register unsigned int d = std::min(n, m), i;
+    unsigned int d = std::min(n, m), i;
 
     GVect<T> tmp(d);
 
@@ -1114,7 +1114,7 @@ namespace GolDIdnani{
   inline GMatr<T> GMatr<T>::extractRows(const std::set<unsigned int>& indexes) const
   {
     GMatr<T> tmp(indexes.size(), m);
-    register unsigned int i = 0, j;
+    unsigned int i = 0, j;
 
     for (std::set<unsigned int>::const_iterator el = indexes.begin(); el != indexes.end(); el++)
       {
@@ -1134,7 +1134,7 @@ namespace GolDIdnani{
   inline GMatr<T> GMatr<T>::extractColumns(const std::set<unsigned int>& indexes) const
   {
     GMatr<T> tmp(n, indexes.size());
-    register unsigned int i, j = 0;
+    unsigned int i, j = 0;
 
     for (std::set<unsigned int>::const_iterator el = indexes.begin(); el != indexes.end(); el++)
       {
@@ -1154,7 +1154,7 @@ namespace GolDIdnani{
   inline GMatr<T> GMatr<T>::extract(const std::set<unsigned int>& r_indexes, const std::set<unsigned int>& c_indexes) const
   {
     GMatr<T> tmp(r_indexes.size(), c_indexes.size());
-    register unsigned int i = 0, j;
+    unsigned int i = 0, j;
 
     for (std::set<unsigned int>::const_iterator r_el = r_indexes.begin(); r_el != r_indexes.end(); r_el++)
       {
@@ -2056,8 +2056,8 @@ namespace GolDIdnani{
   {
     if (A.ncols() != A.nrows())
       throw std::logic_error("Error in Cholesky decomposition: matrix must be squared");
-    register int i, j, k, n = A.ncols();
-    register double sum;
+    int i, j, k, n = A.ncols();
+    double sum;
     LL = A;
 
     for (i = 0; i < n; i++)
@@ -2121,7 +2121,7 @@ namespace GolDIdnani{
       throw std::logic_error("Error in Forward elimination: matrix must be squared (lower triangular)");
     if (b.size() != L.nrows())
       throw std::logic_error("Error in Forward elimination: b vector must be of the same dimensions of L matrix");
-    register int i, j, n = b.size();
+    int i, j, n = b.size();
     y.resize(n);
 
     y[0] = b[0] / L[0][0];
@@ -2150,7 +2150,7 @@ namespace GolDIdnani{
       throw std::logic_error("Error in Backward elimination: matrix must be squared (upper triangular)");
     if (y.size() != U.nrows())
       throw std::logic_error("Error in Backward elimination: b vector must be of the same dimensions of U matrix");
-    register int i, j, n = y.size();
+    int i, j, n = y.size();
     x.resize(n);
 
     x[n - 1] = y[n - 1] / U[n - 1][n - 1];

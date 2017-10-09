@@ -30,7 +30,7 @@ void PlotSys_Openchain3DoF::GetStEndPt_Link(std::vector<double> & st_x,
   st_x[1] = pos[0];
   st_y[1] = pos[1];
 
-  // L2
+  // Thigh
   model->getPos(SJ_SIM_LinkID::LK_SIM_J3, pos);
 
   end_x[1] = pos[0];
@@ -39,7 +39,7 @@ void PlotSys_Openchain3DoF::GetStEndPt_Link(std::vector<double> & st_x,
   st_x[2] = pos[0];
   st_y[2] = pos[1];
 
-  // EE
+  //Hip
   model->getPos(SJ_SIM_LinkID::LK_SIM_EE, pos);
 
   end_x[2] = pos[0];
