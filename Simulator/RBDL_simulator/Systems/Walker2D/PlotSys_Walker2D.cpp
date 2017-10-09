@@ -1,16 +1,16 @@
-#include "PlotSys_Openchain3DoF.hpp"
-#include "OC3_Sim_Model.hpp"
+#include "PlotSys_Walker2D.hpp"
+#include "Walker2D_Sim_Model.hpp"
 #include <RBDL_Sim_Configuration.h>
 
-PlotSys_Openchain3DoF::PlotSys_Openchain3DoF():Plotting_System(){}
-PlotSys_Openchain3DoF::~PlotSys_Openchain3DoF(){}
+PlotSys_Walker2D::PlotSys_Walker2D():Plotting_System(){}
+PlotSys_Walker2D::~PlotSys_Walker2D(){}
 
 
-void PlotSys_Openchain3DoF::GetStEndPt_Link(std::vector<double> & st_x,
+void PlotSys_Walker2D::GetStEndPt_Link(std::vector<double> & st_x,
                                           std::vector<double> & st_y,
                                           std::vector<double> & end_x,
                                           std::vector<double> & end_y){
-  OC3_Sim_Model* model = OC3_Sim_Model::GetOC3_Sim_Model();
+  Walker2D_Sim_Model* model = Walker2D_Sim_Model::GetWalker2D_Sim_Model();
 
   st_x.resize(NUM_LINES);
   st_y.resize(NUM_LINES);
@@ -18,30 +18,47 @@ void PlotSys_Openchain3DoF::GetStEndPt_Link(std::vector<double> & st_x,
   end_x.resize(NUM_LINES);
   end_y.resize(NUM_LINES);
 
-  Eigen::Vector3d pos;
+  Eigen::Vector3d pos, hip_pos;
 
-  // L1
-  model->getPos(SJ_SIM_LinkID::LK_SIM_J2, pos);
-  st_x[0] = 0.;
-  st_y[0] = 0.;
+
+  model->getPos(SJ_SIM_LinkID::LK_SIM_HIP, hip_pos);
+  // Body
+  st_x[0] = hip_pos[0];
+  st_y[0] = hip_pos[1];
+
+  model->getPos(SJ_SIM_LinkID::LK_SIM_BODY_EE, pos);
   end_x[0] = pos[0];
   end_y[0] = pos[1];
 
-  st_x[1] = pos[0];
-  st_y[1] = pos[1];
+  // Left Thight
+  st_x[1] = hip_pos[0];
+  st_y[1] = hip_pos[1];
 
-  // Thigh
-  model->getPos(SJ_SIM_LinkID::LK_SIM_J3, pos);
-
+  model->getPos(SJ_SIM_LinkID::LK_SIM_LEFT_KNEE, pos);
   end_x[1] = pos[0];
   end_y[1] = pos[1];
 
+  // Left Shank
   st_x[2] = pos[0];
   st_y[2] = pos[1];
 
-  //Hip
-  model->getPos(SJ_SIM_LinkID::LK_SIM_EE, pos);
-
+  model->getPos(SJ_SIM_LinkID::LK_SIM_LEFT_FOOT, pos);
   end_x[2] = pos[0];
   end_y[2] = pos[1];
+
+  // Right Thight
+  st_x[3] = hip_pos[0];
+  st_y[3] = hip_pos[1];
+
+  model->getPos(SJ_SIM_LinkID::LK_SIM_RIGHT_KNEE, pos);
+  end_x[3] = pos[0];
+  end_y[3] = pos[1];
+
+  // Right Shank
+  st_x[4] = pos[0];
+  st_y[4] = pos[1];
+
+  model->getPos(SJ_SIM_LinkID::LK_SIM_RIGHT_FOOT, pos);
+  end_x[4] = pos[0];
+  end_y[4] = pos[1];
 }

@@ -4,18 +4,22 @@
 #include <stdio.h>
 #include <string>
 
-
-#define NUM_LINES 3
+#define NUM_LINES 5
 #define NUM_VALUE_PYTHON NUM_LINES * 4 + 1
 
 enum SJ_SIM_LinkID{
-  LK_SIM_L1 = 0,
-  LK_SIM_L2,
-  LK_SIM_L3,
+  LK_SIM_BODY = 0,
+  LK_SIM_LEFT_THIGH,
+  LK_SIM_LEFT_SHANK,
+  LK_SIM_RIGHT_THIGH,
+  LK_SIM_RIGHT_SHANK,
   NUM_SIM_LINK,
-  LK_SIM_J2,
-  LK_SIM_J3,
-  LK_SIM_EE
+  LK_SIM_HIP,
+  LK_SIM_BODY_EE,
+  LK_SIM_LEFT_KNEE,
+  LK_SIM_RIGHT_KNEE,
+  LK_SIM_LEFT_FOOT,
+  LK_SIM_RIGHT_FOOT
 };
 
 #endif

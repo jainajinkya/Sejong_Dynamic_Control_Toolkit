@@ -26,8 +26,8 @@ def animate(i):
         x_list.append((float(num_string[4*j]), float(num_string[4*j+1]) ) )
         y_list.append((float(num_string[4*j+2]), float(num_string[4*j+3]) ) )
 
-    trail_x.append( x_list[-1][1] )
-    trail_y.append( y_list[-1][1] )
+    trail_x.append( x_list[0][1] )
+    trail_y.append( y_list[0][1] )
 
     trail.set_data(trail_x,trail_y)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
 
-    num_line = 2
+    num_line = 5
     line_list = []
 
     for i in range (0, num_line):

@@ -1,14 +1,14 @@
-#ifndef OPENCHAIN_3D_SIM_TEST_H
-#define OPENCHAIN_3D_SIM_TEST_H
+#ifndef WALKER_2D_SIM_TEST_H
+#define WALKER_2D_SIM_TEST_H
 
 #include <SimManager/DynControlTester.hpp>
-#include <Openchain3DoF_Controller/OC3_interface.hpp>
+#include <Walker2D_Controller/Walker2D_interface.hpp>
 #include <Utils/wrap_eigen.hpp>
 
-class Openchain3DoF_DynCtrl: public DynControlTester{
+class Walker2D_DynCtrl: public DynControlTester{
 public:
-  Openchain3DoF_DynCtrl();
-  virtual ~Openchain3DoF_DynCtrl();
+  Walker2D_DynCtrl();
+  virtual ~Walker2D_DynCtrl();
 
   virtual void Initialization();
 
@@ -23,12 +23,16 @@ protected:
   std::vector<double> jpos;
   std::vector<double> jvel;
   std::vector<double> torque;
+  std::vector<double> body_pos;
+  std::vector<double> body_vel;
+  double body_ori;
+  double body_ang_vel;
   std::vector<double> vec_cmd_;
 
   sejong::Vector m_jpos_ini;
   sejong::Vector m_jvel_ini;
 
-  OC3_interface interface_;
+  Walker2D_interface interface_;
 };
 
 #endif

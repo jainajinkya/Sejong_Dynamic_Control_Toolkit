@@ -28,8 +28,8 @@ add_definitions(-O3)
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
 # SET (CTRL_SYS "Openchain3DoF")
-SET (CTRL_SYS "Openchain2DoF")
-# SET (CTRL_SYS "Walker2D")
+# SET (CTRL_SYS "Openchain2DoF")
+SET (CTRL_SYS "Walker2D")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 
