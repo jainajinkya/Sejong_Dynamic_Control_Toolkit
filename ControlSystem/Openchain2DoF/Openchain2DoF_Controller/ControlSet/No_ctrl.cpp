@@ -1,24 +1,24 @@
-#include "Basic_ctrl.hpp"
+#include "No_ctrl.hpp"
 #include <math.h>
 #include <stdio.h>
 #include <Utils/utilities.hpp>
 #include <Utils/DataManager.hpp>
 #include <Openchain2DoF_Model/OC2_Model.hpp>
 
-Basic_ctrl::Basic_ctrl(): OC2Controller(),
+No_ctrl::No_ctrl(): OC2Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
 {
-  printf("[Basic Controller his] Start\n");
+  printf("[No Controller] Start\n");
 }
 
-Basic_ctrl::~Basic_ctrl(){
+No_ctrl::~No_ctrl(){
 }
 
-void Basic_ctrl::Initialization(){
+void No_ctrl::Initialization(){
   for (int i(0); i < NUM_ACT_JOINT ; ++i){
     jpos_ini_[i] = sp_->Q_[i + NUM_VIRTUAL];
   }
@@ -28,19 +28,24 @@ void Basic_ctrl::Initialization(){
 }
 
 
-void Basic_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
+void No_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
   _PreProcessing_Command();
   gamma.setZero();
 
   // _jpos_ctrl(gamma);
-  _ee_ctrl(gamma);
+  //_ee_ctrl(gamma);
+  _zero_ctrl(gamma);  
   ++count_command_;
 
   state_machine_time_ = sp_->curr_time_ - start_time_;
   _PostProcessing_Command(gamma);
 }
 
-void Basic_ctrl::_jpos_ctrl(sejong::Vector & gamma){
+void No_ctrl::_zero_ctrl(sejong::Vector & gamma){
+  gamma.setZero();
+}
+
+void No_ctrl::_jpos_ctrl(sejong::Vector & gamma){
  
   double kp(100.);
   double kd(10.);
@@ -51,7 +56,7 @@ void Basic_ctrl::_jpos_ctrl(sejong::Vector & gamma){
   gamma = A_ * qddot + coriolis_ + grav_;
 }
 
-void Basic_ctrl::_ee_ctrl(sejong::Vector & gamma){
+void No_ctrl::_ee_ctrl(sejong::Vector & gamma){
 
   sejong::Vect3 ee_des, ee_vel_des, ee_acc;
 
