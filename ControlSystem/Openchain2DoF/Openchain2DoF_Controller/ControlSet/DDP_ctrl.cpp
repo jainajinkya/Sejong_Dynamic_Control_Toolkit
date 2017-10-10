@@ -60,12 +60,26 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 
   //_jpos_ctrl(gamma);
   //_ee_ctrl(gamma);
-  _zero_ctrl(gamma);  
+  //_zero_ctrl(gamma);  
+  _mpc_ctrl(gamma);    
   ++count_command_;
 
   state_machine_time_ = sp_->curr_time_ - start_time_;
   _PostProcessing_Command(gamma);
 }
+
+void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
+/*  printf("sp_->Q_.size() = %zu", sp_->Q_.size());
+  printf("sp_->Qdot_.size() = %zu", sp_->Qdot_.size()); 
+*/
+  sejong::pretty_print(sp_->Q_, std::cout, "Q");
+  sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");  
+
+//  sejong::Vector x_state
+
+  gamma.setZero();  
+}
+
 
 void DDP_ctrl::_zero_ctrl(sejong::Vector & gamma){
   gamma.setZero();

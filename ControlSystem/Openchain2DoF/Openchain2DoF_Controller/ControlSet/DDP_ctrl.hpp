@@ -17,13 +17,14 @@ protected:
   void _zero_ctrl(sejong::Vector & gamma); 
   void _jpos_ctrl(sejong::Vector & gamma);
   void _ee_ctrl(sejong::Vector & gamma);
+  void _mpc_ctrl(sejong::Vector & gamma);
 
   void _internal_simulate(const sejong::Vector & x_state, const sejong::Vector & u_in, sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
   void _gradient_finite_difference();
   void _hessian_finite_difference();  
-  void _mpc_ctrl(const sejong::Vector & gamma);
+
 
   sejong::Vect3 ee_ini_;
 
