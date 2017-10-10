@@ -3,18 +3,21 @@
 #include <stdio.h>
 #include <Utils/utilities.hpp>
 #include <Utils/DataManager.hpp>
-#include <Openchain2DoF_Model/OC2_Model.hpp>
+
 
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
-                          q_temp(NUM_QDOT),
+                          q_temp(NUM_Q),
                           qdot_temp(NUM_QDOT),
-                          jpos_ini_(NUM_ACT_JOINT),                          
+                          jpos_ini_(NUM_ACT_JOINT),
+                          N_horizon(5),                          
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
 {
-  internal_model = OC2_Sim_Model::GetOC2_Sim_Model(); // Get Model of the robot for internal simulation
+  internal_model = OC2Model::GetOC2Model(); // Get Model of the robot for internal simulation
+  x_sequence = std::vector<sejong::Vector>(N_horizon);
+  u_sequence = std::vector<sejong::Vector>(N_horizon);  
 
   printf("[DDP Controller] Start\n");
   printf("Size of (q, qdot): (%zu, %zu)", q_temp.size(), qdot_temp.size());
@@ -69,13 +72,18 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 }
 
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
-/*  printf("sp_->Q_.size() = %zu", sp_->Q_.size());
-  printf("sp_->Qdot_.size() = %zu", sp_->Qdot_.size()); 
-*/
   sejong::pretty_print(sp_->Q_, std::cout, "Q");
   sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");  
 
-//  sejong::Vector x_state
+  // x = [q, qdot]
+  sejong::Vector x_state(NUM_Q + NUM_QDOT);
+  x_state.head(NUM_Q) = sp_->Q_; // Store current Q position to state
+  x_state.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
+  sejong::pretty_print(x_state, std::cout, "x_state");  
+
+  // Initialize x_i 
+  x_sequence[0] = x_state;
+
 
   gamma.setZero();  
 }

@@ -2,7 +2,11 @@
 #define OPENCHAIN_2DOF_DDP_CONTROLLER_H
 
 #include <Openchain2DoF_Controller/OC2Controller.hpp>
-#include <Simulator/RBDL_simulator/Systems/Openchain2DoF/OC2_Sim_Model.hpp>
+//#include <Simulator/RBDL_simulator/Systems/Openchain2DoF/OC2_Sim_Model.hpp>
+
+#include <Openchain2DoF_Model/OC2_Model.hpp>
+#include <Openchain2DoF_Model/OC2_Dyn_Model.hpp>
+#include <Openchain2DoF_Model/OC2_Kin_Model.hpp>
 
 class DDP_ctrl: public OC2Controller{
 public:
@@ -29,7 +33,7 @@ protected:
   sejong::Vect3 ee_ini_;
 
   // Get Internal Model of the robot for MPC
-  OC2_Sim_Model* internal_model;
+  OC2Model* internal_model;
   std::vector<sejong::Vector> x_sequence;  
   std::vector<sejong::Vector> u_sequence;
   sejong::Vector q_temp;
