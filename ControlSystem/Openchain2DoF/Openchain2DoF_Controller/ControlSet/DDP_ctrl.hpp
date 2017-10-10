@@ -18,18 +18,19 @@ protected:
   void _jpos_ctrl(sejong::Vector & gamma);
   void _ee_ctrl(sejong::Vector & gamma);
 
-  void _mpc_ctrl(sejong::Vector & gamma);
-  void _internal_simulate(sejong::Vector & x_state, sejong::Vector & gamma); // x_{t+1} = f(x, gamma(u))
-  void _l_running_cost(sejong::Vector & x_state, sejong::Vector & gamma);
-  void _l_final_cost(sejong::Vector & x_state_final);  
+  void _internal_simulate(const sejong::Vector & x_state, const sejong::Vector & u_in, sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
+  void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
+  void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
   void _gradient_finite_difference();
   void _hessian_finite_difference();  
+  void _mpc_ctrl(const sejong::Vector & gamma);
 
   sejong::Vect3 ee_ini_;
 
   // Get Internal Model of the robot for MPC
-  OC2_Sim_Model* internal_model = OC2_Sim_Model::GetOC2_Sim_Model();
-  std::vector<sejong::Vector> gamma_sequence;
+  OC2_Sim_Model* internal_model;
+  std::vector<sejong::Vector> x_sequence;  
+  std::vector<sejong::Vector> u_sequence;
   sejong::Vector q_temp;
   sejong::Vector qdot_temp;  
 

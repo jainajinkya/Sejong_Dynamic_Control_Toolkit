@@ -14,6 +14,8 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           act_pos_(2),
                           act_vel_(2)
 {
+  internal_model = OC2_Sim_Model::GetOC2_Sim_Model(); // Get Model of the robot for internal simulation
+
   printf("[DDP Controller] Start\n");
   printf("Size of (q, qdot): (%zu, %zu)", q_temp.size(), qdot_temp.size());
 }
@@ -28,6 +30,27 @@ void DDP_ctrl::Initialization(){
   robot_model_->getPosition(sp_->Q_, SJLinkID::LK_EE, ee_ini_);
   start_time_ = sp_->curr_time_;
   phase_ = 10;
+}
+
+
+void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state, 
+                                  const sejong::Vector & gamma, 
+                                  sejong::Vector & x_next_state){
+  // x_state = [q, qdot]
+  // q_tmp = x_state[0] 
+  // qdot = x_state[1]
+
+  /*
+  getGamma(q, qdot, u) // Whole body control based on u and current state
+
+
+  internal_model->getMassInertia(A_);
+  internal_model->getInverseMassInertia(Ainv_);
+  internal_model->getGravity(grav_);
+  internal_model->getCoriolis(coriolis_); 
+
+  */
+
 }
 
 
