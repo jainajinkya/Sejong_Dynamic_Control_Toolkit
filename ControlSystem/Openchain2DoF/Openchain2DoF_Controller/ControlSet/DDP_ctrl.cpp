@@ -8,7 +8,8 @@
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
-                          N_horizon(5),                          
+                          N_horizon(5),
+                          DIM_WBC_TASKS(2),                          
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
@@ -29,6 +30,8 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   V_x  = std::vector<sejong::Vector>(N_horizon);
   V_xx = std::vector<sejong::Matrix>(N_horizon);
 
+  _initiailize_u_seqeunce();
+
   J_cost = 0.0;
   J_cost_tail = std::vector<double>(N_horizon);
 
@@ -46,6 +49,87 @@ void DDP_ctrl::Initialization(){
   start_time_ = sp_->curr_time_;
   phase_ = 10;
 }
+
+
+void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
+  _PreProcessing_Command();
+  gamma.setZero();
+
+  //_jpos_ctrl(gamma);
+  //_ee_ctrl(gamma);
+  //_zero_ctrl(gamma);  
+  _mpc_ctrl(gamma);    
+  ++count_command_;
+
+  state_machine_time_ = sp_->curr_time_ - start_time_;
+  _PostProcessing_Command(gamma);
+}
+
+
+void DDP_ctrl::_initiailize_u_seqeunce(){
+  // Near zero initialization
+  for(size_t i = 0; i < u_sequence.size(); i++){
+    sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
+    for (size_t j = 0; j < DIM_WBC_TASKS; j++){
+      u_vec[j] = 0.001; // this can be random
+    }
+    u_vec[1] = 0.0;
+    u_sequence[i] = u_vec;
+  }
+}
+
+void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_tmp){
+  // Initialize States
+  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
+
+  // Update internal model
+  internal_model->UpdateModel(q_int, qdot_int);
+  internal_model->getMassInertia(A_int);
+  internal_model->getInverseMassInertia(Ainv_int);
+  internal_model->getGravity(grav_int);
+  internal_model->getCoriolis(coriolis_int);
+
+  // Commanded Task acceleration
+  sejong::Vector xddot = des_acc;
+
+  // Commanded Joint Task
+  double kp(100.);
+  double kd(10.);
+  sejong::Vector jpos_cmd = kp * (jpos_ini_ - q_int ) + kd * (qdot_int);
+
+  // For Debug
+  sejong::Vect3 ee_pos;
+  sejong::Vect3 ee_vel;
+
+  internal_model->getPosition(q_int, SJLinkID::LK_EE, ee_pos);
+  internal_model->getVelocity(qdot_int, sp_->Qdot_, SJLinkID::LK_EE, ee_vel);
+  sejong::pretty_print(ee_pos, std::cout, "x position");
+  // 
+
+  // Jacobian
+  sejong::Matrix Jee, Jee_inv;
+  sejong::Matrix Jtmp;
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_EE, Jtmp);
+  Jee = Jtmp.block(0,0, 2, NUM_QDOT);
+  _DynConsistent_Inverse(Jee, Jee_inv);
+
+  sejong::Matrix Jee_dot;
+  internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_EE, Jtmp);
+  Jee_dot = Jtmp.block(0,0, 2, NUM_QDOT);
+
+  // Joint task
+  sejong::Matrix Nee = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - Jee_inv * Jee;
+  sejong::Matrix Jqee_inv;
+  _DynConsistent_Inverse(Nee, Jqee_inv);
+
+  // Torque command
+  sejong::Vector qddot = Jee_inv * (xddot - Jee_dot * qdot_int);
+  qddot = qddot + Jqee_inv * (jpos_cmd - qddot);
+  gamma_tmp = A_int * qddot + coriolis_int + grav_int;  
+
+}
+
 
 
 /*void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state, 
@@ -69,35 +153,19 @@ void DDP_ctrl::Initialization(){
 //}
 
 
-void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
-  _PreProcessing_Command();
-  gamma.setZero();
-
-  //_jpos_ctrl(gamma);
-  //_ee_ctrl(gamma);
-  //_zero_ctrl(gamma);  
-  _mpc_ctrl(gamma);    
-  ++count_command_;
-
-  state_machine_time_ = sp_->curr_time_ - start_time_;
-  _PostProcessing_Command(gamma);
-}
-
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
-  sejong::pretty_print(sp_->Q_, std::cout, "Q");
-  sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");  
-
   // x = [q, qdot]
   sejong::Vector x_state(NUM_Q + NUM_QDOT);
   x_state.head(NUM_Q) = sp_->Q_; // Store current Q position to state
   x_state.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
-  sejong::pretty_print(x_state, std::cout, "x_state");  
+//  sejong::pretty_print(x_state, std::cout, "x_state");  
+
 
   // Initialize x_i 
   x_sequence[0] = x_state;
 
-
   gamma.setZero();  
+  getWBC_command(x_sequence[0], u_sequence[0], gamma);
 }
 
 
