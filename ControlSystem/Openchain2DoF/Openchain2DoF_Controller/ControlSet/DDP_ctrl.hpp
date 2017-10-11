@@ -23,17 +23,22 @@ protected:
   void _ee_ctrl(sejong::Vector & gamma);
   void _mpc_ctrl(sejong::Vector & gamma);
 
-
-  void _initiailize_u_sequence(); // Initializes U = {u1, u2, ..., uN}
-  void _initiailize_x_sequence(const sejong::Vector x_state_start); // Initializes X = {x1, x2, ..., xN}
-
-  void getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); // gives torque for desired task accelerations
-  void update_internal_model(const sejong::Vector & x_state);
+  // Updates a model of the robot given x = [q, qdot]
+  void _update_internal_model(const sejong::Vector & x_state);
+  // Initializes U = {u1, u2, ..., uN}
+  void _initiailize_u_sequence(); 
+  // Initializes X = {x1, x2, ..., xN}
+  void _initiailize_x_sequence(const sejong::Vector x_state_start); 
+  // gives torque for desired task accelerations
+  void _getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); 
+   // Computes x_{t+1} = f(x, gamma(u)) for  a specified simulation rate
   void _internal_simulate_single_step(const sejong::Vector & x_state, 
                                       const sejong::Vector & gamma_int, 
-                                      sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
-  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); // Simulates U to get X
-
+                                      sejong::Vector & x_next_state);
+  // Simulates U = {u1, u2, ..., uN} to get X = {x1, x2, ..., xN}
+  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); 
+  // computes l(x,u) - A quadratic cost 
+  void _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
   void _gradient_finite_difference();
@@ -53,6 +58,7 @@ protected:
   int DIM_WBC_TASKS;
   std::vector<sejong::Vector> x_sequence;  
   std::vector<sejong::Vector> u_sequence;
+  std::vector<sejong::Vector> gamma_sequence;  
 
   std::vector<sejong::Vector> l_x;  
   std::vector<sejong::Matrix> l_xx;  
@@ -72,6 +78,8 @@ protected:
   int N_horizon; // Control Horizon
   double mpc_time_step;
   double sim_rate;
+
+  sejong::Vector des_oper_goal;
 
 
   // Data Save

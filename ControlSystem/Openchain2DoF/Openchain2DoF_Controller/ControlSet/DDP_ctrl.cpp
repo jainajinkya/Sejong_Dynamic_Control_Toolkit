@@ -10,6 +10,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           jpos_ini_(NUM_ACT_JOINT),
                           N_horizon(5),
                           DIM_WBC_TASKS(2),                          
+                          des_oper_goal(2),
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
@@ -29,6 +30,9 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
 
   V_x  = std::vector<sejong::Vector>(N_horizon);
   V_xx = std::vector<sejong::Matrix>(N_horizon);
+
+  des_oper_goal[0] = -0.25; // Reaching Task x
+  des_oper_goal[1] = 0.25; // Reaching Task y  
 
   _initiailize_u_sequence();
 
@@ -86,7 +90,7 @@ void DDP_ctrl::_initiailize_x_sequence(const sejong::Vector x_state_start){
   _internal_simulate_sequence(u_sequence, x_sequence);
 }
 
-void DDP_ctrl::update_internal_model(const sejong::Vector & x_state){
+void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
   // Initialize States
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
@@ -106,7 +110,7 @@ void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state,
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
 
-  update_internal_model(x_state);
+  _update_internal_model(x_state);
   // Get Joint Accelerations
   sejong::Vector qddot_int = Ainv_int*(gamma_int - coriolis_int - grav_int);
 
@@ -126,7 +130,7 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> U, 
   double mpc_interval = 0.0;
   for(size_t i = 1; i < N_horizon; i++){
     sejong::Vector gamma_int(NUM_ACT_JOINT);
-    getWBC_command(X[i-1], U[i-1], gamma_int);
+    _getWBC_command(X[i-1], U[i-1], gamma_int);
 
     sejong::Vector x_state_tmp = X[i-1];
     sejong::Vector x_next_state_tmp(x_state_tmp.size());
@@ -155,13 +159,43 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> U, 
 
 } 
 
+
+void DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost){
+  sejong::Vect3 ee_pos(2);
+  internal_model->getPosition(x_state.head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+
+  sejong::Matrix Q(ee_pos.size(), ee_pos.size()); // task cost
+  sejong::Matrix R(NUM_ACT_JOINT, NUM_ACT_JOINT); // torque cost
+  sejong::Vector gamma_int(NUM_ACT_JOINT);
+
+  Q.setZero();
+  R.setZero();
+  gamma_int.setZero();
+  // if gamma_int is notNan
+  _getWBC_command(x_state, u_in, gamma_int); // We can get torque for any given state and desired acceleration
+
+  double cost_weight = 0.01;
+  Q(0,0) = cost_weight;
+  Q(1,1) = cost_weight;  
+
+  R(0,0) = cost_weight;
+  R(1,1) = cost_weight;    
+
+  sejong::Matrix cost_in_eigen;
+  cost_in_eigen = (des_oper_goal - ee_pos).transpose() * Q * (des_oper_goal - ee_pos) + gamma_int.transpose() * R * gamma_int;
+
+  cost = cost_in_eigen(0,0);
+  std::cout << "cost = " << cost << std::endl;
+}
+
+
 // get the torque command given desired acceleration
-void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int){
+void DDP_ctrl::_getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int){
   // Initialize States
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
 
-  update_internal_model(x_state);
+  _update_internal_model(x_state);
 
   // Commanded Task acceleration
   sejong::Vector xddot = des_acc;
@@ -228,7 +262,11 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   _initiailize_x_sequence(x_state_start);
 
   // Test WBC command given u_sequence[0]
-  getWBC_command(x_sequence[0], u_sequence[0], gamma);
+  _getWBC_command(x_sequence[0], u_sequence[0], gamma);
+
+  // Test cost function
+  double cost = 0.0;
+  _l_cost(x_sequence[0], u_sequence[0], cost);
 
   // Test simulate single step
   // sejong::Vector x_next_state(NUM_Q + NUM_QDOT);
