@@ -23,7 +23,12 @@ protected:
   void _ee_ctrl(sejong::Vector & gamma);
   void _mpc_ctrl(sejong::Vector & gamma);
 
-  void _internal_simulate(const sejong::Vector & x_state, const sejong::Vector & u_in, sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
+
+  void _internal_simulate_single_step(const sejong::Vector & x_state, 
+                                      const sejong::Vector & u_in, 
+                                      sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
+  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); // x_{t+1} = f(x, gamma(u))  
+
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
   void _gradient_finite_difference();
@@ -32,12 +37,27 @@ protected:
 
   sejong::Vect3 ee_ini_;
 
-  // Get Internal Model of the robot for MPC
+  // Get Internal Model of the robot for DDP
   OC2Model* internal_model;
+
+  // DDP Variables
   std::vector<sejong::Vector> x_sequence;  
   std::vector<sejong::Vector> u_sequence;
-  sejong::Vector q_temp;
-  sejong::Vector qdot_temp;  
+
+  std::vector<sejong::Vector> l_x;  
+  std::vector<sejong::Matrix> l_xx;  
+  std::vector<sejong::Vector> l_u;   
+  std::vector<sejong::Matrix> l_uu;   
+  std::vector<sejong::Matrix> l_ux;
+
+  std::vector<sejong::Matrix> f_x;
+  std::vector<sejong::Matrix> f_u;
+
+  std::vector<sejong::Vector> V_x;
+  std::vector<sejong::Matrix> V_xx;
+
+  double J_cost;
+  std::vector<double> J_cost_tail;
 
   int N_horizon; // Control Horizon
   double mpc_time_step;

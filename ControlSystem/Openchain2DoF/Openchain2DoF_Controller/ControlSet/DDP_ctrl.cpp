@@ -7,8 +7,6 @@
 
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
-                          q_temp(NUM_Q),
-                          qdot_temp(NUM_QDOT),
                           jpos_ini_(NUM_ACT_JOINT),
                           N_horizon(5),                          
                           des_pos_(2),
@@ -19,8 +17,22 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   x_sequence = std::vector<sejong::Vector>(N_horizon);
   u_sequence = std::vector<sejong::Vector>(N_horizon);  
 
+  l_x  = std::vector<sejong::Vector>(N_horizon);  
+  l_xx = std::vector<sejong::Matrix>(N_horizon);  
+  l_u  = std::vector<sejong::Vector>(N_horizon);   
+  l_uu = std::vector<sejong::Matrix>(N_horizon);   
+  l_ux = std::vector<sejong::Matrix>(N_horizon);
+
+  f_x  = std::vector<sejong::Matrix>(N_horizon);
+  f_u  = std::vector<sejong::Matrix>(N_horizon);
+
+  V_x  = std::vector<sejong::Vector>(N_horizon);
+  V_xx = std::vector<sejong::Matrix>(N_horizon);
+
+  J_cost = 0.0;
+  J_cost_tail = std::vector<double>(N_horizon);
+
   printf("[DDP Controller] Start\n");
-  printf("Size of (q, qdot): (%zu, %zu)", q_temp.size(), qdot_temp.size());
 }
 
 DDP_ctrl::~DDP_ctrl(){
@@ -36,9 +48,9 @@ void DDP_ctrl::Initialization(){
 }
 
 
-void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state, 
+/*void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state, 
                                   const sejong::Vector & gamma, 
-                                  sejong::Vector & x_next_state){
+                                  sejong::Vector & x_next_state){*/
   // x_state = [q, qdot]
   // q_tmp = x_state[0] 
   // qdot = x_state[1]
@@ -54,7 +66,7 @@ void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state,
 
   */
 
-}
+//}
 
 
 void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
