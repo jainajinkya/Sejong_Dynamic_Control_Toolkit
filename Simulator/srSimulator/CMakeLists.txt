@@ -1,6 +1,5 @@
-if(RECORD_SIMULATION)
-  add_subdirectory(OpenGLRecorder)
-endif()
+SET (ModelPath ${PROJECT_SOURCE_DIR}/Simulator/RobotModel/${CTRL_SYS}_Model/)
+SET (RECORD_SIMULATION 0)
 
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
@@ -14,14 +13,14 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
     cmake_policy(SET CMP0003 NEW)
 endif (CMAKE_SYSTEM_NAME MATCHES Linux)
 
-SET (ModelPath ${PROJECT_SOURCE_DIR}/Simulator/RobotModel/${CTRL_SYS}_Model/)
-SET (RECORD_SIMULATION 0)
-
+###########  CAD FILE UNIT  ############
 if(CTRL_SYS STREQUAL "NAO")
     SET (CAD_RATIO 0.1)
 elseif(CTRL_SYS STREQUAL "Valkyrie")
     SET (CAD_RATIO 1.0)
 elseif(CTRL_SYS STREQUAL "DracoP1")
+    SET (CAD_RATIO 0.001)
+elseif(CTRL_SYS STREQUAL "DracoP1Rot")
     SET (CAD_RATIO 0.001)
 endif()
 
@@ -37,4 +36,6 @@ add_subdirectory(srTerrain)
 add_subdirectory(libpng)
 add_subdirectory(srSysGenerator)
 add_subdirectory(Systems/${CTRL_SYS})
-
+if(RECORD_SIMULATION)
+  add_subdirectory(OpenGLRecorder)
+endif()
