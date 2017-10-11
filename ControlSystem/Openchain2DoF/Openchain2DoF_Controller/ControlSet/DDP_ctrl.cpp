@@ -30,12 +30,12 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   V_x  = std::vector<sejong::Vector>(N_horizon);
   V_xx = std::vector<sejong::Matrix>(N_horizon);
 
-  _initiailize_u_seqeunce();
+  _initiailize_u_sequence();
 
   J_cost = 0.0;
   J_cost_tail = std::vector<double>(N_horizon);
 
-  mpc_time_step = 0.01;
+  mpc_time_step = SERVO_RATE; //SERVO_RATE/10; //0.001;
   sim_rate = SERVO_RATE/10;
 
   printf("[DDP Controller] Start\n");
@@ -69,7 +69,7 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 }
 
 
-void DDP_ctrl::_initiailize_u_seqeunce(){
+void DDP_ctrl::_initiailize_u_sequence(){
   // Near zero initialization
   for(size_t i = 0; i < u_sequence.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
@@ -80,16 +80,33 @@ void DDP_ctrl::_initiailize_u_seqeunce(){
   }
 }
 
+// Use U = {u1, u2, ..., uN} to find X = {x1, x2, ..., xN}
+void DDP_ctrl::_initiailize_x_sequence(const sejong::Vector x_state_start){
+  x_sequence[0] = x_state_start;
+  _internal_simulate_sequence(u_sequence, x_sequence);
+}
+
+void DDP_ctrl::update_internal_model(const sejong::Vector & x_state){
+  // Initialize States
+  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
+
+  // Update internal model
+  internal_model->UpdateModel(q_int, qdot_int);
+  internal_model->getMassInertia(A_int);
+  internal_model->getInverseMassInertia(Ainv_int);
+  internal_model->getGravity(grav_int);
+  internal_model->getCoriolis(coriolis_int);  
+}
+
 void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state, 
-                                              const sejong::Vector & u_in, 
+                                              const sejong::Vector & gamma_int, 
                                               sejong::Vector & x_next_state){ // x_{t+1} = f(x, gamma(u))
   // Initialize States
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
-  sejong::Vector gamma_int(NUM_QDOT);
 
-  // get WBC command
-  getWBC_command(x_state, u_in, gamma_int);
+  update_internal_model(x_state);
   // Get Joint Accelerations
   sejong::Vector qddot_int = Ainv_int*(gamma_int - coriolis_int - grav_int);
 
@@ -101,20 +118,50 @@ void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state,
   x_next_state.head(NUM_Q) = q_int_next;
   x_next_state.tail(NUM_QDOT) = qdot_int_next;  
 
-  sejong::pretty_print(x_next_state, std::cout, "x_next_state_pred");
 }
 
-void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_tmp){
+// Initializes X = {x1, x2, ..., xN}
+void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X){
+
+  double mpc_interval = 0.0;
+  for(size_t i = 1; i < N_horizon; i++){
+    sejong::Vector gamma_int(NUM_ACT_JOINT);
+    getWBC_command(X[i-1], U[i-1], gamma_int);
+
+    sejong::Vector x_state_tmp = X[i-1];
+    sejong::Vector x_next_state_tmp(x_state_tmp.size());
+
+    // Simulate constant application of torque 
+    while (mpc_interval <= mpc_time_step){
+      //Apply the same gamma_int within the mpc time step
+      _internal_simulate_single_step(x_state_tmp, gamma_int, x_next_state_tmp);
+      x_state_tmp = x_next_state_tmp;
+      mpc_interval += sim_rate;      
+    }
+
+    X[i] = x_next_state_tmp; // Store X[i]    
+    mpc_interval = 0.0; // reset interval
+
+    // Debug Output    
+/*    std::cout << "X[" << i << "] = " << X[i][0] << " " 
+                                     << X[i][1] << " "
+                                     << X[i][2] << ""
+                                     << X[i][3] << ""
+                                     << std::endl;
+*/    // sejong::pretty_print(X[i], std::cout, "X[i]");    
+
+  }
+
+
+} 
+
+// get the torque command given desired acceleration
+void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int){
   // Initialize States
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
 
-  // Update internal model
-  internal_model->UpdateModel(q_int, qdot_int);
-  internal_model->getMassInertia(A_int);
-  internal_model->getInverseMassInertia(Ainv_int);
-  internal_model->getGravity(grav_int);
-  internal_model->getCoriolis(coriolis_int);
+  update_internal_model(x_state);
 
   // Commanded Task acceleration
   sejong::Vector xddot = des_acc;
@@ -164,48 +211,30 @@ void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vect
   // Torque command
   sejong::Vector qddot = Jee_inv * (xddot - Jee_dot * qdot_int);
   qddot = qddot + Jqee_inv * (jpos_cmd - qddot);
-  gamma_tmp = A_int * qddot + coriolis_int + grav_int;  
+  gamma_int = A_int * qddot + coriolis_int + grav_int;  
 
 }
 
 
 
-/*void DDP_ctrl::_internal_simulate(const sejong::Vector & x_state, 
-                                  const sejong::Vector & gamma, 
-                                  sejong::Vector & x_next_state){*/
-  // x_state = [q, qdot]
-  // q_tmp = x_state[0] 
-  // qdot = x_state[1]
-
-  /*
-  getGamma(q, qdot, u) // Whole body control based on u and current state
-
-
-  internal_model->getMassInertia(A_);
-  internal_model->getInverseMassInertia(Ainv_);
-  internal_model->getGravity(grav_);
-  internal_model->getCoriolis(coriolis_); 
-
-  */
-
-//}
-
-
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
-  // x = [q, qdot]
-  sejong::Vector x_state(NUM_Q + NUM_QDOT);
-  x_state.head(NUM_Q) = sp_->Q_; // Store current Q position to state
-  x_state.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
-  sejong::pretty_print(x_state, std::cout, "x_state");  
+  // Get starting state   // x = [q, qdot]
+  sejong::Vector x_state_start(NUM_Q + NUM_QDOT);
+  x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
+  x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
+  sejong::pretty_print(x_state_start, std::cout, "x_state_start");  
 
-  // Initialize x_i 
-  x_sequence[0] = x_state;
+  // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+  _initiailize_x_sequence(x_state_start);
 
-  gamma.setZero();  
-
-  sejong::Vector x_next_state(NUM_Q + NUM_QDOT);
-  _internal_simulate_single_step(x_sequence[0], u_sequence[0], x_next_state);
+  // Test WBC command given u_sequence[0]
   getWBC_command(x_sequence[0], u_sequence[0], gamma);
+
+  // Test simulate single step
+  // sejong::Vector x_next_state(NUM_Q + NUM_QDOT);
+  // _internal_simulate_single_step(x_sequence[0], gamma, x_next_state);
+  // sejong::pretty_print(x_next_state, std::cout, "x_next_state_pred");
+
 }
 
 

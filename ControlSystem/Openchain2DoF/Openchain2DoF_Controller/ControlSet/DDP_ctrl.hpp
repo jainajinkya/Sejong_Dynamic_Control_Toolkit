@@ -24,12 +24,15 @@ protected:
   void _mpc_ctrl(sejong::Vector & gamma);
 
 
-  void _initiailize_u_seqeunce(); // Initializes U = {u1, u2, ..., uN}
-  void getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_tmp); // gives torque for desired task accelerations
+  void _initiailize_u_sequence(); // Initializes U = {u1, u2, ..., uN}
+  void _initiailize_x_sequence(const sejong::Vector x_state_start); // Initializes X = {x1, x2, ..., xN}
+
+  void getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); // gives torque for desired task accelerations
+  void update_internal_model(const sejong::Vector & x_state);
   void _internal_simulate_single_step(const sejong::Vector & x_state, 
-                                      const sejong::Vector & u_in, 
+                                      const sejong::Vector & gamma_int, 
                                       sejong::Vector & x_next_state); // x_{t+1} = f(x, gamma(u))
-  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); // Initializes X = {x1, x2, ..., xN}
+  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); // Simulates U to get X
 
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
