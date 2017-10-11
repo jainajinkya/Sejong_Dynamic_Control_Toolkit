@@ -47,6 +47,7 @@ protected:
   sejong::Vector coriolis_int;
 
   // DDP Variables
+  int DIM_WBC_TASKS;
   std::vector<sejong::Vector> x_sequence;  
   std::vector<sejong::Vector> u_sequence;
 
@@ -67,8 +68,7 @@ protected:
 
   int N_horizon; // Control Horizon
   double mpc_time_step;
-
-  int DIM_WBC_TASKS;
+  double sim_rate;
 
 
   // Data Save

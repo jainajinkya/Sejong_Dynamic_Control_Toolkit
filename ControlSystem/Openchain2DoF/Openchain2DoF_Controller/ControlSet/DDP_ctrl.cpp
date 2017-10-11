@@ -35,6 +35,9 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   J_cost = 0.0;
   J_cost_tail = std::vector<double>(N_horizon);
 
+  mpc_time_step = 0.01;
+  sim_rate = SERVO_RATE/10;
+
   printf("[DDP Controller] Start\n");
 }
 
@@ -71,11 +74,34 @@ void DDP_ctrl::_initiailize_u_seqeunce(){
   for(size_t i = 0; i < u_sequence.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
-      u_vec[j] = 0.001; // this can be random
+      u_vec[j] = 0.1;//0.001; // this can be random
     }
-    u_vec[1] = 0.0;
     u_sequence[i] = u_vec;
   }
+}
+
+void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state, 
+                                              const sejong::Vector & u_in, 
+                                              sejong::Vector & x_next_state){ // x_{t+1} = f(x, gamma(u))
+  // Initialize States
+  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
+  sejong::Vector gamma_int(NUM_QDOT);
+
+  // get WBC command
+  getWBC_command(x_state, u_in, gamma_int);
+  // Get Joint Accelerations
+  sejong::Vector qddot_int = Ainv_int*(gamma_int - coriolis_int - grav_int);
+
+  // Perform Integration
+  // Get q_{t+1} and qdot_{t+1}
+  sejong::Vector qdot_int_next = qdot_int + qddot_int*sim_rate;
+  sejong::Vector q_int_next = q_int + qdot_int*sim_rate ; 
+
+  x_next_state.head(NUM_Q) = q_int_next;
+  x_next_state.tail(NUM_QDOT) = qdot_int_next;  
+
+  sejong::pretty_print(x_next_state, std::cout, "x_next_state_pred");
 }
 
 void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_tmp){
@@ -104,7 +130,7 @@ void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vect
 
   internal_model->getPosition(q_int, SJLinkID::LK_EE, ee_pos);
   internal_model->getVelocity(qdot_int, sp_->Qdot_, SJLinkID::LK_EE, ee_vel);
-  sejong::pretty_print(ee_pos, std::cout, "x position");
+  //sejong::pretty_print(ee_pos, std::cout, "x position");
   // 
 
   // Jacobian
@@ -117,6 +143,18 @@ void DDP_ctrl::getWBC_command(const sejong::Vector & x_state, const sejong::Vect
   sejong::Matrix Jee_dot;
   internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_EE, Jtmp);
   Jee_dot = Jtmp.block(0,0, 2, NUM_QDOT);
+
+  /*
+  // Debug. Find rank of Jee
+  sejong::pretty_print(Jee, std::cout, "Jee:");
+  Eigen::JacobiSVD<sejong::Matrix> svd(Jee, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  std::cout << "Its singular values are:" << std::endl << svd.singularValues() << std::endl;
+
+  Eigen::FullPivLU<sejong::Matrix> lu(Jee);
+  lu.setThreshold(1e-12);
+  std::cout << "rank(Jee) = " << lu.rank() << std::endl;
+  //
+  */
 
   // Joint task
   sejong::Matrix Nee = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - Jee_inv * Jee;
@@ -158,13 +196,15 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   sejong::Vector x_state(NUM_Q + NUM_QDOT);
   x_state.head(NUM_Q) = sp_->Q_; // Store current Q position to state
   x_state.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
-//  sejong::pretty_print(x_state, std::cout, "x_state");  
-
+  sejong::pretty_print(x_state, std::cout, "x_state");  
 
   // Initialize x_i 
   x_sequence[0] = x_state;
 
   gamma.setZero();  
+
+  sejong::Vector x_next_state(NUM_Q + NUM_QDOT);
+  _internal_simulate_single_step(x_sequence[0], u_sequence[0], x_next_state);
   getWBC_command(x_sequence[0], u_sequence[0], gamma);
 }
 
