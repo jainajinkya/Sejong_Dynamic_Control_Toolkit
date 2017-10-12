@@ -3,13 +3,14 @@
 DynControlTester::DynControlTester():m_usleep_time(100), m_count(0),
                                      m_frequency_data_send(100),
                                      m_ratio_SERVO_sim_rate(10),
-                                     m_cmd(NUM_ACT_JOINT),
+                                     m_cmd(NUM_QDOT),
                                      m_q(NUM_Q), m_qdot(NUM_QDOT),
                                      m_tau(NUM_QDOT), cori_(NUM_QDOT),
                                      grav_(NUM_QDOT), A_(NUM_QDOT, NUM_QDOT){
   m_q.setZero();  m_qdot.setZero();  m_tau.setZero();
   cori_.setZero(); grav_.setZero(); A_.setZero();
-
+  m_cmd.setZero();
+  
   m_sim_rate = (SERVO_RATE/(double)m_ratio_SERVO_sim_rate);
   printf("[Dynamic Control Test] Constructed\n");
 }

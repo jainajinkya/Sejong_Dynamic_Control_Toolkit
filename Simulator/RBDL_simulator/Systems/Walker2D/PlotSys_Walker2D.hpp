@@ -1,12 +1,12 @@
-#ifndef PLOTTING_SYSTEM_OPENCHAIN_3DOF
-#define PLOTTING_SYSTEM_OPENCHAIN_3DOF
+#ifndef PLOTTING_SYSTEM_WALKER_2D
+#define PLOTTING_SYSTEM_WALKER_2D
 
 #include <SimManager/Plotting_System.hpp>
 
-class PlotSys_Openchain3DoF: public Plotting_System{
+class PlotSys_Walker2D: public Plotting_System{
 public:
-  PlotSys_Openchain3DoF();
-  virtual ~PlotSys_Openchain3DoF();
+  PlotSys_Walker2D();
+  virtual ~PlotSys_Walker2D();
 
   virtual void GetStEndPt_Link(std::vector<double> & st_x,
                                std::vector<double> & st_y,

@@ -1,18 +1,20 @@
-#include "Walker2D_Sim_Model.hpp"
+#include "Walker2D_Model.hpp"
+#include "Walker2D_Dyn_Model.hpp"
+#include "Walker2D_Kin_Model.hpp"
+#include "rbdl/urdfreader.h"
 #include <Utils/utilities.hpp>
+
 #include <stdio.h>
-#include <Configuration.h>
-#include <RBDL_Sim_Configuration.h>
 
 using namespace RigidBodyDynamics;
 using namespace RigidBodyDynamics::Math;
 
-Walker2D_Sim_Model* Walker2D_Sim_Model::GetWalker2D_Sim_Model(){
-  static Walker2D_Sim_Model walker2d_sim_model_;
-  return & walker2d_sim_model_;
+Walker2D_Model* Walker2D_Model::GetWalker2D_Model(){
+    static Walker2D_Model walker2d_model_;
+    return & walker2d_model_;
 }
 
-Walker2D_Sim_Model::Walker2D_Sim_Model(){
+Walker2D_Model::Walker2D_Model(){
   model_ = new Model();
   rbdl_check_api_version (RBDL_API_VERSION);
   model_->gravity = Vector3d (0.,0.,  -9.81);
@@ -124,171 +126,128 @@ Walker2D_Sim_Model::Walker2D_Sim_Model(){
   ///            End of Assemble Model               ///
   //////////////////////////////////////////////////////
 
+  dyn_model_ = new Walker2D_Dyn_Model(model_);
+  kin_model_ = new Walker2D_Kin_Model(model_);
+
   printf("[Walker2D Model] Contructed\n");
 }
 
-Walker2D_Sim_Model::~Walker2D_Sim_Model(){
-  delete model_;
+Walker2D_Model::~Walker2D_Model(){
+    delete dyn_model_;
+    delete kin_model_;
+    delete model_;
 }
-void Walker2D_Sim_Model::UpdateModel(const Vector & q, const Vector & qdot){
-  UpdateKinematicsCustom(*model_, &q, &qdot, NULL);
-  // Mass Matrix
-  A_ = Matrix::Zero(model_->qdot_size, model_->qdot_size);
-  CompositeRigidBodyAlgorithm(*model_, q, A_, false);
-
-  Vector ZeroQdot = Vector::Zero(model_->qdot_size);
-  // Gravity
-  Vector grav_tmp = sejong::Vector::Zero(model_->qdot_size);
-  InverseDynamics(*model_, q, ZeroQdot, ZeroQdot, grav_tmp);
-  grav_ = grav_tmp;
-  // Coriolis
-  Vector coriolis_tmp = sejong::Vector::Zero(model_->qdot_size);
-  InverseDynamics(*model_, q, qdot, ZeroQdot, coriolis_tmp);
-
-  coriolis_ = coriolis_tmp - grav_;
+void Walker2D_Model::UpdateModel(const Vector & q, const Vector & qdot){
+    UpdateKinematicsCustom(*model_, &q, &qdot, NULL);
+    dyn_model_->UpdateDynamics(q, qdot);
+    kin_model_->UpdateKinematics(q, qdot);
 }
 
-
-bool Walker2D_Sim_Model::getMassInertia(sejong::Matrix & A) {
-  A = A_;
-  return true;
+void Walker2D_Model::getCentroidInertia(sejong::Matrix & Icent){
+  sejong::Matrix Icm_tmp;
+  kin_model_->getCentroidInertia(Icm_tmp);
+  // sejong::pretty_print(Icm_tmp, std::cout, "Icm");
+  Icent = Icm_tmp.block(3, 3, 3, 3);
+  Icent(2,2) = Icm_tmp(2,2);
 }
 
-bool Walker2D_Sim_Model::getGravity(Vector & grav) {
-  grav = grav_;
-  return true;
+void Walker2D_Model::getCentroidJacobian(sejong::Matrix & Jcent){
+  sejong::Matrix Jcent_tmp(6, NUM_QDOT);
+  Jcent_tmp.setZero();
+  kin_model_->getCentroidJacobian(Jcent_tmp);
+
+  Jcent = Jcent_tmp.block(3, 0, 3, NUM_QDOT);
+  Jcent.block(1,0, 1, NUM_QDOT) = Jcent_tmp.block(5, 0, 1, NUM_QDOT); //Z
+  Jcent.block(2,0, 1, NUM_QDOT) = Jcent_tmp.block(2, 0, 1, NUM_QDOT); //Ry
 }
 
-bool Walker2D_Sim_Model::getCoriolis(Vector & coriolis) {
-  coriolis = coriolis_;
-  return true;
+void Walker2D_Model::UpdateKinematics(const Vector & q, const Vector &qdot){
+    UpdateKinematicsCustom(*model_, &q, &qdot, NULL);
 }
 
-void Walker2D_Sim_Model::getFullJacobian(int link_id, sejong::Matrix & J) const {
-  Matrix Jtmp = Matrix::Zero(6, model_->qdot_size);
-  sejong::Vector q;
+bool Walker2D_Model::getInverseMassInertia(sejong::Matrix & Ainv) {
+    return dyn_model_->getInverseMassInertia(Ainv);
+}
 
-  unsigned int bodyid = _find_body_idx(link_id);
-  Vector3d zero_vector = Vector3d::Zero();
+bool Walker2D_Model::getMassInertia(sejong::Matrix & A) {
+    return dyn_model_->getMassInertia(A);
+}
 
-  if(bodyid >=model_->fixed_body_discriminator){
-    CalcPointJacobian6D(*model_, q, bodyid,
-                        model_->mFixedBodies[bodyid - model_->fixed_body_discriminator].mCenterOfMass,
-                        Jtmp, false);
-  }
-  else{
-    CalcPointJacobian6D(*model_, q, bodyid,
-                        model_->mBodies[bodyid].mCenterOfMass,
-                        Jtmp, false);
-  }
+bool Walker2D_Model::getGravity(Vector & grav) {
+    return dyn_model_->getGravity(grav);
+}
+
+bool Walker2D_Model::getCoriolis(Vector & coriolis) {
+    return dyn_model_->getCoriolis(coriolis);
+}
+
+void Walker2D_Model::getFullJacobian(const Vector & q, int link_id, sejong::Matrix & J) const {
+  sejong::Matrix Jtmp(6, NUM_QDOT);
+  Jtmp.setZero();
+  kin_model_->getJacobian(q, link_id, Jtmp);
+
   // X, Z, Ry
-  J.block(0,0, 1, NUM_QDOT) = Jtmp.block(3, 0, 1, NUM_QDOT); // X
+  J = Jtmp.block(3,0, 3, NUM_QDOT);
   J.block(1,0, 1, NUM_QDOT) = Jtmp.block(5, 0, 1, NUM_QDOT); // Z
   J.block(2,0, 1, NUM_QDOT) = Jtmp.block(1, 0, 1, NUM_QDOT); // Ry
 }
-
-void Walker2D_Sim_Model::getFullJacobianDot(int link_id, sejong::Matrix & Jdot) const {
-  sejong::Vector q, qdot;
-
-  Matrix Jdot_analytic = Matrix::Zero(6, model_->qdot_size);
-  unsigned int bodyid = _find_body_idx(link_id);
-
-  if(bodyid >=model_->fixed_body_discriminator){
-    CalcPointJacobianDot(*model_, q, qdot, bodyid,
-                         model_->mFixedBodies[bodyid - model_->fixed_body_discriminator].mCenterOfMass,
-                         Jdot_analytic, true);
-  }
-  else{
-    CalcPointJacobianDot(*model_, q, qdot, bodyid,
-                         model_->mBodies[bodyid].mCenterOfMass,
-                         Jdot_analytic, true);
-  }
+void Walker2D_Model::getFullJacobianDot(const Vector & q, const Vector & qdot, int link_id, sejong::Matrix & Jdot) const {
+  sejong::Matrix Jdot_analytic;
+  kin_model_->getJacobianDot6D_Analytic(q, qdot, link_id, Jdot_analytic);
 
   // X, Z, Ry
-  Jdot.block(0,0, 1, NUM_QDOT) = Jdot_analytic.block(3, 0, 1, NUM_QDOT); // X
+  Jdot = Jdot_analytic.block(3,0, 3, NUM_QDOT); // X, Y, Z
   Jdot.block(1,0, 1, NUM_QDOT) = Jdot_analytic.block(5, 0, 1, NUM_QDOT); // Z
   Jdot.block(2,0, 1, NUM_QDOT) = Jdot_analytic.block(1, 0, 1, NUM_QDOT); // Ry
 }
 
-void Walker2D_Sim_Model::getPos(int link_id, Vect3 & pos) {
-  sejong::Vector q;
-
+void Walker2D_Model::getPosition(const Vector & q,
+                             int link_id, Vect3 & pos) {
   // X, Z, Ry
   sejong::Vect3 pos_tmp;
-  // Position
-  Vector3d offset;
-  int bodyid = _find_body_idx(link_id);
-  if(bodyid >=model_->fixed_body_discriminator){
-    offset = model_->mFixedBodies[bodyid - model_->fixed_body_discriminator].mCenterOfMass;
-  }
-  else{
-    offset =  model_->mBodies[bodyid].mCenterOfMass;
-  }
-
-  pos_tmp = CalcBodyToBaseCoordinates(*model_, q, _find_body_idx(link_id), offset, false);
-
-  // Orientation
-  Matrix3d R = CalcBodyWorldOrientation( *model_, q, _find_body_idx(link_id), false);
+  kin_model_->getPosition(q, link_id, pos_tmp);
   sejong::Quaternion ori;
-  ori = R.transpose();
-  if(ori.w() < 0.){
-    ori.w() *= (-1.);
-    ori.x() *= (-1.);
-    ori.y() *= (-1.);
-    ori.z() *= (-1.);
-  }
+  kin_model_->getOrientation(q, link_id, ori);
 
   pos[0] = pos_tmp[0];
   pos[1] = pos_tmp[2];
   pos[2] = 2. * asin(ori.y());
 }
-
-void Walker2D_Sim_Model::getVel(int link_id, Vect3 & vel) {
-  sejong::Vector q, qdot;
-
-  Vector3d offset;
-  int bodyid = _find_body_idx(link_id);
-
-  Vector vel_tmp;
-  if(bodyid >=model_->fixed_body_discriminator){
-    vel_tmp = CalcPointVelocity6D(*model_, q, qdot, bodyid,
-                                  model_->mFixedBodies[bodyid - model_->fixed_body_discriminator].mCenterOfMass, false);
-  }
-  else{
-    vel_tmp = CalcPointVelocity6D(*model_, q, qdot, bodyid,
-                                  model_->mBodies[bodyid].mCenterOfMass, false);
-  }
-  vel[0] = vel_tmp[3];
-  vel[1] = vel_tmp[5];
-  vel[2] = vel_tmp[1];
+void Walker2D_Model::getOrientation(const Vector & q,
+                               int link_id, sejong::Quaternion & ori) {
+  kin_model_->getOrientation(q, link_id, ori);
 }
 
-unsigned int Walker2D_Sim_Model::_find_body_idx(int id) const {
-  switch(id){
-  case LK_SIM_BODY:
-    return model_->GetBodyId("body");
-  case LK_SIM_LEFT_THIGH:
-    return model_->GetBodyId("leftThigh");
-  case LK_SIM_LEFT_SHANK:
-    return model_->GetBodyId("leftShank");
-  case LK_SIM_RIGHT_THIGH:
-    return model_->GetBodyId("rightThigh");
-  case LK_SIM_RIGHT_SHANK:
-    return model_->GetBodyId("rightShank");
-  case LK_SIM_HIP:
-    return model_->GetBodyId("hip");
-  case LK_SIM_BODY_EE:
-    return model_->GetBodyId("body_ee");
-  case LK_SIM_LEFT_KNEE:
-    return model_->GetBodyId("leftKnee");
-  case LK_SIM_RIGHT_KNEE:
-    return model_->GetBodyId("rightKnee");
-  case LK_SIM_LEFT_FOOT:
-    return model_->GetBodyId("leftFoot");
-  case LK_SIM_RIGHT_FOOT:
-    return model_->GetBodyId("rightFoot");
-  default:
-    printf("[Warnning] Incorrect link id\n");
-    return 0;
-  }
+void Walker2D_Model::getVelocity(const Vector & q, const Vector &qdot,
+                            int link_id, Vect3 & vel) {
+  sejong::Vect3 vel_tmp;
+  kin_model_->getVelocity(q, qdot, link_id, vel_tmp);
+  sejong::Vect3 ang_vel;
+  kin_model_->getAngVel(q, qdot, link_id, ang_vel);
+  vel[0] = vel_tmp[0];
+  vel[1] = vel_tmp[2];
+  vel[2] = ang_vel[1];
+}
+
+void Walker2D_Model::getAngVel(const Vector & q, const Vector & qdot,
+                          int link_id, Vect3 & ang_vel){
+    kin_model_->getAngVel(q, qdot, link_id, ang_vel);
+}
+
+void Walker2D_Model::getCoMJacobian(const Vector & q, sejong::Matrix & J){
+    J = sejong::Matrix::Zero(3, model_->qdot_size);
+    kin_model_->getCoMJacobian(q, J);
+}
+
+void Walker2D_Model::getCoMPosition(const Vector & q, Vect3 & com_pos, bool update){
+  com_pos = kin_model_->com_pos_;
+    // kin_model_->getCoMPos(q, com_pos, update);
+}
+
+void Walker2D_Model::getCoMVelocity(const Vector & q, const Vector & qdot, Vect3 & com_vel){
+    kin_model_->getCoMVel(q, qdot, com_vel);
+}
+void Walker2D_Model::getCentroidVelocity(sejong::Vector & centroid_vel){
+  centroid_vel = kin_model_->centroid_vel_;
+  // kin_model_->getCentroidVelocity(centroid_vel);
 }

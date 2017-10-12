@@ -1,16 +1,16 @@
-#ifndef OPENCHAIN_3DOF_RBDL_SIMULATION_MODEL
-#define OPENCHAIN_3DOF_RBDL_SIMULATION_MODEL
+#ifndef WALKER_2D_RBDL_SIMULATION_MODEL
+#define WALKER_2D_RBDL_SIMULATION_MODEL
 
 #include <rbdl/rbdl.h>
 #include <Utils/wrap_eigen.hpp>
 
 using namespace sejong;
 
-class OC3_Sim_Model{
+class Walker2D_Sim_Model{
 public:
   // EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  static OC3_Sim_Model* GetOC3_Sim_Model();
-  virtual ~OC3_Sim_Model(void);
+  static Walker2D_Sim_Model* GetWalker2D_Sim_Model();
+  virtual ~Walker2D_Sim_Model(void);
 
   bool getMassInertia(sejong::Matrix & A);
   bool getGravity(Vector & grav) ;
@@ -32,7 +32,7 @@ protected:
   unsigned int _find_body_idx(int id) const ;
 
 private:
-  OC3_Sim_Model();
+  Walker2D_Sim_Model();
 };
 
 #endif
