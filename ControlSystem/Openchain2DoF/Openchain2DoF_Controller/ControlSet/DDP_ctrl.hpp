@@ -28,19 +28,22 @@ protected:
   // Initializes U = {u1, u2, ..., uN}
   void _initiailize_u_sequence(); 
   // Initializes X = {x1, x2, ..., xN}
-  void _initiailize_x_sequence(const sejong::Vector x_state_start); 
+  void _initiailize_x_sequence(const sejong::Vector & x_state_start); 
   // gives torque for desired task accelerations
   void _getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); 
    // Computes x_{t+1} = f(x, gamma(u)) for  a specified simulation rate
-  void _internal_simulate_single_step(const sejong::Vector & x_state, 
-                                      const sejong::Vector & gamma_int, 
-                                      sejong::Vector & x_next_state);
+  void _internal_simulate_single_step(const sejong::Vector & x_state, const sejong::Vector & gamma_int, sejong::Vector & x_next_state);
+  // x_{t+1} = f(x_t, u_t)
+  void _x_tp1(const sejong::Vector & x_state, const sejong::Vector & u_in, sejong::Vector & x_next_state);
   // Simulates U = {u1, u2, ..., uN} to get X = {x1, x2, ..., xN}
-  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); 
+  void _internal_simulate_sequence(const std::vector<sejong::Vector> & U,  std::vector<sejong::Vector> & X); 
   // computes l(x,u) - A quadratic cost 
-  void _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
+  double _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in);
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
+  
+  void _get_finite_differences();
+
   void _gradient_finite_difference();
   void _hessian_finite_difference();  
 
@@ -78,9 +81,10 @@ protected:
   int N_horizon; // Control Horizon
   double mpc_time_step;
   double sim_rate;
+  double finite_epsilon;
 
   sejong::Vector des_oper_goal;
-
+  int count; // Time counter
 
   // Data Save
   sejong::Vector des_pos_;
