@@ -57,6 +57,7 @@ void Openchain2DoF_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   sejong::Vector qddot(NUM_QDOT);
   qddot = A_.inverse()*(m_cmd - cori_ - grav_);
 
+  // Improve integrator with either RK-45 or LSODA
   m_q = m_q + m_qdot * m_sim_rate;
   m_qdot = m_qdot + qddot * m_sim_rate;
 }

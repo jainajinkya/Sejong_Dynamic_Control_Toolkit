@@ -1,10 +1,13 @@
 #include "OC2System.hpp"
-#include "ControlSet/Basic_ctrl.hpp"
+//#include "ControlSet/Basic_ctrl.hpp"
+//#include "ControlSet/No_ctrl.hpp"
+#include "ControlSet/DDP_ctrl.hpp"
 
 OC2System::OC2System(){
   printf("System\n");
-  controller_ = new Basic_ctrl();
-
+  //controller_ = new Basic_ctrl();
+  //controller_ = new No_ctrl();  
+  controller_ = new DDP_ctrl();  
   // Add more controllers here.
   // Uncomment the line with your own controller to use it
   // and comment out the other controller(s) like I did above.
