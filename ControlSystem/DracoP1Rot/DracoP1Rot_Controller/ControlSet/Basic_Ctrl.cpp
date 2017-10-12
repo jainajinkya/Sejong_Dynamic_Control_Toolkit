@@ -1,4 +1,4 @@
-#include "Basic_Ctrl.hpp"
+  #include "Basic_Ctrl.hpp"
 
 Basic_Ctrl::Basic_Ctrl():DracoController(),
                          jpos_ini_(NUM_ACT_JOINT)
@@ -28,7 +28,7 @@ void Basic_Ctrl::_jpos_ctrl_hanging(sejong::Vector & gamma){
   double kd(2.);
   sejong::Vector qddot(NUM_QDOT); qddot.setZero();
 
-  jpos_des = jpos_ini_;
+  sejong::Vector jpos_des = jpos_ini_;
 
   for(int i(0);i<NUM_ACT_JOINT; ++i){
     qddot[i + NUM_VIRTUAL] = kp * (jpos_des[i] - sp_->Q_[i + NUM_VIRTUAL]) + kd * (-sp_->Qdot_[i + NUM_VIRTUAL]);
