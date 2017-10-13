@@ -183,9 +183,11 @@ void DDP_ctrl::_get_finite_differences(){
   k2_step.setZero();
 
   sejong::Vector n_l_x(h_step.size());
-  sejong::Vector n_l_u(k_step.size());
   sejong::Matrix n_l_xx(h_step.size(), h_step.size());
   sejong::Matrix n_l_xu(h_step.size(), k_step.size());  
+  sejong::Vector n_l_u(k_step.size());
+  sejong::Matrix n_l_uu(k_step.size(), k_step.size());    
+  sejong::Matrix n_l_ux(k_step.size(), h_step.size());      
 
   n_l_x.setZero();
   n_l_u.setZero();  
@@ -195,7 +197,8 @@ void DDP_ctrl::_get_finite_differences(){
     sejong::Vector x = x_sequence[n];
     sejong::Vector u = u_sequence[n];    
 
-    // Calculate l_x, l_xx, and l_xu 
+    // -----------------------------------
+    // Calculate Finite Difference for l_x, l_xx, and l_xu 
     for (size_t i = 0; i < h_step.size(); i++){
       h_step[i] = finite_epsilon;
       // l_x
@@ -213,7 +216,7 @@ void DDP_ctrl::_get_finite_differences(){
 
       // l_xu
       for (size_t j = 0; j < k_step.size(); j++){
-        k_step[j] = finite_epsilon;
+        k_step[j] = finite_epsilon;        
         n_l_xu(i,j) = (_l_cost(x + h_step, u + k_step) - 
                      _l_cost(x + h_step, u - k_step) - 
                      _l_cost(x - h_step, u + k_step) + 
@@ -226,14 +229,39 @@ void DDP_ctrl::_get_finite_differences(){
 
     }
 
-
+    // -----------------------------------
+    // Calculate Finite Difference for l_u, l_uu, and l_ux 
     for (size_t i = 0; i < k_step.size(); i++){
       k_step[i] = finite_epsilon;    
       // Calculate l_u
       n_l_u[i] = (_l_cost(x, u + k_step) - _l_cost(x, u - k_step) ) / (2.0*k_step[i]);
-      //std::cout << "    i:" << i << " l_u[i] = "<< l_u[i] << std::endl;
+
+      // Calculate l_uu
+      for (size_t j = 0; j < k2_step.size(); j++){
+        k2_step[j] = finite_epsilon;
+        n_l_uu(i,j) = (_l_cost(x, u + k_step + k2_step) -
+                  _l_cost(x, u + k_step - k2_step) -
+                  _l_cost(x, u - k_step + k2_step) +
+                  _l_cost(x, u - k_step - k2_step)) / (4*k_step[i]*k2_step[j]);
+        k2_step.setZero();
+      }
+
+      // Calculate l_ux
+      for (size_t j = 0; j < h2_step.size(); j++){
+        h2_step[j] = finite_epsilon;
+        n_l_ux(i,j) = (_l_cost(x + h2_step, u + k_step) -
+                  _l_cost(x - h2_step, u + k_step) -
+                  _l_cost(x + h2_step, u - k_step) +
+                  _l_cost(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
+        h2_step.setZero();
+      }
+
       k_step.setZero();
     }
+
+//      sejong::pretty_print(n_l_x, std::cout, "l_x");    
+//    sejong::pretty_print(n_l_xu, std::cout, "l_xu");
+//    sejong::pretty_print(n_l_ux, std::cout, "l_ux");    
 
   }
 //  l(x+h, u) - l(x-h, u) / 2h  
@@ -242,6 +270,7 @@ void DDP_ctrl::_get_finite_differences(){
 
 double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in){
   sejong::Vect3 ee_pos(2);
+  _update_internal_model(x_state);
   internal_model->getPosition(x_state.head(NUM_Q), SJLinkID::LK_EE, ee_pos);
 
   sejong::Matrix Q(ee_pos.size(), ee_pos.size()); // task cost
