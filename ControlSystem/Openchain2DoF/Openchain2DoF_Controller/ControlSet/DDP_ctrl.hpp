@@ -8,6 +8,7 @@
 #include <Openchain2DoF_Model/OC2_Dyn_Model.hpp>
 #include <Openchain2DoF_Model/OC2_Kin_Model.hpp>
 
+#define STATE_SIZE NUM_Q + NUM_QDOT
 class DDP_ctrl: public OC2Controller{
 public:
   DDP_ctrl();
@@ -34,7 +35,7 @@ protected:
    // Computes x_{t+1} = f(x, gamma(u)) for  a specified simulation rate
   void _internal_simulate_single_step(const sejong::Vector & x_state, const sejong::Vector & gamma_int, sejong::Vector & x_next_state);
   // x_{t+1} = f(x_t, u_t)
-  void _x_tp1(const sejong::Vector & x_state, const sejong::Vector & u_in, sejong::Vector & x_next_state);
+  sejong::Vector _x_tp1(const sejong::Vector & x_state, const sejong::Vector & u_in); 
   // Simulates U = {u1, u2, ..., uN} to get X = {x1, x2, ..., xN}
   void _internal_simulate_sequence(const std::vector<sejong::Vector> & U,  std::vector<sejong::Vector> & X); 
   // computes l(x,u) - A quadratic cost 
@@ -65,6 +66,7 @@ protected:
 
   std::vector<sejong::Vector> l_x;  
   std::vector<sejong::Matrix> l_xx;  
+  std::vector<sejong::Matrix> l_xu;    
   std::vector<sejong::Vector> l_u;   
   std::vector<sejong::Matrix> l_uu;   
   std::vector<sejong::Matrix> l_ux;
