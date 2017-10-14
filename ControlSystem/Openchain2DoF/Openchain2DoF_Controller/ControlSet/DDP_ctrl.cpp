@@ -31,6 +31,8 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     sejong::Matrix n_f_x(STATE_SIZE, STATE_SIZE);      
     sejong::Matrix n_f_u(STATE_SIZE, DIM_WBC_TASKS);
 
+
+
     n_l_x.setZero();
     n_l_xx.setZero();
     n_l_xu.setZero();
@@ -40,7 +42,6 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     n_f_x.setZero();
     n_f_u.setZero();    
 
-
     l_x.push_back(n_l_x);
     l_xx.push_back(n_l_xx);
     l_xu.push_back(n_l_xu);
@@ -49,6 +50,23 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     l_ux.push_back(n_l_ux);
     f_x.push_back(n_f_x);                
     f_u.push_back(n_f_u);                
+
+    // Create empty Hessian H = H(f1), H(f2), ..., H(fn)
+    std::vector<sejong::Matrix> H_f_kxx;
+    std::vector<sejong::Matrix> H_f_kxu; 
+    for (size_t j = 0; j < STATE_SIZE; j++){
+      sejong::Matrix n_f_kxx(STATE_SIZE, STATE_SIZE);
+      sejong::Matrix n_f_kxu(STATE_SIZE, DIM_WBC_TASKS);
+
+      n_f_kxx.setZero();
+      n_f_kxu.setZero();      
+      
+      H_f_kxx.push_back(n_f_kxx);
+      H_f_kxu.push_back(n_f_kxu);      
+    }
+
+    H_f_xx.push_back(H_f_kxx); 
+    H_f_xu.push_back(H_f_kxu);        
   }
 
 
@@ -64,6 +82,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   sim_rate = SERVO_RATE/10;
 
   count = 0;
+  time_sum = 0.0;
 
   printf("[DDP Controller] Start\n");
 }
@@ -273,9 +292,46 @@ void DDP_ctrl::_get_finite_differences(){
     }
 
     // Calculate f_x
+    h_step.setZero();
     for (size_t i = 0; i < STATE_SIZE; i++){
       h_step[i] = finite_epsilon;
       f_x[n].col(i) = (_x_tp1(x + h_step, u) - _x_tp1(x - h_step, u))/ (2.0*h_step[i]);
+
+      // Calculate f_xx
+      for (size_t j = 0; j < STATE_SIZE; j++){
+        sejong::Vector f_kxx(STATE_SIZE); // partial derivative of f vector with respect to x_i,x_j
+        f_kxx.setZero();
+        h2_step[j] = finite_epsilon;
+        f_kxx = (_x_tp1(x + h_step + h2_step, u) -
+                 _x_tp1(x + h_step - h2_step, u) -
+                 _x_tp1(x - h_step + h2_step, u) +
+                 _x_tp1(x - h_step - h2_step, u)) / (4*h_step[i]*h2_step[j]);
+
+        for (size_t k = 0; k < STATE_SIZE; k++){
+          H_f_xx[n][k](i,j) = f_kxx[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+        }
+        h2_step.setZero();
+      }
+
+      // Calculate f_xu
+      for (size_t j = 0; j < DIM_WBC_TASKS; j++){
+        sejong::Vector f_kxu(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
+        f_kxu.setZero();
+        k2_step[j] = finite_epsilon;
+
+        f_kxu = (_x_tp1(x + h_step, u + k2_step) -
+                 _x_tp1(x + h_step, u - k2_step) -
+                 _x_tp1(x - h_step, u + k2_step) +
+                 _x_tp1(x - h_step, u - k2_step)) / (4*h_step[i]*k2_step[j]);
+
+        for (size_t k = 0; k < STATE_SIZE; k++){
+          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+        }
+
+        k2_step.setZero();
+      }
+
+
       h_step.setZero();
     }
 
@@ -295,6 +351,8 @@ void DDP_ctrl::_get_finite_differences(){
 //    sejong::pretty_print(l_ux[n], std::cout, "l_ux");  
 //    sejong::pretty_print(f_x[n], std::cout, "n_f_x");      
 //    sejong::pretty_print(f_u[n], std::cout, "n_f_u");      
+//     sejong::pretty_print(H_f_xx[n][3], std::cout, "H_f_3xx");      
+
 
   }
 //  l(x+h, u) - l(x-h, u) / 2h  
@@ -406,53 +464,47 @@ void DDP_ctrl::_getWBC_command(const sejong::Vector & x_state, const sejong::Vec
 
 
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
+  gamma.setZero();  
   // Get starting state   // x = [q, qdot]
   sejong::Vector x_state_start(NUM_Q + NUM_QDOT);
   x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
   x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
-  //sejong::pretty_print(x_state_start, std::cout, "x_state_start");  
+
+  // ---- START TIMER
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+  // ---- START TIMER
+
+
+  // --------------------------------------------------------------------------------------------
+  // Computation Block
 
   // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
   _initiailize_x_sequence(x_state_start);
 
-/*  sejong::Matrix sample_mat(3,3);
-  sejong::Vector sample_col(3);
-  sample_mat.setZero();
-  sample_col.setZero();
-  sample_col[0] = 1.0; sample_col[1] = 1.0; sample_col[2] = 1.0;
-
-  sejong::pretty_print(sample_col, std::cout, "Sample Col");
-  sample_col = sample_col/2.0;
-  sejong::pretty_print(sample_col, std::cout, "Sample Col div 2");  
-*/
-
-/*  sejong::pretty_print(sample_mat, std::cout, "Sample Matrix");
-  sejong::pretty_print(sample_col, std::cout, "Sample Col");
-
-  sample_mat.col(0) = sample_col;
-  sejong::pretty_print(sample_mat, std::cout, "Sample Matrix Col");*/
-
-
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   // Test Finite Difference
   _get_finite_differences();
   
-  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  double time_sum = 0.0;
-  time_sum += (time_span1.count()*1000.0);
-  ++count;
-  if (count % 100 == 99){
-    double ave_time = time_sum/((double)count);
-    std::cout << "Finite Difference took " << ave_time << "ms."<<std::endl;
-    count = 0;
-    time_sum = 0.;
-  }
-
-
   // Test WBC command given u_sequence[0]
   x_sequence[0] = x_state_start;
   _getWBC_command(x_sequence[0], u_sequence[0], gamma);
+
+  // End Computation Block
+  // --------------------------------------------------------------------------------------------
+
+  // ---- END TIMER
+  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+  time_sum += (time_span1.count()*1000.0);
+
+//  std::cout << "Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;
+  ++count;
+  if (count % 100 == 99){
+    double ave_time = time_sum/((double)count);
+    std::cout << "MPC Loop took " << ave_time << "ms."<<std::endl;
+    count = 0;
+    time_sum = 0.;
+  }
+  // ---- END TIMER
 
   // Test cost function
   double cost = _l_cost(x_sequence[0], u_sequence[0]);
@@ -460,7 +512,6 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   // Test simulate single step
   // sejong::Vector x_next_state(NUM_Q + NUM_QDOT);
   // _internal_simulate_single_step(x_sequence[0], gamma, x_next_state);
-  // sejong::pretty_print(x_next_state, std::cout, "x_next_state_pred");
 
 }
 

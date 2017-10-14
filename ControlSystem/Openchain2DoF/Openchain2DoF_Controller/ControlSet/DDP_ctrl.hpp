@@ -49,6 +49,7 @@ protected:
   void _hessian_finite_difference();  
 
 
+
   sejong::Vect3 ee_ini_;
 
   // Get Internal Model of the robot for DDP
@@ -74,6 +75,10 @@ protected:
   std::vector<sejong::Matrix> f_x;
   std::vector<sejong::Matrix> f_u;
 
+  std::vector< std::vector<sejong::Matrix> > H_f_xx; // sequence of N horizon elements. Each element has hessians H = (H(f1), H(f2), ... H(fn))
+  std::vector< std::vector<sejong::Matrix> > H_f_xu;  
+
+
   std::vector<sejong::Vector> V_x;
   std::vector<sejong::Matrix> V_xx;
 
@@ -86,6 +91,8 @@ protected:
   double finite_epsilon;
 
   sejong::Vector des_oper_goal;
+
+  double time_sum;
   int count; // Time counter
 
   // Data Save
