@@ -360,11 +360,15 @@ void DDP_ctrl::_get_finite_differences(){
 
 
 double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in){
-  sejong::Vect3 ee_pos(2);
+  sejong::Vect3 ee_pos;
   _update_internal_model(x_state);
   internal_model->getPosition(x_state.head(NUM_Q), SJLinkID::LK_EE, ee_pos);
 
-  sejong::Matrix Q(ee_pos.size(), ee_pos.size()); // task cost
+  sejong::Vector cur_ee_pos(2);
+  cur_ee_pos[0] = ee_pos[0];
+  cur_ee_pos[1] = ee_pos[1];
+
+  sejong::Matrix Q(cur_ee_pos.rows(), cur_ee_pos.rows()); // task cost
   sejong::Matrix R(NUM_ACT_JOINT, NUM_ACT_JOINT); // torque cost
   sejong::Vector gamma_int(NUM_ACT_JOINT);
 
@@ -385,10 +389,6 @@ double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & 
 //  std::cout << "Size of des:" << des_oper_goal.rows() << std::endl;
 //  std::cout << "Size of cur:" << ee_pos.rows() << std::endl;  
 
-  sejong::Vector cur_ee_pos(2);
-  cur_ee_pos[0] = ee_pos[0];
-  cur_ee_pos[1] = ee_pos[1];
-//  std::cout << "Size of cur:" << cur_ee_pos.rows() << std::endl;  
 
   sejong::Matrix cost_in_eigen;
   cost_in_eigen = (des_oper_goal - cur_ee_pos).transpose() * Q * (des_oper_goal - cur_ee_pos) + gamma_int.transpose() * R * gamma_int
