@@ -13,6 +13,7 @@ public:
 
 protected:
   void _jpos_ctrl_hanging(sejong::Vector & gamma);
+  void _time_test();
 
   sejong::Vector jpos_ini_;
 };
