@@ -45,10 +45,7 @@ protected:
   
   void _get_finite_differences();
 
-  void _gradient_finite_difference();
-  void _hessian_finite_difference();  
-
-
+  void _compute_ilqr();
 
   sejong::Vect3 ee_ini_;
 
@@ -75,8 +72,13 @@ protected:
   std::vector<sejong::Matrix> f_x;
   std::vector<sejong::Matrix> f_u;
 
+  std::vector<sejong::Vector> k_vec;
+  std::vector<sejong::Matrix> K_vec;  
+
+
   std::vector< std::vector<sejong::Matrix> > H_f_xx; // sequence of N horizon elements. Each element has hessians H = (H(f1), H(f2), ... H(fn))
-  std::vector< std::vector<sejong::Matrix> > H_f_xu;  
+  std::vector< std::vector<sejong::Matrix> > H_f_xu;
+  std::vector< std::vector<sejong::Matrix> > H_f_ux;    
 
 
   std::vector<sejong::Vector> V_x;
@@ -94,6 +96,8 @@ protected:
 
   double time_sum;
   int count; // Time counter
+
+  int ilqr_iters;
 
   // Data Save
   sejong::Vector des_pos_;

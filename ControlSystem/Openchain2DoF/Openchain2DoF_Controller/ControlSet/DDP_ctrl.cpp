@@ -31,7 +31,9 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     sejong::Matrix n_f_x(STATE_SIZE, STATE_SIZE);      
     sejong::Matrix n_f_u(STATE_SIZE, DIM_WBC_TASKS);
 
-
+    sejong::Vector n_k_vec(DIM_WBC_TASKS);
+    sejong::Matrix n_K_vec(DIM_WBC_TASKS, STATE_SIZE);    
+    
 
     n_l_x.setZero();
     n_l_xx.setZero();
@@ -51,27 +53,36 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     f_x.push_back(n_f_x);                
     f_u.push_back(n_f_u);                
 
+    k_vec.push_back(n_k_vec);
+    K_vec.push_back(n_K_vec);        
+
     // Create empty Hessian H = H(f1), H(f2), ..., H(fn)
     std::vector<sejong::Matrix> H_f_kxx;
     std::vector<sejong::Matrix> H_f_kxu; 
+    std::vector<sejong::Matrix> H_f_kux; 
     for (size_t j = 0; j < STATE_SIZE; j++){
       sejong::Matrix n_f_kxx(STATE_SIZE, STATE_SIZE);
       sejong::Matrix n_f_kxu(STATE_SIZE, DIM_WBC_TASKS);
+      sejong::Matrix n_f_kux(DIM_WBC_TASKS, STATE_SIZE);      
 
       n_f_kxx.setZero();
       n_f_kxu.setZero();      
       
       H_f_kxx.push_back(n_f_kxx);
-      H_f_kxu.push_back(n_f_kxu);      
+      H_f_kxu.push_back(n_f_kxu);  
+      H_f_kux.push_back(n_f_kux);    
     }
 
-    H_f_xx.push_back(H_f_kxx); 
-    H_f_xu.push_back(H_f_kxu);        
+    H_f_xx.push_back(H_f_kxx);     
+    H_f_xu.push_back(H_f_kxu); 
+    H_f_ux.push_back(H_f_kux);               
   }
 
 
   des_oper_goal[0] = -0.25; // Reaching Task x
   des_oper_goal[1] = 0.25; // Reaching Task y  
+  ilqr_iters = 10;
+
 
   _initiailize_u_sequence();
 
@@ -325,7 +336,7 @@ void DDP_ctrl::_get_finite_differences(){
                  _x_tp1(x - h_step, u - k2_step)) / (4*h_step[i]*k2_step[j]);
 
         for (size_t k = 0; k < STATE_SIZE; k++){
-          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxu at k-th Hesisan's (i,j) element.
         }
 
         k2_step.setZero();
@@ -339,6 +350,26 @@ void DDP_ctrl::_get_finite_differences(){
     for (size_t i = 0; i < DIM_WBC_TASKS; i++){
       k_step[i] = finite_epsilon;
       f_u[n].col(i) = (_x_tp1(x, u + k_step) - _x_tp1(x, u - k_step))/ (2.0*k_step[i]);
+
+      // Calculate f_ux
+      for (size_t j = 0; j < STATE_SIZE; j++){
+        sejong::Vector f_kux(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
+        f_kux.setZero();
+        h2_step[j] = finite_epsilon;
+
+        f_kux = (_x_tp1(x + h2_step, u + k_step) -
+                 _x_tp1(x - h2_step, u + k_step) -
+                 _x_tp1(x + h2_step, u - k_step) +
+                 _x_tp1(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
+
+        for (size_t k = 0; k < STATE_SIZE; k++){
+          H_f_ux[n][k](i,j) = f_kux[k]; // Store k element of f_kux at k-th Hesisan's (i,j) element.
+        }
+
+        k2_step.setZero();
+      }
+
+
       k_step.setZero();
     }
 
@@ -352,6 +383,8 @@ void DDP_ctrl::_get_finite_differences(){
 //    sejong::pretty_print(f_x[n], std::cout, "n_f_x");      
 //    sejong::pretty_print(f_u[n], std::cout, "n_f_u");      
 //     sejong::pretty_print(H_f_xx[n][3], std::cout, "H_f_3xx");      
+/*     sejong::pretty_print(H_f_xu[n][3], std::cout, "H_f_3xu");          
+     sejong::pretty_print(H_f_ux[n][3], std::cout, "H_f_3ux");          */
 
 
   }
@@ -470,6 +503,73 @@ void DDP_ctrl::_getWBC_command(const sejong::Vector & x_state, const sejong::Vec
 }
 
 
+void DDP_ctrl::_compute_ilqr(){
+  // Get starting state   // x = [q, qdot]
+  sejong::Vector x_state_start(NUM_Q + NUM_QDOT);
+  x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
+  x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
+
+  // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+  sejong::Vector x = x_state_start;
+
+  double lm_lambda = 1.0; //  Regularization Parameter
+  for(size_t ii = 0; ii < ilqr_iters; ii++){
+    // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+    _initiailize_x_sequence(x);
+    // Get Finite Difference: l_x, l_u, l_xx, l_uu, f_x, f_u
+    _get_finite_differences();
+
+
+    double V = _l_cost(x_sequence.back(), u_sequence.back()); // back() is equivalent to N_horizon-1
+    sejong::Vector V_x = l_x.back();
+    sejong::Matrix V_xx = l_xx.back();
+
+    // Work backwards to solve for V, Q, k, and K
+    for(int i = N_horizon-2; i >= 0; i--){
+      // V' is the next state.
+      sejong::Vector Q_x = l_x[i] + f_x[i].transpose()*V_x;
+      sejong::Vector Q_u = l_u[i] + f_u[i].transpose()*V_x;
+      sejong::Matrix Q_xx = l_xx[i] + f_x[i].transpose()*V_xx*f_x[i];
+      sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()*V_xx*f_x[i];
+      sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
+      std::cout << "i" << i << " V, Q, k, and K" << std::endl;
+      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
+      sejong::pretty_print(Q_u, std::cout, "Q_u");
+      sejong::pretty_print(Q_ux, std::cout, "Q_ux");
+
+
+      // Compute inv(Q_uu) with Levenberg-Marquardt Heuristic
+      Eigen::EigenSolver<sejong::Matrix> es(Q_uu);
+      Eigen::VectorXcd v = es.eigenvectors().col(0);
+
+      sejong::Matrix es_eigVecs = es.eigenvectors().real();
+      sejong::Vector es_eigVals = es.eigenvalues().real();
+      sejong::Vector es_eigVals_recp(es_eigVals.size());      
+
+      for (size_t j = 0; j < es_eigVals.size(); j++){
+        if (es_eigVals[j] < 0){ 
+          es_eigVals_recp[j] = 0;
+        }else{
+          es_eigVals_recp[j] = es_eigVals[j];
+        }
+        es_eigVals_recp[j] = 1.0/(es_eigVals_recp[j] + lm_lambda);
+        // std::cout << "eig recp j" << j << " " << es_eigVals_recp[j] << std::endl;
+      }
+
+      // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
+      // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
+      // std::cout << "regularized Q_uu inverse is:" << std::endl << es_eigVecs*(es_eigVals_recp.asDiagonal())*(es_eigVecs.transpose()) << std::endl;
+      // std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      */
+
+    }
+
+  }
+
+
+}
+
+
+
 
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   gamma.setZero();  
@@ -478,23 +578,12 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
   x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
 
-  // ---- START TIMER
+  // ---- START TIMER 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-  // ---- START TIMER
-
-
-  // --------------------------------------------------------------------------------------------
+  // -------------------------------------------------------------------------------------------
   // Computation Block
-
-  // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
-  _initiailize_x_sequence(x_state_start);
-
-  // Test Finite Difference
-  _get_finite_differences();
+  _compute_ilqr();
   
-  // Test WBC command given u_sequence[0]
-  x_sequence[0] = x_state_start;
-  _getWBC_command(x_sequence[0], u_sequence[0], gamma);
 
   // End Computation Block
   // --------------------------------------------------------------------------------------------
@@ -513,6 +602,10 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
     time_sum = 0.;
   }
   // ---- END TIMER
+
+  // Test WBC command given u_sequence[0]
+  x_sequence[0] = x_state_start;
+  _getWBC_command(x_sequence[0], u_sequence[0], gamma);
 
   // Test cost function
   double cost = _l_cost(x_sequence[0], u_sequence[0]);
