@@ -26,7 +26,8 @@ void OC2Controller::_PreProcessing_Command(){
 void OC2Controller::_DynConsistent_Inverse(const sejong::Matrix & J, sejong::Matrix & Jinv){
   Matrix Jtmp(J * Ainv_ * J.transpose());
   Matrix Jtmp_inv;
-  sejong::pseudoInverse(Jtmp, 0.00000001, Jtmp_inv, 0);
+//  sejong::pseudoInverse(Jtmp, 0.00000001, Jtmp_inv, 0);
+  sejong::pseudoInverse(Jtmp, 0.0001, Jtmp_inv, 0);  
   Jinv = Ainv_ * J.transpose() * Jtmp_inv;
 }
 

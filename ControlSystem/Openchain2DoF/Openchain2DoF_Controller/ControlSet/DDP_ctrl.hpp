@@ -8,6 +8,7 @@
 #include <Openchain2DoF_Model/OC2_Dyn_Model.hpp>
 #include <Openchain2DoF_Model/OC2_Kin_Model.hpp>
 
+#define STATE_SIZE NUM_Q + NUM_QDOT
 class DDP_ctrl: public OC2Controller{
 public:
   DDP_ctrl();
@@ -28,21 +29,25 @@ protected:
   // Initializes U = {u1, u2, ..., uN}
   void _initiailize_u_sequence(); 
   // Initializes X = {x1, x2, ..., xN}
-  void _initiailize_x_sequence(const sejong::Vector x_state_start); 
+  void _initiailize_x_sequence(const sejong::Vector & x_state_start); 
   // gives torque for desired task accelerations
   void _getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); 
    // Computes x_{t+1} = f(x, gamma(u)) for  a specified simulation rate
-  void _internal_simulate_single_step(const sejong::Vector & x_state, 
-                                      const sejong::Vector & gamma_int, 
-                                      sejong::Vector & x_next_state);
+  void _internal_simulate_single_step(const sejong::Vector & x_state, const sejong::Vector & gamma_int, sejong::Vector & x_next_state);
+  // x_{t+1} = f(x_t, u_t)
+  sejong::Vector _x_tp1(const sejong::Vector & x_state, const sejong::Vector & u_in); 
   // Simulates U = {u1, u2, ..., uN} to get X = {x1, x2, ..., xN}
-  void _internal_simulate_sequence(const std::vector<sejong::Vector> U,  std::vector<sejong::Vector> X); 
+  void _internal_simulate_sequence(const std::vector<sejong::Vector> & U,  std::vector<sejong::Vector> & X); 
   // computes l(x,u) - A quadratic cost 
-  void _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
+  double _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in);
   void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
   void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
+  
+  void _get_finite_differences();
+
   void _gradient_finite_difference();
   void _hessian_finite_difference();  
+
 
 
   sejong::Vect3 ee_ini_;
@@ -62,12 +67,17 @@ protected:
 
   std::vector<sejong::Vector> l_x;  
   std::vector<sejong::Matrix> l_xx;  
+  std::vector<sejong::Matrix> l_xu;    
   std::vector<sejong::Vector> l_u;   
   std::vector<sejong::Matrix> l_uu;   
   std::vector<sejong::Matrix> l_ux;
 
   std::vector<sejong::Matrix> f_x;
   std::vector<sejong::Matrix> f_u;
+
+  std::vector< std::vector<sejong::Matrix> > H_f_xx; // sequence of N horizon elements. Each element has hessians H = (H(f1), H(f2), ... H(fn))
+  std::vector< std::vector<sejong::Matrix> > H_f_xu;  
+
 
   std::vector<sejong::Vector> V_x;
   std::vector<sejong::Matrix> V_xx;
@@ -78,9 +88,12 @@ protected:
   int N_horizon; // Control Horizon
   double mpc_time_step;
   double sim_rate;
+  double finite_epsilon;
 
   sejong::Vector des_oper_goal;
 
+  double time_sum;
+  int count; // Time counter
 
   // Data Save
   sejong::Vector des_pos_;
