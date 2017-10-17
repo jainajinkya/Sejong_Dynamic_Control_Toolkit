@@ -1,7 +1,7 @@
 #include "DracoController.hpp"
 #include <DracoP1Rot_Model/Draco_Model.hpp>
+#include "StateProvider.hpp"
 
-#include <Configuration.h>
 #include <iostream>
 #include <stdio.h>
 #include <Utils/utilities.hpp>
@@ -9,8 +9,7 @@
 
 DracoController::DracoController():
   state_machine_time_(0.),
-  start_time_(0.),
-  contact_state_(SS)
+  ctrl_start_time_(0.)
 {
   robot_model_ = DracoModel::GetDracoModel();
   sp_ = StateProvider::GetStateProvider();
@@ -25,7 +24,7 @@ void DracoController::_PreProcessing_Command(){
   robot_model_->getGravity(grav_);
   robot_model_->getCoriolis(coriolis_);
 
-  state_machine_time_ = sp_->curr_time_ - start_time_;
+  state_machine_time_ = sp_->curr_time_ - ctrl_start_time_;
 }
 
 void DracoController::_DynConsistent_Inverse(const sejong::Matrix & J, sejong::Matrix & Jinv){
