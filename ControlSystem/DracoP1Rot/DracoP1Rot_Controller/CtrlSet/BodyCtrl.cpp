@@ -14,8 +14,8 @@ BodyCtrl::BodyCtrl(): end_time_(1000000.){
   wbdc_data_->tau_min = sejong::Vector(NUM_ACT_JOINT);
   wbdc_data_->tau_max = sejong::Vector(NUM_ACT_JOINT);
   for(int i(0); i<NUM_ACT_JOINT; ++i){
-    wbdc_data_->tau_max[i] = 1000.0;
-    wbdc_data_->tau_min[i] = -1000.0;
+    wbdc_data_->tau_max[i] = 80.0;
+    wbdc_data_->tau_min[i] = -80.0;
   }
   printf("[Body Controller] Constructed\n");
 }
@@ -59,7 +59,7 @@ void BodyCtrl::_body_task_setup(){
   sp_->Body_vel_des_.setZero();
   sp_->Body_acc_des_.setZero();
 
-  double amp(0.2);
+  double amp(0.0);
   double omega(2.*M_PI * 1.);
 
   printf("state time: %f\n", state_machine_time_);
@@ -75,11 +75,11 @@ void BodyCtrl::_body_task_setup(){
 
   // set relaxed op direction
   // cost weight setup
-  bool b_height_relax(false);
-  // bool b_height_relax(true);
+  // bool b_height_relax(false);
+  bool b_height_relax(true);
   if(b_height_relax){
     std::vector<bool> relaxed_op(body_task_->getDim(), false);
-    relaxed_op[0] = true; // Z
+    relaxed_op[1] = true; // Z
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
