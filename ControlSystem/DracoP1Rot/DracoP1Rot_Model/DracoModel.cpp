@@ -147,7 +147,7 @@ void DracoModel::UpdateModel(const Vector & q, const Vector & qdot){
 void DracoModel::getCentroidInertia(sejong::Matrix & Icent){
   sejong::Matrix Icm_tmp;
   kin_model_->getCentroidInertia(Icm_tmp);
-  sejong::pretty_print(Icm_tmp, std::cout, "Icm");
+  // sejong::pretty_print(Icm_tmp, std::cout, "Icm");
   Icent = Icm_tmp.block(3, 3, 3, 3);
   Icent(2,2) = Icm_tmp(1,1);
 }

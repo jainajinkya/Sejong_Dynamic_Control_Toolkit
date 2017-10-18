@@ -87,7 +87,7 @@ void Draco_Dyn_environment::ContolFunction( void* _data ) {
   // pDyn_env->_PushBody(count, -90., 0., 0., 2000, 2700); // Fx, Fy, Fz, start, end
   // pDyn_env->_PushBody(count, 70., 0., 0., 1000, 2700); // Fx, Fy, Fz, start, end
   // Push down
-  pDyn_env->_PushBody(count, 0., 0., -70., 1000, 1300); // Fx, Fy, Fz, start, end
+  // pDyn_env->_PushBody(count, 0., 0., -70., 1000, 1300); // Fx, Fy, Fz, start, end
 
 }
 

@@ -14,7 +14,6 @@ protected:
   virtual bool _UpdateJc();
   virtual bool _UpdateJcDotQdot();
   virtual bool _UpdateUf();
-  virtual bool _UpdateWf();
 
   DracoModel* model_;
   StateProvider* sp_;

@@ -20,5 +20,5 @@ void WBDC_Task::setRelaxedOpCtrl(const std::vector<bool> & relaxed_op){
       ++col;
     }
   }
-  sejong::pretty_print(S_del_, std::cout, "S delta");
+  // sejong::pretty_print(S_del_, std::cout, "S delta");
 }

@@ -76,7 +76,6 @@ private:
   sejong::Vector tot_tau_Vect_;
 
   sejong::Matrix S_delta_;
-  sejong::Matrix Wf_;
   sejong::Matrix Uf_;
 
   sejong::Matrix Jc_;

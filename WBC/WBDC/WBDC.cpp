@@ -18,34 +18,27 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
                       const std::vector<ContactSpec*> & contact_list,
                       sejong::Vector & cmd,
                       void* extra_input){
-  _PrintDebug(0);
+
   data_ = static_cast<WBDC_ExtraData*>(extra_input);
 
   // Contact & Task Setting
   _ContactBuilding(contact_list);
-  _PrintDebug(1);
-
   _TaskHierarchyBuilding(task_list);
-  _PrintDebug(2);
 
   // Dimension Setting
   dim_cam_ = (data_->Icam).rows();
   dim_opt_ = dim_rf_ + dim_relaxed_task_;
-  // dim_eq_cstr_ = num_passive_ + dim_cam_;
   dim_eq_cstr_ = num_passive_;
   dim_ieq_cstr_ = dim_rf_cstr_ + 2*num_act_joint_;
 
   // Matrix Setting
   _MatrixInitialization();
-  _PrintDebug(3);
 
   // Equality Constraint Setting
   _SetEqualityConstraint();
-  _PrintDebug(4);
 
   // Inequality Constraint Setting
   _SetInEqualityConstraint();
-  _PrintDebug(5);
 
   // printf("G:\n");
   // std::cout<<G<<std::endl;
@@ -61,9 +54,9 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // std::cout<<CI<<std::endl;
   // printf("ci0:\n");
   // std::cout<<ci0<<std::endl;
-
-  std::cout << "f: " << solve_quadprog(G, g0, CE, ce0, CI, ci0, z) << std::endl;
-  std::cout << "x: " << z << std::endl;
+  double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
+  // std::cout << "f: " << f << std::endl;
+  // std::cout << "x: " << z << std::endl;
 
   _GetSolution(cmd);
 }
@@ -77,26 +70,14 @@ void WBDC::_SetEqualityConstraint(){
   sj_CE.block(0,0, num_passive_, dim_opt_) = Sv_ * tot_tau_Mtx_;
   sj_ce0.head(num_passive_) = Sv_ * tot_tau_Vect_;
 
-  // Centroidal Angular Momentum
-  // if(dim_relaxed_task_ > 0){
-  //   sj_CE.block(num_passive_, 0, dim_cam_, dim_rf_) = - Wf_;
-  //   sj_CE.block(num_passive_, dim_rf_, dim_cam_, dim_cam_) = data_->Icam * data_->Jcam * B_ * S_delta_;
-
-  // }else {
-  //   sj_CE.block(num_passive_, 0, dim_cam_, dim_opt_) = -Wf_;
-  // }
-  // sj_ce0.tail(dim_cam_) = data_->Icam * data_->Jcam * B_ * task_cmd_ + data_->Icam * data_->JcamDotQdot;
-
-
   for(int i(0); i< dim_eq_cstr_; ++i){
     for(int j(0); j<dim_opt_; ++j){
       CE[j][i] = sj_CE(i,j);
     }
     ce0[i] = sj_ce0[i];
   }
-
-  sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
-  sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
+  // sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
+  // sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
 }
 
 void WBDC::_SetInEqualityConstraint(){
@@ -123,12 +104,12 @@ void WBDC::_SetInEqualityConstraint(){
     }
     ci0[i] = sj_ci0[i];
   }
-  sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
-  sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
+  // sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
+  // sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
 }
 
 void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
-  sejong::Matrix Uf, Wf;
+  sejong::Matrix Uf;
   // Initial
   sejong::Matrix Jc;
   sejong::Vector JcDotQdot;
@@ -137,7 +118,6 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
   Jc_ = Jc;
   JcDotQdot_ = JcDotQdot;
   static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintMtx(Uf_);
-  static_cast<WBDC_ContactSpec*>(contact_list[0])->getCMProjectionMtx(Wf_);
   dim_rf_ = contact_list[0]->getDim();
   dim_rf_cstr_ = static_cast<WBDC_ContactSpec*>(contact_list[0])->getDimRFConstratint();
 
@@ -157,7 +137,6 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
     JcDotQdot_.conservativeResize(dim_rf_ + dim_new_rf, 1);
     JcDotQdot_.tail(dim_new_rf) = JcDotQdot;
 
-
     // Uf
     static_cast<WBDC_ContactSpec*>(contact_list[i])->getRFConstraintMtx(Uf);
     Uf_.conservativeResize(dim_rf_cstr_ + dim_new_rf_cstr, dim_rf_ + dim_new_rf);
@@ -165,19 +144,13 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
     Uf_.block(dim_rf_cstr_, 0, dim_new_rf_cstr, dim_rf_).setZero();
     Uf_.block(dim_rf_cstr_, dim_rf_, dim_new_rf_cstr, dim_new_rf) = Uf;
 
-    // Wf
-    static_cast<WBDC_ContactSpec*>(contact_list[i])->getCMProjectionMtx(Wf);
-    Wf_.conservativeResize(dim_cam_, dim_rf_ + dim_new_rf);
-    Wf_.block(0, dim_rf_, dim_cam_, dim_new_rf) = Wf;
-
     dim_rf_ += dim_new_rf;
     dim_rf_cstr_ += dim_new_rf_cstr;
   }
 
-  sejong::pretty_print(Jc_, std::cout, "WBDC: Jc");
-  sejong::pretty_print(JcDotQdot_, std::cout, "WBDC: JcDot Qdot");
-  sejong::pretty_print(Uf_, std::cout, "WBDC: Uf");
-  sejong::pretty_print(Wf_, std::cout, "WBDC: Wf");
+  // sejong::pretty_print(Jc_, std::cout, "WBDC: Jc");
+  // sejong::pretty_print(JcDotQdot_, std::cout, "WBDC: JcDot Qdot");
+  // sejong::pretty_print(Uf_, std::cout, "WBDC: Uf");
 }
 
 void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
@@ -204,9 +177,6 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
   Npre = sejong::Matrix::Identity(num_qdot_, num_qdot_) - Jt_inv * Jt;
   tot_task_size += dim_rf_;
 
-  sejong::pretty_print(B_, std::cout, "WBDC: B");
-  sejong::pretty_print(c_, std::cout, "WBDC: c");
-
   // Task Stacking
   for(int i(0); i<task_list.size(); ++i){
     // Obtaining Task
@@ -219,7 +189,6 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
     I_JtPreInv_Jt = sejong::Matrix::Identity(num_qdot_, num_qdot_) - JtPre_inv * Jt;
 
     // B matrix building
-    printf("task size (total, current): %i, %i\n", tot_task_size, task->getDim());
     B_.conservativeResize(num_qdot_, tot_task_size + task->getDim());
     B_.block(0, 0, num_qdot_, tot_task_size) =
       I_JtPreInv_Jt * B_.block(0, 0, num_qdot_, tot_task_size);
@@ -236,9 +205,7 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
     Npre = Npre * ( sejong::Matrix::Identity(num_qdot_, num_qdot_) - JtPre_inv * JtPre);
     tot_task_size += task->getDim();
 
-    sejong::pretty_print(B_, std::cout, "WBDC: B");
-    sejong::pretty_print(c_, std::cout, "WBDC: c");
-    sejong::pretty_print(task_cmd_, std::cout, "WBDC: task cmd");
+
     // Relaxed Task Setup
     if(static_cast<WBDC_Task*>(task)->getRelaxed_Dim() > 0){
       sejong::Matrix Sd;
@@ -254,11 +221,12 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
         S_delta_.block(tot_task_size - task->getDim(), dim_relaxed_task_, task->getDim(), dim_relax) = Sd;
       }
       dim_relaxed_task_ += dim_relax;
-
-      sejong::pretty_print(S_delta_, std::cout, "tot S delta");
     }
   }
-
+  // sejong::pretty_print(B_, std::cout, "WBDC: B");
+  // sejong::pretty_print(c_, std::cout, "WBDC: c");
+  // sejong::pretty_print(task_cmd_, std::cout, "WBDC: task cmd");
+  // sejong::pretty_print(S_delta_, std::cout, "tot S delta");
 }
 
 void WBDC::_GetSolution(sejong::Vector & cmd){
@@ -267,8 +235,8 @@ void WBDC::_GetSolution(sejong::Vector & cmd){
   sejong::Vector tot_tau = tot_tau_Mtx_*result + tot_tau_Vect_;
   cmd = tot_tau.tail(num_act_joint_);
 
-  sejong::pretty_print(result, std::cout, "opt result");
-  sejong::pretty_print(tot_tau, std::cout, "tot tau result");
+  // sejong::pretty_print(result, std::cout, "opt result");
+  // sejong::pretty_print(tot_tau, std::cout, "tot tau result");
 }
 
 void WBDC::_MatrixInitialization(){
@@ -281,9 +249,6 @@ void WBDC::_MatrixInitialization(){
     tot_tau_Mtx_ =  -Jc_.transpose();
   }
   tot_tau_Vect_ = A_*B_*task_cmd_ + A_*c_ + cori_ + grav_;
-
-  sejong::pretty_print(tot_tau_Mtx_, std::cout, "tot tau matrix");
-  sejong::pretty_print(tot_tau_Vect_, std::cout, "tot tau Vector");
 
   G.resize(dim_opt_, dim_opt_);
   g0.resize(dim_opt_);

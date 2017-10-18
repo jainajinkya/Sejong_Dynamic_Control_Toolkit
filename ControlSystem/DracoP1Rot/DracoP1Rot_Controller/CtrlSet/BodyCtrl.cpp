@@ -5,6 +5,9 @@
 #include <ContactSet/FootContact.hpp>
 #include <WBDC/WBDC.hpp>
 #include <DracoP1Rot_Model/DracoModel.hpp>
+#include <chrono>
+
+// #define WBDC_COMPUTATION_TIME
 
 BodyCtrl::BodyCtrl(): end_time_(1000000.){
   body_task_ = new BodyTask(3);
@@ -14,10 +17,10 @@ BodyCtrl::BodyCtrl(): end_time_(1000000.){
   wbdc_data_->tau_min = sejong::Vector(NUM_ACT_JOINT);
   wbdc_data_->tau_max = sejong::Vector(NUM_ACT_JOINT);
   for(int i(0); i<NUM_ACT_JOINT; ++i){
-    wbdc_data_->tau_max[i] = 80.0;
-    wbdc_data_->tau_min[i] = -80.0;
+    wbdc_data_->tau_max[i] = 180.0;
+    wbdc_data_->tau_min[i] = -180.0;
   }
-  printf("[Body Controller] Constructed\n");
+  // printf("[Body Controller] Constructed\n");
 }
 BodyCtrl::~BodyCtrl(){
   delete body_task_;
@@ -44,14 +47,26 @@ void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_data_->Jcam = Jcm.block(2,0, 1, NUM_QDOT);
   wbdc_data_->JcamDotQdot = (Jcm * Ainv_ * coriolis_).tail(1);
 
-  sejong::pretty_print(Icm, std::cout, "Icm");
-  sejong::pretty_print(Jcm, std::cout, "Jcm");
-  sejong::pretty_print(wbdc_data_->Icam, std::cout, "Icam");
-  sejong::pretty_print(wbdc_data_->Jcam, std::cout, "Jcam");
-  sejong::pretty_print(wbdc_data_->JcamDotQdot, std::cout, "JcamDot qdot");
+  // sejong::pretty_print(Icm, std::cout, "Icm");
+  // sejong::pretty_print(Jcm, std::cout, "Jcm");
+  // sejong::pretty_print(wbdc_data_->Icam, std::cout, "Icam");
+  // sejong::pretty_print(wbdc_data_->Jcam, std::cout, "Jcam");
+  // sejong::pretty_print(wbdc_data_->JcamDotQdot, std::cout, "JcamDot qdot");
 
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
+
+#ifdef WBDC_COMPUTATION_TIME
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
+
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
+
+#ifdef WBDC_COMPUTATION_TIME
+  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+  std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
+#endif
+
 }
 
 void BodyCtrl::_body_task_setup(){
@@ -59,19 +74,16 @@ void BodyCtrl::_body_task_setup(){
   sp_->Body_vel_des_.setZero();
   sp_->Body_acc_des_.setZero();
 
-  double amp(0.0);
+  double amp(0.1);
   double omega(2.*M_PI * 1.);
-
-  printf("state time: %f\n", state_machine_time_);
-  sp_->Body_pos_des_[2] += amp * sin(omega * state_machine_time_);
-  sp_->Body_vel_des_[2] = amp * omega * cos(omega * state_machine_time_);
-  sp_->Body_acc_des_[2] = amp * omega * omega * sin(omega * state_machine_time_);
+  int ctrl_idx(1);
+  sp_->Body_pos_des_[ctrl_idx] += amp * sin(omega * state_machine_time_);
+  sp_->Body_vel_des_[ctrl_idx] = amp * omega * cos(omega * state_machine_time_);
+  sp_->Body_acc_des_[ctrl_idx] = amp * omega * omega * sin(omega * state_machine_time_);
 
   body_task_->UpdateTask(&(sp_->Body_pos_des_),
                          (sejong::Vector)sp_->Body_vel_des_,
                          (sejong::Vector)sp_->Body_acc_des_);
-
-
 
   // set relaxed op direction
   // cost weight setup
@@ -89,7 +101,7 @@ void BodyCtrl::_body_task_setup(){
 
   // Push back to task list
   task_list_.push_back(body_task_);
-  sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
+  // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
 void BodyCtrl::_foot_contact_setup(){
   foot_contact_->UpdateContactSpec();

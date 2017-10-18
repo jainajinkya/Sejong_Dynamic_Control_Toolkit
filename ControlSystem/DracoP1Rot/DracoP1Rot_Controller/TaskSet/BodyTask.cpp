@@ -12,7 +12,7 @@ BodyTask::BodyTask(int dim):WBDC_Task(dim),
   sp_ = StateProvider::GetStateProvider();
   model_ = DracoModel::GetDracoModel();
 
-  printf("[Body Task] Constructed\n");
+  // printf("[Body Task] Constructed\n");
 }
 
 BodyTask::~BodyTask(){}
@@ -25,9 +25,9 @@ bool BodyTask::_UpdateCommand(void* pos_des,
   sejong::Vector pos_err = *pos_cmd - sp_->Body_pos_;
   op_cmd_ = acc_des + Kp_ * (*pos_cmd - sp_->Body_pos_) + Kd_ * (vel_des - sp_->Body_vel_);
 
-  sejong::pretty_print(op_cmd_, std::cout, "op cmd");
-  sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
-  sejong::pretty_print(sp_->Body_pos_, std::cout, "body pos");
+  // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
+  // sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
+  // sejong::pretty_print(sp_->Body_pos_, std::cout, "body pos");
   return true;
 }
 

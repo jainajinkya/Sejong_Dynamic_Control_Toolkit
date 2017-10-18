@@ -34,19 +34,3 @@ bool FootContact::_UpdateUf(){
 
   return true;
 }
-
-bool FootContact::_UpdateWf(){
-  sejong::Vect3 com_pos;
-  sejong::Vect3 foot_pos;
-  model_->getCoMPosition(sp_->Q_, com_pos);
-  model_->getPosition(sp_->Q_, SJLinkID::LK_foot, foot_pos);
-  Wf_ = sejong::Matrix::Zero(1, dim_contact_);
-  sejong::pretty_print(com_pos, std::cout, "com pos");
-  sejong::pretty_print(foot_pos, std::cout, "foot pos");
-
-  Wf_(0, 0) = -(com_pos[2] - foot_pos[1]); // Z * Fx
-  Wf_(0, 1) = (com_pos[0] - foot_pos[0]); // X * Fz
-  Wf_(0, 2) = 1.;
-
-  return true;
-}
