@@ -21,8 +21,6 @@ bool BodyTask::_UpdateCommand(void* pos_des,
                               const sejong::Vector & vel_des,
                               const sejong::Vector & acc_des){
   sejong::Vect3* pos_cmd = (sejong::Vect3*)pos_des;
-
-  sejong::Vector pos_err = *pos_cmd - sp_->Body_pos_;
   op_cmd_ = acc_des + Kp_ * (*pos_cmd - sp_->Body_pos_) + Kd_ * (vel_des - sp_->Body_vel_);
 
   // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
@@ -32,7 +30,11 @@ bool BodyTask::_UpdateCommand(void* pos_des,
 }
 
 bool BodyTask::_UpdateTaskJacobian(){
-  model_->getFullJacobian(sp_->Q_, SJLinkID::LK_body, Jt_);
+  sejong::Matrix Jbody, Jfoot;
+
+  model_->getFullJacobian(sp_->Q_, SJLinkID::LK_body, Jbody);
+  model_->getFullJacobian(sp_->Q_, SJLinkID::LK_foot, Jfoot);
+  Jt_ = Jbody - Jfoot;
   return true;
 }
 

@@ -75,7 +75,7 @@ void BodyCtrl::_body_task_setup(){
   sp_->Body_acc_des_.setZero();
 
   double amp(0.1);
-  double omega(2.*M_PI * 1.);
+  double omega(2.*M_PI * 1.0);
   int ctrl_idx(1);
   sp_->Body_pos_des_[ctrl_idx] += amp * sin(omega * state_machine_time_);
   sp_->Body_vel_des_[ctrl_idx] = amp * omega * cos(omega * state_machine_time_);

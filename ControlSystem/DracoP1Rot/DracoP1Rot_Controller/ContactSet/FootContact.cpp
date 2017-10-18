@@ -22,7 +22,7 @@ bool FootContact::_UpdateJcDotQdot(){
 }
 
 bool FootContact::_UpdateUf(){
-  double mu(0.8);
+  double mu(0.3);
   double l1(0.12);
   double l2(0.08);
   Uf_ = sejong::Matrix::Zero(5, dim_contact_);
