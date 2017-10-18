@@ -15,19 +15,18 @@ public:
   }
 
   bool UpdateTask(void* pos_des, const sejong::Vector & vel_des, const sejong::Vector & acc_des){
-    bool ret(true);
-    if(_UpdateCommand(pos_des, vel_des, acc_des)){
-      if(_UpdateTaskJacobian()){
-        if(_UpdateTaskJDotQdot()){
-        } else { return false; }
-      }else{ return false; }
-    }else { return false; }
+    _UpdateCommand(pos_des, vel_des, acc_des);
+    _UpdateTaskJacobian();
+    _UpdateTaskJDotQdot();
+    _AdditionalUpdate();
 
     b_set_task_ = true;
-    return ret;
+    return true;
   }
 
   int getDim(){ return dim_task_; }
+  void UnsetTask(){ b_set_task_ = false; }
+
 protected:
   // Update op_cmd_
   virtual bool _UpdateCommand(void* pos_des,
@@ -37,6 +36,8 @@ protected:
   virtual bool _UpdateTaskJacobian() = 0;
   // Update JtDotQdot_
   virtual bool _UpdateTaskJDotQdot() = 0;
+  // Additional Update (defined in child classes)
+  virtual bool _AdditionalUpdate() = 0;
 
   sejong::Vector op_cmd_;
   sejong::Vector JtDotQdot_;

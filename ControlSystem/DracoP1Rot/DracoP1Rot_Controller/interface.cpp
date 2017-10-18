@@ -51,7 +51,7 @@ void Interface::GetCommand(_DEF_SENSOR_DATA_,
 
   running_time_ = (double)(count_) * SERVO_RATE;
   ++count_;
-  StateProvider::GetStateProvider()->curr_time_ = time;
+  StateProvider::GetStateProvider()->curr_time_ = running_time_;
 }
 void Interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
 

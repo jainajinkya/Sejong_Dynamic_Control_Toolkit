@@ -1,6 +1,6 @@
 #include "draco.h"
 
-#define FIX_IN_AIR 
+// #define FIX_IN_AIR 
 
 srDraco::srDraco(Vec3 location):
   SystemGenerator()

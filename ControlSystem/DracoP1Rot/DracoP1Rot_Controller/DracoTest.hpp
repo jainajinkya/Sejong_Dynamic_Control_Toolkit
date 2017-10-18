@@ -17,6 +17,7 @@ public:
 protected:
   virtual int _NextPhase(const int & phase) = 0;
 
+  bool b_first_visit_;
   int phase_;
   std::vector<DracoController*> state_list_;
 };

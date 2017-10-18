@@ -1,7 +1,7 @@
 #include "StateEstimator.hpp"
 #include "StateProvider.hpp"
 #include <Utils/utilities.hpp>
-#include <DracoP1Rot_Model/Draco_Model.hpp>
+#include <DracoP1Rot_Model/DracoModel.hpp>
 #include <Filter/filters.hpp>
 
 StateEstimator::StateEstimator(): jvel_filter_(NUM_ACT_JOINT){
@@ -19,8 +19,10 @@ StateEstimator::~StateEstimator(){
 void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
   sp_->Q_[0] = body_pos[1]; // X
   sp_->Q_[1] = body_pos[0]; // Z
+  sp_->Q_[2] = body_ori;
   sp_->Qdot_[0] = body_vel[1]; // X
   sp_->Qdot_[1] = body_vel[0]; // Z
+  sp_->Qdot_[2] = body_ang_vel;
 
   for (int i(0); i<NUM_ACT_JOINT; ++i){
     sp_->Q_[NUM_VIRTUAL + i] = jpos[i];
@@ -28,14 +30,19 @@ void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
     sp_->Qdot_[NUM_VIRTUAL + i] = jvel[i];
     // sp_->Qdot_[NUM_VIRTUAL + i] = jvel_filter_[i]->output();
   }
+
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
+  robot_model_->getPosition(sp_->Q_, SJLinkID::LK_body, sp_->Body_pos_);
+  robot_model_->getVelocity(sp_->Q_, sp_->Qdot_, SJLinkID::LK_body, sp_->Body_vel_);
 }
 
 void StateEstimator::Update(_DEF_SENSOR_DATA_){
   sp_->Q_[0] = body_pos[1]; // X
   sp_->Q_[1] = body_pos[0]; // Z
+  sp_->Q_[2] = body_ori;
   sp_->Qdot_[0] = body_vel[1]; // X
   sp_->Qdot_[1] = body_vel[0]; // Z
+  sp_->Qdot_[2] = body_ang_vel;
 
   for (int i(0); i<NUM_ACT_JOINT; ++i){
     sp_->Q_[NUM_VIRTUAL + i] = jpos[i];
@@ -45,4 +52,6 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
     // sp_->Qdot_[NUM_VIRTUAL + i] = jvel_filter_[i]->output();
   }
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
+  robot_model_->getPosition(sp_->Q_, SJLinkID::LK_body, sp_->Body_pos_);
+  robot_model_->getVelocity(sp_->Q_, sp_->Qdot_, SJLinkID::LK_body, sp_->Body_vel_);
 }

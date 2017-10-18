@@ -30,12 +30,8 @@ public:
     virtual void getCoMVelocity(const Vector & q, const Vector & qdot, Vect3 & com_vel);
 
     void getFullJacobianDot(const Vector & q, const Vector & qdot, int link_id, sejong::Matrix & J) const ;
-    void getOrientation(const Vector & q,
-                        int link_id, sejong::Quaternion & ori) ;
     void getVelocity(const Vector & q, const Vector &qdot,
                      int link_id, Vect3 & vel) ;
-    void getAngVel(const Vector & q, const Vector & qdot,
-                   int link_id, Vect3 & ang_vel);
 
     void getCentroidVelocity(sejong::Vector & centroid_vel);
     void getCoMJacobian(const Vector & q, sejong::Matrix & J);

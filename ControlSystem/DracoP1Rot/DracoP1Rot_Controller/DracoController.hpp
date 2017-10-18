@@ -6,6 +6,8 @@
 
 class DracoModel;
 class StateProvider;
+class Task;
+class ContactSpec;
 
 class DracoController{
 public:
@@ -31,6 +33,10 @@ protected:
   sejong::Matrix Ainv_;
   sejong::Vector grav_;
   sejong::Vector coriolis_;
+
+  std::vector<Task*> task_list_;
+  std::vector<ContactSpec*> contact_list_;
+  std::vector<bool> act_list_;
 
   double state_machine_time_;
   double ctrl_start_time_;

@@ -15,9 +15,6 @@ public:
 
   ~StateProvider(){}
 
-  void SaveSingleReactionForce(const sejong::Vector & Fr);
-  void Push_PathNode(const sejong::Vector & node);
-
   bool initialized_;
   double curr_time_;
   int system_count_;
@@ -27,13 +24,13 @@ public:
   Vector curr_torque_;
 
   ///// Desired
-  sejong::Vect3 CoM_pos_des_;
-  sejong::Vect3 CoM_vel_des_;
-  sejong::Vect3 CoM_acc_des_;
+  sejong::Vect3 Body_pos_des_;
+  sejong::Vect3 Body_vel_des_;
+  sejong::Vect3 Body_acc_des_;
 
   ////// Current
-  sejong::Vect3 CoM_pos_;
-  sejong::Vect3 CoM_vel_;
+  sejong::Vect3 Body_pos_;
+  sejong::Vect3 Body_vel_;
 
 private:
   StateProvider();

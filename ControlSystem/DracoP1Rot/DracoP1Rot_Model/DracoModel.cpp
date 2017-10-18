@@ -1,4 +1,4 @@
-#include "Draco_Model.hpp"
+#include "DracoModel.hpp"
 #include "Draco_Dyn_Model.hpp"
 #include "Draco_Kin_Model.hpp"
 #include "rbdl/urdfreader.h"
@@ -84,12 +84,12 @@ DracoModel::DracoModel(){
 
   // Virtual X link to Virtual Z
   vlink_z = Body (mass_zero, com_pos_zero, gyration_radii_zero);
-  int vlz_id = model_->AddBody(vlx_id, Xtrans(Vector3d(0.,0.,0.)), vjoint_z, link_body, "virtual_z");
+  int vlz_id = model_->AddBody(vlx_id, Xtrans(Vector3d(0.,0.,0.)), vjoint_z, vlink_z, "virtual_z");
   printf("Z virtual Z id: %i \n", vlz_id);
 
   // Virtual Z link to Body
   link_body = Body (mass_body, body_com, inertia_body);
-  int body_id = model_->AddBody(0, Xtrans(Vector3d(0., 0., 0.)), joint_ry, vlink_z, "body");
+  int body_id = model_->AddBody(vlz_id, Xtrans(Vector3d(0., 0., 0.)), joint_ry, link_body, "body");
   printf("body id: %i \n", body_id);
 
   // Body to Thigh
@@ -119,7 +119,7 @@ DracoModel::DracoModel(){
   // Fixed Joint (Heel)
   link_heel = Body(mass_zero, com_pos_zero, gyration_radii_zero);
   int heel_id = model_->AddBody(foot_id, Xtrans(Vector3d(lx_heel, 0., lz_foot)),
-                               fixed_joint, link_toe, "heel");
+                               fixed_joint, link_heel, "heel");
   printf("body heel id: %i \n", heel_id);
 
   //////////////////////////////////////////////////////
@@ -147,9 +147,9 @@ void DracoModel::UpdateModel(const Vector & q, const Vector & qdot){
 void DracoModel::getCentroidInertia(sejong::Matrix & Icent){
   sejong::Matrix Icm_tmp;
   kin_model_->getCentroidInertia(Icm_tmp);
-  // sejong::pretty_print(Icm_tmp, std::cout, "Icm");
+  sejong::pretty_print(Icm_tmp, std::cout, "Icm");
   Icent = Icm_tmp.block(3, 3, 3, 3);
-  Icent(2,2) = Icm_tmp(2,2);
+  Icent(2,2) = Icm_tmp(1,1);
 }
 
 void DracoModel::getCentroidJacobian(sejong::Matrix & Jcent){
@@ -159,7 +159,7 @@ void DracoModel::getCentroidJacobian(sejong::Matrix & Jcent){
 
   Jcent = Jcent_tmp.block(3, 0, 3, NUM_QDOT);
   Jcent.block(1,0, 1, NUM_QDOT) = Jcent_tmp.block(5, 0, 1, NUM_QDOT); //Z
-  Jcent.block(2,0, 1, NUM_QDOT) = Jcent_tmp.block(2, 0, 1, NUM_QDOT); //Ry
+  Jcent.block(2,0, 1, NUM_QDOT) = Jcent_tmp.block(1, 0, 1, NUM_QDOT); //Ry
 }
 
 void DracoModel::UpdateKinematics(const Vector & q, const Vector &qdot){
@@ -214,10 +214,6 @@ void DracoModel::getPosition(const Vector & q,
   pos[1] = pos_tmp[2];
   pos[2] = 2. * asin(ori.y());
 }
-void DracoModel::getOrientation(const Vector & q,
-                               int link_id, sejong::Quaternion & ori) {
-  kin_model_->getOrientation(q, link_id, ori);
-}
 
 void DracoModel::getVelocity(const Vector & q, const Vector &qdot,
                             int link_id, Vect3 & vel) {
@@ -228,11 +224,6 @@ void DracoModel::getVelocity(const Vector & q, const Vector &qdot,
   vel[0] = vel_tmp[0];
   vel[1] = vel_tmp[2];
   vel[2] = ang_vel[1];
-}
-
-void DracoModel::getAngVel(const Vector & q, const Vector & qdot,
-                          int link_id, Vect3 & ang_vel){
-    kin_model_->getAngVel(q, qdot, link_id, ang_vel);
 }
 
 void DracoModel::getCoMJacobian(const Vector & q, sejong::Matrix & J){

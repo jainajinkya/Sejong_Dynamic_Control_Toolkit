@@ -10,8 +10,9 @@ public:
 
   int getRelaxed_Dim(){ return dim_relaxed_;}
   void setRelaxedOpCtrl(const std::vector<bool> & relaxed_op);
-
+  void getSdelta(sejong::Matrix & Sd){ Sd = S_del_; }
 protected:
+  virtual bool _AdditionalUpdate(){ return true;}
   int dim_relaxed_;
   sejong::Matrix S_del_;
 };
