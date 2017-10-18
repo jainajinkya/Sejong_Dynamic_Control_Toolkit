@@ -7,7 +7,7 @@
 
 BodyTask::BodyTask(int dim):WBDC_Task(dim),
                             Kp_(100.0),
-                            Kd_(5.0)
+                            Kd_(10.0)
 {
   sp_ = StateProvider::GetStateProvider();
   model_ = DracoModel::GetDracoModel();

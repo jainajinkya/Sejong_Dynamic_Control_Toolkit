@@ -91,12 +91,14 @@ void BodyCtrl::_body_task_setup(){
   bool b_height_relax(true);
   if(b_height_relax){
     std::vector<bool> relaxed_op(body_task_->getDim(), false);
+    relaxed_op[0] = true; // X
     relaxed_op[1] = true; // Z
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
-    wbdc_data_->cost_weight.conservativeResize( prev_size + 1);
-    wbdc_data_->cost_weight[prev_size] = 100.;
+    wbdc_data_->cost_weight.conservativeResize( prev_size + 2);
+    wbdc_data_->cost_weight[prev_size] = 500.;
+    wbdc_data_->cost_weight[prev_size+1] = 500.;
   }
 
   // Push back to task list
