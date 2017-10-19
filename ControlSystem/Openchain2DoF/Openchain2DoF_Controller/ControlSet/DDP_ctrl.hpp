@@ -40,12 +40,30 @@ protected:
   void _internal_simulate_sequence(const std::vector<sejong::Vector> & U,  std::vector<sejong::Vector> & X); 
   // computes l(x,u) - A quadratic cost 
   double _l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in);
-  void _l_running_cost(const sejong::Vector & x_state, const sejong::Vector & u_in, double & cost);
-  void _l_final_cost(const sejong::Vector & x_state_final, double & cost);  
+  double _l_final_cost(const sejong::Vector & x_state_final);  
   
   void _get_finite_differences();
 
   void _compute_ilqr();
+
+
+  double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
+
+/*  void  _simulate(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U, double & cost);
+  void  _simulate(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U, std::vector<sejong::Vector> & X_new, double & cost);
+  void _get_gradients_hessians();
+
+  void _getB(const sejong::Vector & x_state, sejong::Matrix & B_out);
+  void _getC(const sejong::Vector & x_state, sejong::Matrix & C_out);  
+  void _getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, const int index, sejong::Vector & gamma_int);
+  void  _getUnew(const std::vector<sejong::Vector> & k, const std::vector<sejong::Matrix> & K);
+
+
+  // calculates l_x, l_xx, l_u, l_uu, f_u
+  void  _calc_analytical_gradients_hessians(); 
+  // Finite difference calculate f_x
+  void  _calculate_f_x(); */
+
 
   sejong::Vect3 ee_ini_;
 
@@ -57,6 +75,18 @@ protected:
   sejong::Vector coriolis_int;
 
   // DDP Variables
+  double lambda_factor;
+
+  sejong::Matrix Q_mat; // Position Cost matrix
+  sejong::Matrix N_mat; // Acceleration Cost matrix
+  sejong::Matrix R_mat; // Torque Cost matrix
+
+  double eps_converge;
+  std::vector<sejong::Matrix> B;
+  std::vector<sejong::Matrix> C;
+  std::vector<sejong::Vector> tau;
+
+
   int DIM_WBC_TASKS;
   std::vector<sejong::Vector> x_sequence;  
   std::vector<sejong::Vector> u_sequence;
@@ -84,7 +114,6 @@ protected:
   std::vector<sejong::Vector> V_x;
   std::vector<sejong::Matrix> V_xx;
 
-  double J_cost;
   std::vector<double> J_cost_tail;
 
   int N_horizon; // Control Horizon

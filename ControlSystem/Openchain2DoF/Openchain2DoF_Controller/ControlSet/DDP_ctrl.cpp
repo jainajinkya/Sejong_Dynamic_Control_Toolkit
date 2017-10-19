@@ -86,7 +86,6 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
 
   _initiailize_u_sequence();
 
-  J_cost = 0.0;
   J_cost_tail = std::vector<double>(N_horizon);
 
   mpc_time_step = SERVO_RATE; //SERVO_RATE/10; //0.001;
@@ -391,6 +390,44 @@ void DDP_ctrl::_get_finite_differences(){
 //  l(x+h, u) - l(x-h, u) / 2h  
 }
 
+double DDP_ctrl::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U){
+  double J_cost = 0.0;
+  for(size_t i = 0; i < N_horizon-1; i++){
+    J_cost += _l_cost(X[i], U[i]);
+  }
+  J_cost += _l_final_cost(X[N_horizon-1]); 
+  return J_cost;
+}
+
+double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
+  double cost = 0.0;
+
+  sejong::Vect3 ee_pos;
+  _update_internal_model(x_state_final);
+  internal_model->getPosition(x_state_final.head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+
+  sejong::Vector cur_ee_pos(2);
+  cur_ee_pos[0] = ee_pos[0];
+  cur_ee_pos[1] = ee_pos[1];
+
+  sejong::Matrix Q(cur_ee_pos.rows(), cur_ee_pos.rows()); // task cost
+
+  Q.setZero();
+
+  double cost_weight = 0.01;
+  Q(0,0) = cost_weight;
+  Q(1,1) = cost_weight;  
+
+
+  sejong::Matrix cost_in_eigen;
+  cost_in_eigen = (des_oper_goal - cur_ee_pos).transpose() * Q * (des_oper_goal - cur_ee_pos);
+
+  cost = cost_in_eigen(0,0);
+  //std::cout << "cost = " << cost << std::endl;
+  return cost;  
+
+
+}
 
 double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in){
   sejong::Vect3 ee_pos;
@@ -533,10 +570,10 @@ void DDP_ctrl::_compute_ilqr(){
       sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()*V_xx*f_x[i];
       sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
       std::cout << "i" << i << " V, Q, k, and K" << std::endl;
-      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
+/*      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
       sejong::pretty_print(Q_u, std::cout, "Q_u");
       sejong::pretty_print(Q_ux, std::cout, "Q_ux");
-
+*/
 
       // Compute inv(Q_uu) with Levenberg-Marquardt Heuristic
       Eigen::EigenSolver<sejong::Matrix> es(Q_uu);
@@ -555,13 +592,19 @@ void DDP_ctrl::_compute_ilqr(){
         es_eigVals_recp[j] = 1.0/(es_eigVals_recp[j] + lm_lambda);
         // std::cout << "eig recp j" << j << " " << es_eigVals_recp[j] << std::endl;
       }
+      sejong::Matrix Q_uu_inv = es_eigVecs * (es_eigVals_recp.asDiagonal()) * (es_eigVecs.transpose());
 
       // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
       // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
-      // std::cout << "regularized Q_uu inverse is:" << std::endl << es_eigVecs*(es_eigVals_recp.asDiagonal())*(es_eigVecs.transpose()) << std::endl;
+      std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
       // std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      */
 
+      k_vec[i] = -Q_uu_inv*Q_u;
+      K_vec[i] = -Q_uu_inv*Q_ux;
+
     }
+
+//    _J_cost(x_sequence, u_sequence);
 
   }
 
