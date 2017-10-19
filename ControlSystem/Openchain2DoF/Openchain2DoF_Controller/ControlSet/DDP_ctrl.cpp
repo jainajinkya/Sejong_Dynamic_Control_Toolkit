@@ -84,7 +84,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   ilqr_iters = 10;
 
 
-  _initiailize_u_sequence();
+  _initialize_u_sequence(u_sequence);
 
   J_cost_tail = std::vector<double>(N_horizon);
 
@@ -125,21 +125,21 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 }
 
 
-void DDP_ctrl::_initiailize_u_sequence(){
+void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
   // Near zero initialization
   for(size_t i = 0; i < u_sequence.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
       u_vec[j] = 0.1;//0.001; // this can be random
     }
-    u_sequence[i] = u_vec;
+    U[i] = u_vec;
   }
 }
 
 // Use U = {u1, u2, ..., uN} to find X = {x1, x2, ..., xN}
-void DDP_ctrl::_initiailize_x_sequence(const sejong::Vector & x_state_start){
+void DDP_ctrl::_initialize_x_sequence(const sejong::Vector & x_state_start,  const std::vector<sejong::Vector> & U, std::vector<sejong::Vector> & X){
   x_sequence[0] = x_state_start;
-  _internal_simulate_sequence(u_sequence, x_sequence);
+  _internal_simulate_sequence(U, X);
 }
 
 void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
@@ -552,7 +552,7 @@ void DDP_ctrl::_compute_ilqr(){
   double lm_lambda = 1.0; //  Regularization Parameter
   for(size_t ii = 0; ii < ilqr_iters; ii++){
     // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
-    _initiailize_x_sequence(x);
+    _initialize_x_sequence(x, u_sequence, x_sequence);
     // Get Finite Difference: l_x, l_u, l_xx, l_uu, f_x, f_u
     _get_finite_differences();
 

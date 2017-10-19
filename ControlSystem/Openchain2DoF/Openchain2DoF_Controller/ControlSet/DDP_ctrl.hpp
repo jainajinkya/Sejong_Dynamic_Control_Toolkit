@@ -27,9 +27,9 @@ protected:
   // Updates a model of the robot given x = [q, qdot]
   void _update_internal_model(const sejong::Vector & x_state);
   // Initializes U = {u1, u2, ..., uN}
-  void _initiailize_u_sequence(); 
+  void _initialize_u_sequence(std::vector<sejong::Vector> & U); 
   // Initializes X = {x1, x2, ..., xN}
-  void _initiailize_x_sequence(const sejong::Vector & x_state_start); 
+  void _initialize_x_sequence(const sejong::Vector & x_state_start, const std::vector<sejong::Vector> & U, std::vector<sejong::Vector> & X); 
   // gives torque for desired task accelerations
   void _getWBC_command(const sejong::Vector & x_state, const sejong::Vector & des_acc, sejong::Vector & gamma_int); 
    // Computes x_{t+1} = f(x, gamma(u)) for  a specified simulation rate
