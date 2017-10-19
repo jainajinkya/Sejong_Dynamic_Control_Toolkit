@@ -79,9 +79,9 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
   }
 
 
-  des_oper_goal[0] = -0.25; // Reaching Task x
-  des_oper_goal[1] = 0.25; // Reaching Task y  
-  ilqr_iters = 100;
+  des_oper_goal[0] = 0.25; // Reaching Task x
+  des_oper_goal[1] = 0.35; // Reaching Task y  
+  ilqr_iters = 5;
 
 
   _initialize_u_sequence(u_sequence);
@@ -634,7 +634,7 @@ void DDP_ctrl::_compute_ilqr(){
     x = x_sequence[0];
   }
 
-  
+
 
 
 }
@@ -654,7 +654,8 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   // -------------------------------------------------------------------------------------------
   // Computation Block
   _compute_ilqr();
-  
+
+  std::cout << "Hello?" << std::endl;  
 
   // End Computation Block
   // --------------------------------------------------------------------------------------------
