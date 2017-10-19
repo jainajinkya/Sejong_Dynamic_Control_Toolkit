@@ -16,8 +16,8 @@ include_directories ("${PROJECT_SOURCE_DIR}/ExternalSource")
 include_directories ("${PROJECT_SOURCE_DIR}/WBC")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-set (CMAKE_BUILD_TYPE Debug)
-# set (CMAKE_BUILD_TYPE Release)
+# set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
 add_definitions(-O3)
 
 #------------------------------------------------------------------------
@@ -27,9 +27,9 @@ add_definitions(-O3)
 # SET (CTRL_SYS "Hume")
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
-# SET (CTRL_SYS "DracoP1Rot")
+SET (CTRL_SYS "DracoP1Rot")
 # SET (CTRL_SYS "Openchain3DoF")
-SET (CTRL_SYS "Openchain2DoF")
+# SET (CTRL_SYS "Openchain2DoF")
 # SET (CTRL_SYS "Walker2D")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
@@ -37,8 +37,8 @@ include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 #------------------------------------------------------------------------
 #    Directory Selection
 #------------------------------------------------------------------------
-# add_subdirectory (Simulator/srSimulator)
-add_subdirectory (Simulator/RBDL_simulator)
+add_subdirectory (Simulator/srSimulator)
+# add_subdirectory (Simulator/RBDL_simulator)
 add_subdirectory (Utils)
 add_subdirectory (Filter)
 add_subdirectory (ExternalSource)

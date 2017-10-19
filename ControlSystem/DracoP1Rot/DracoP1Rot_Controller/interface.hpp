@@ -8,32 +8,30 @@
 #include <map>
 #include <string>
 
-class DracoSystem;
+class DracoTest;
 
 class Interface{
 public:
-    Interface();
-    ~Interface();
+  Interface();
+  ~Interface();
 
 public:
-    void GetCommand(_DEF_SENSOR_DATA_,
-                    std::vector<double> & command);
+  void GetCommand(_DEF_SENSOR_DATA_,
+                  std::vector<double> & command);
   void GetReactionForce(std::vector<sejong::Vect3> & reaction_force );
-    /* std::map<std::string, int> joint_idx_map; */
-    
+
 private:
-    bool _Initialization(_DEF_SENSOR_DATA_);
+  bool _Initialization(_DEF_SENSOR_DATA_, std::vector<double> & command);
+  DracoTest* draco_test_;
+  
+  sejong::Vector virtual_sensor_;
+  sejong::Vector torque_command_;
+  sejong::Vector sensed_torque_;
+  int count_;
+  double running_time_;
 
-    DracoSystem* draco_sys_;
-    
-    sejong::Vector virtual_sensor_;
-    sejong::Vector torque_command_;
-    sejong::Vector sensed_torque_;
-    int count_;
-    double running_time_;
-
-    sejong::Vector initial_jpos_;
-    StateEstimator state_estimator_;
+  sejong::Vector initial_jpos_;
+  StateEstimator state_estimator_;
 };
 
 #endif

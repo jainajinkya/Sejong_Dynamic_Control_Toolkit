@@ -2,46 +2,44 @@
 #define DRACO_P1_ROTATION_JOINT_CONTROLLER
 
 #include <Utils/wrap_eigen.hpp>
-#include "StateProvider.hpp"
+#include <string>
 
 class DracoModel;
-
-enum ContactState {
-  SS
-};
-
-enum WalkingPhase{
-  RS_DoubleSupport = 0,
-  RightStanceSingleSupport = 1,
-  LS_DoubleSupport = 2,
-  LeftStanceSingleSupport = 3,
-};
+class StateProvider;
+class Task;
+class ContactSpec;
 
 class DracoController{
 public:
   DracoController();
   virtual ~DracoController();
 
-  virtual void ComputeTorqueCommand(sejong::Vector & gamma) = 0;
-  virtual void Initialization() = 0;
+  virtual void OneStep(sejong::Vector & gamma) = 0;
+  virtual void FirstVisit() = 0;
+  virtual void LastVisit() = 0;
+  virtual bool EndOfPhase() = 0;
+
+  virtual void CtrlInitialization(std::string setting_file_name) = 0;
 
 protected:
   void _PreProcessing_Command();
   void _PostProcessing_Command(sejong::Vector & gamma);
   void _DynConsistent_Inverse(const sejong::Matrix & J, sejong::Matrix & Jinv);
-  ContactState contact_state_;
 
   StateProvider* sp_;
   DracoModel* robot_model_;
-  int phase_;
 
   sejong::Matrix A_;
   sejong::Matrix Ainv_;
   sejong::Vector grav_;
   sejong::Vector coriolis_;
 
+  std::vector<Task*> task_list_;
+  std::vector<ContactSpec*> contact_list_;
+  std::vector<bool> act_list_;
+
   double state_machine_time_;
-  double start_time_;
+  double ctrl_start_time_;
 };
 
 #endif
