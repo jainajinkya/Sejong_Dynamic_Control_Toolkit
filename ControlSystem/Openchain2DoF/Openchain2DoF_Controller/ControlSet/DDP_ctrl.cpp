@@ -8,7 +8,7 @@
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
-                          N_horizon(5),
+                          N_horizon(10),
                           DIM_WBC_TASKS(2),                          
                           des_oper_goal(2),
                           finite_epsilon(0.0001),
@@ -81,14 +81,14 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
 
   des_oper_goal[0] = -0.25; // Reaching Task x
   des_oper_goal[1] = 0.25; // Reaching Task y  
-  ilqr_iters = 10;
+  ilqr_iters = 100;
 
 
   _initialize_u_sequence(u_sequence);
 
   J_cost_tail = std::vector<double>(N_horizon);
 
-  mpc_time_step = SERVO_RATE; //SERVO_RATE/10; //0.001;
+  mpc_time_step = 0.01;//SERVO_RATE; //SERVO_RATE/10; //0.001;
   sim_rate = SERVO_RATE/10;
 
   count = 0;
@@ -130,7 +130,7 @@ void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
   for(size_t i = 0; i < U.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
-      u_vec[j] = 0.1;//0.001; // this can be random
+      u_vec[j] = 0.0;//0.001; // this can be random
     }
     U[i] = u_vec;
   }
@@ -181,8 +181,8 @@ void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state,
 
   // Perform Integration
   // Get q_{t+1} and qdot_{t+1}
-  sejong::Vector qdot_int_next = qdot_int + qddot_int*sim_rate;
-  sejong::Vector q_int_next = q_int + qdot_int*sim_rate ; 
+  sejong::Vector qdot_int_next = qdot_int + qddot_int*mpc_time_step;
+  sejong::Vector q_int_next = q_int + qdot_int*mpc_time_step ; 
 
   x_next_state.head(NUM_Q) = q_int_next;
   x_next_state.tail(NUM_QDOT) = qdot_int_next;  
@@ -204,15 +204,15 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> & U
     sejong::Vector x_next_state_tmp(x_state_tmp.size());
 
     // Simulate constant application of torque 
-    while (mpc_interval <= mpc_time_step){
+    //while (mpc_interval <= mpc_time_step){
       //Apply the same gamma_int within the mpc time step
       _internal_simulate_single_step(x_state_tmp, gamma_int, x_next_state_tmp);
-      x_state_tmp = x_next_state_tmp;
-      mpc_interval += sim_rate;      
-    }
+    //  x_state_tmp = x_next_state_tmp;
+   //   mpc_interval += sim_rate;      
+   // }
 
     X[i] = x_next_state_tmp; // Store X[i]    
-    mpc_interval = 0.0; // reset interval
+    //mpc_interval = 0.0; // reset interval
 
     // Debug Output    
 /*    std::cout << "X[" << i << "] = " << X[i][0] << " " 
@@ -417,7 +417,7 @@ double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
 
   Q.setZero();
 
-  double cost_weight = 0.01;
+  double cost_weight = 1.0;
   Q(0,0) = cost_weight;
   Q(1,1) = cost_weight;  
 
@@ -451,10 +451,10 @@ double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & 
   // if gamma_int is notNan
   //_getWBC_command(x_state, u_in, gamma_int); // We can get torque for any given state and desired acceleration
 
-  double cost_weight = 0.01;
-  double acc_cost_weight = 0.01;  
+  double cost_weight = 1.0;
+  double acc_cost_weight = 0.001;  
   Q(0,0) = cost_weight;
-  Q(1,1) = cost_weight;  
+  Q(1,1) = 3*cost_weight;  
 
   R(0,0) = cost_weight;
   R(1,1) = cost_weight;    
@@ -572,8 +572,8 @@ void DDP_ctrl::_compute_ilqr(){
       sejong::Matrix Q_xx = l_xx[i] + f_x[i].transpose()*V_xx*f_x[i];
       sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()*V_xx*f_x[i];
       sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
-      std::cout << "i" << i << " V, Q, k, and K" << std::endl;
-/*      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
+/*      std::cout << "i" << i << " V, Q, k, and K" << std::endl;
+      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
       sejong::pretty_print(Q_u, std::cout, "Q_u");
       sejong::pretty_print(Q_ux, std::cout, "Q_ux");
 */
@@ -599,28 +599,42 @@ void DDP_ctrl::_compute_ilqr(){
 
       // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
       // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
-      std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
+      // std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
       // std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      */
 
       k_vec[i] = -Q_uu_inv*Q_u;
       K_vec[i] = -Q_uu_inv*Q_ux;
 
+      V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i]; 
+      V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
+
+
+
     }
 
-    std::vector<sejong::Vector> x_new_sequence = std::vector<sejong::Vector>(N_horizon);
-    std::vector<sejong::Vector> u_new_sequence = std::vector<sejong::Vector>(N_horizon);
+    std::vector<sejong::Vector> x_new_sequence = x_sequence;//std::vector<sejong::Vector>(N_horizon);
+    std::vector<sejong::Vector> u_new_sequence = u_sequence;//std::vector<sejong::Vector>(N_horizon);
 
+    std::cout << "iter:" << ii << std::endl;
     // Update u sequence
     sejong::Vector x_new = x;
     for(int i = 0; i < N_horizon-1; i++){
       u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
-      x_new = _x_tp1(x_new, u_new_sequence[i]);    
+      x_new = _x_tp1(x_new, u_new_sequence[i]);
+      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
     }    
     _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
 
-    std::cout << "Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
-    std::cout << "New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+
+    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
+    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+
+    x_sequence = x_new_sequence;
+    u_sequence = u_new_sequence;
+    x = x_sequence[0];
   }
+
+  
 
 
 }
