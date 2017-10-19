@@ -127,7 +127,7 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 
 void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
   // Near zero initialization
-  for(size_t i = 0; i < u_sequence.size(); i++){
+  for(size_t i = 0; i < U.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
       u_vec[j] = 0.1;//0.001; // this can be random
@@ -138,7 +138,7 @@ void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
 
 // Use U = {u1, u2, ..., uN} to find X = {x1, x2, ..., xN}
 void DDP_ctrl::_initialize_x_sequence(const sejong::Vector & x_state_start,  const std::vector<sejong::Vector> & U, std::vector<sejong::Vector> & X){
-  x_sequence[0] = x_state_start;
+  X[0] = x_state_start;
   _internal_simulate_sequence(U, X);
 }
 
@@ -194,8 +194,11 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> & U
 
   double mpc_interval = 0.0;
   for(size_t i = 1; i < N_horizon; i++){
-    sejong::Vector gamma_int(NUM_ACT_JOINT);
+     sejong::Vector gamma_int(NUM_ACT_JOINT);
     _getWBC_command(X[i-1], U[i-1], gamma_int);
+
+
+
 
     sejong::Vector x_state_tmp = X[i-1];
     sejong::Vector x_next_state_tmp(x_state_tmp.size());
@@ -604,8 +607,19 @@ void DDP_ctrl::_compute_ilqr(){
 
     }
 
-//    _J_cost(x_sequence, u_sequence);
+    std::vector<sejong::Vector> x_new_sequence = std::vector<sejong::Vector>(N_horizon);
+    std::vector<sejong::Vector> u_new_sequence = std::vector<sejong::Vector>(N_horizon);
 
+    // Update u sequence
+    sejong::Vector x_new = x;
+    for(int i = 0; i < N_horizon-1; i++){
+      u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
+      x_new = _x_tp1(x_new, u_new_sequence[i]);    
+    }    
+    _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
+
+    std::cout << "Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
+    std::cout << "New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
   }
 
 
