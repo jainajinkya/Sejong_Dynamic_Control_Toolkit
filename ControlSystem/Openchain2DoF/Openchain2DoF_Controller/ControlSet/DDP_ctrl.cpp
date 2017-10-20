@@ -11,7 +11,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           N_horizon(50),
                           DIM_WBC_TASKS(2),                          
                           des_oper_goal(2),
-                          finite_epsilon(0.0001),
+                          finite_epsilon(0.0000001),
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
@@ -81,7 +81,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
 
   des_oper_goal[0] = 0.25; // Reaching Task x
   des_oper_goal[1] = 0.35; // Reaching Task y  
-  ilqr_iters = 5;
+  ilqr_iters = 50;
 
 
   _initialize_u_sequence(u_sequence);
@@ -419,7 +419,7 @@ double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
 
   double cost_weight = 1.0;
   Q(0,0) = cost_weight;
-  Q(1,1) = cost_weight;  
+  Q(1,1) = 3.0*cost_weight;  
 
 
   sejong::Matrix cost_in_eigen;
@@ -553,13 +553,29 @@ void DDP_ctrl::_compute_ilqr(){
   sejong::Vector x = x_state_start;
 
   double lambda = 1.0; //  Regularization Parameter
+  double lambda_min = 0.000001; 
+  double dlambda = 1.0;
+  double lambda_factor = 1.6; // Lambda Factor
+  double z_min = 0.0;
   sejong::Vector dV(2); //
+
+  std::vector<double> alpha_cand_pow = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
+  std::vector<double> alpha_cand;
+  for(size_t i = 0; i < alpha_cand_pow.size(); i++){
+    alpha_cand.push_back(pow(10.0, alpha_cand_pow[i]));
+  }
+
+
+  bool compute_new_traj = true;
   for(size_t ii = 0; ii < ilqr_iters; ii++){
-    // Step 1 Forward Pass -------------------------------------------------------------------------
-    // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
-    _initialize_x_sequence(x, u_sequence, x_sequence);
-    // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
-    _get_finite_differences();
+    if (compute_new_traj){
+      // Step 1 Forward Pass -------------------------------------------------------------------------
+      // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+      _initialize_x_sequence(x, u_sequence, x_sequence);
+      // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
+      _get_finite_differences();
+      compute_new_traj = false;
+    }
 
     // Step 2 Backward Pass -------------------------------------------------------------------------
     double V = _l_cost(x_sequence.back(), u_sequence.back()); // back() is equivalent to N_horizon-1
@@ -583,30 +599,6 @@ void DDP_ctrl::_compute_ilqr(){
       sejong::Matrix L = lltOfQuu.matrixL();
       sejong::Matrix Q_uu_reg_inv = (L.inverse()).transpose()*(L.inverse());
 
-      // Compute inv(Q_uu) with Levenberg-Marquardt Heuristic
-      Eigen::EigenSolver<sejong::Matrix> es(Q_uu);
-      Eigen::VectorXcd v = es.eigenvectors().col(0);
-
-      sejong::Matrix es_eigVecs = es.eigenvectors().real();
-      sejong::Vector es_eigVals = es.eigenvalues().real();
-      sejong::Vector es_eigVals_recp(es_eigVals.size());      
-
-      for (size_t j = 0; j < es_eigVals.size(); j++){
-        if (es_eigVals[j] < 0){ 
-          es_eigVals_recp[j] = 0;
-        }else{
-          es_eigVals_recp[j] = es_eigVals[j];
-        }
-        es_eigVals_recp[j] = 1.0/(es_eigVals_recp[j] + lambda);
-        // std::cout << "eig recp j" << j << " " << es_eigVals_recp[j] << std::endl;
-      }
-      sejong::Matrix Q_uu_inv = es_eigVecs * (es_eigVals_recp.asDiagonal()) * (es_eigVecs.transpose());
-
-
-
-      // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
-      // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
-      // std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
       //std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
       //std::cout << "Cholesky Q_uu inverse is:" << std::endl << Q_uu_reg_inv << std::endl;            
 
@@ -625,30 +617,73 @@ void DDP_ctrl::_compute_ilqr(){
 
     }
 
+    // Step 3 Line Search to find new control sequence  ------------------------------------------------
+    bool fwd_pass_done = false;
     std::vector<sejong::Vector> x_new_sequence = x_sequence;//std::vector<sejong::Vector>(N_horizon);
     std::vector<sejong::Vector> u_new_sequence = u_sequence;//std::vector<sejong::Vector>(N_horizon);
 
     std::cout << "iter:" << ii << std::endl;
-    // Update u sequence
-    sejong::Vector x_new = x;
-    for(int i = 0; i < N_horizon-1; i++){
-      u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
-      x_new = _x_tp1(x_new, u_new_sequence[i]);
-      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
-    }    
-    _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
+    for(size_t j = 0; j < alpha_cand.size(); j++){
+      double alpha = alpha_cand[j];
+
+      // Update u sequence
+      sejong::Vector x_new = x;
+      for(int i = 0; i < N_horizon-1; i++){
+        u_new_sequence[i] = u_sequence[i] + alpha*k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
+        x_new = _x_tp1(x_new, u_new_sequence[i]);
+        //std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+      }    
+      // Forward pass using U_sequence
+      _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
+
+      double d_cost = _J_cost(x_sequence, u_sequence) - _J_cost(x_new_sequence, u_new_sequence);
+      double expected = -alpha*(dV[0] + alpha*dV[1]);
+      double z = 0.0;
+
+      if (expected > 0){
+        z = d_cost/expected;
+      }else{
+        z = -1;
+        std::cout << "warning: Non positive error reduction. should not occur" << std::endl;
+      }
+      if (z > z_min){
+        fwd_pass_done = true;
+        break;
+      }
+    }
+
+    // Step 4 Accept Changes or not  ------------------------------------------------
+    if (fwd_pass_done){
+      dlambda = std::min( dlambda/lambda_factor, 1.0/lambda_factor );
+      if (lambda > lambda_min){
+        lambda *= dlambda;
+      }else{
+        lambda = 0.0;
+      }
+      
+      // Accept Changes
+      x_sequence = x_new_sequence;
+      u_sequence = u_new_sequence;
+      x = x_sequence[0];
+      compute_new_traj = true;
+
+    }else{ // No Cost Improvement
+      std::cout << "No Cost Improvement" << std::endl;
+      std::cout << "Increasing Lambda" << std::endl;
+      dlambda  = std::max(dlambda * lambda_factor, lambda_factor);
+      lambda   = std::max(lambda * dlambda, lambda_min);
+    }
+    // --------------------
 
 
-    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
     std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+    std::cout << "  lambda:" << lambda << std::endl; // Cost of new Sequence    
     sejong::Vect3 ee_pos;
-      internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+    internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
     std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
+    // ----------------
 
 
-    x_sequence = x_new_sequence;
-    u_sequence = u_new_sequence;
-    x = x_sequence[0];
   }
 
 
