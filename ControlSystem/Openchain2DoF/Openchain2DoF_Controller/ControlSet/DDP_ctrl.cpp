@@ -81,7 +81,7 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
 
   des_oper_goal[0] = 0.25; // Reaching Task x
   des_oper_goal[1] = 0.35; // Reaching Task y  
-  ilqr_iters = 50;
+  ilqr_iters = 10;
 
 
   _initialize_u_sequence(u_sequence);
@@ -130,7 +130,7 @@ void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
   for(size_t i = 0; i < U.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
-      u_vec[j] = 0.0;//0.001; // this can be random
+      u_vec[j] = 0.1; // this can be random
     }
     U[i] = u_vec;
   }
@@ -219,8 +219,8 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> & U
                                      << X[i][1] << " "
                                      << X[i][2] << ""
                                      << X[i][3] << ""
-                                     << std::endl;
-*/    // sejong::pretty_print(X[i], std::cout, "X[i]");    
+                                     << std::endl;*/
+    // sejong::pretty_print(X[i], std::cout, "X[i]");    
 
   }
 
@@ -429,10 +429,9 @@ double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
 
   Q.setZero();
 
-  double cost_weight = 50.0;
+  double cost_weight = 100.0;
   Q(0,0) = cost_weight;
   Q(1,1) = 3.0*cost_weight;  
-
 
   sejong::Matrix cost_in_eigen;
   cost_in_eigen = (des_oper_goal - cur_ee_pos).transpose() * Q * (des_oper_goal - cur_ee_pos);
@@ -463,10 +462,10 @@ double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & 
   // if gamma_int is notNan
   //_getWBC_command(x_state, u_in, gamma_int); // We can get torque for any given state and desired acceleration
 
-  double cost_weight = 0.01;
+  double cost_weight = 10.0;
   double acc_cost_weight = 0.001;  
   Q(0,0) = cost_weight;
-  Q(1,1) = 3*cost_weight;  
+  Q(1,1) = 3.0*cost_weight;  
 
   R(0,0) = cost_weight;
   R(1,1) = cost_weight;    
@@ -584,13 +583,14 @@ void DDP_ctrl::_compute_ilqr(){
       // Step 1 Forward Pass -------------------------------------------------------------------------
       // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
       _initialize_x_sequence(x, u_sequence, x_sequence);
+
       // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
       _get_finite_differences();
       compute_new_traj = false;
     }
 
     // Step 2 Backward Pass -------------------------------------------------------------------------
-    double V = _l_cost(x_sequence.back(), u_sequence.back()); // back() is equivalent to N_horizon-1
+    double V = _l_final_cost(x_sequence.back()); // back() is equivalent to N_horizon-1
     sejong::Vector V_x = l_x.back();
     sejong::Matrix V_xx = l_xx.back();
 
@@ -628,6 +628,9 @@ void DDP_ctrl::_compute_ilqr(){
       V_xx = 0.5*(V_xx + V_xx.transpose().eval());
 
     }
+
+    // Check for termination due to small gradient
+
 
     // Step 3 Line Search to find new control sequence  ------------------------------------------------
     bool fwd_pass_done = false;
@@ -673,7 +676,9 @@ void DDP_ctrl::_compute_ilqr(){
       }else{
         lambda = 0.0;
       }
-      
+
+
+
       // Accept Changes
       x_sequence = x_new_sequence;
       u_sequence = u_new_sequence;
@@ -692,16 +697,12 @@ void DDP_ctrl::_compute_ilqr(){
     std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
     std::cout << "  lambda:" << lambda << std::endl; // Cost of new Sequence    
     sejong::Vect3 ee_pos;
+    _update_internal_model(x_new_sequence.back());
     internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
     std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
     // ----------------
 
-
-
-
   }
-
-
 
 
 }
@@ -722,17 +723,24 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   // Computation Block
   _compute_ilqr();
 
-  std::cout << "Hello?" << std::endl;  
-
   // End Computation Block
   // --------------------------------------------------------------------------------------------
+
+    std::cout << "(X,Y)" << std::endl;
+    for (size_t i = 0; i < x_sequence.size(); i++){
+      sejong::Vect3 ee_pos;
+      _update_internal_model(x_sequence[i]);
+      internal_model->getPosition(x_sequence[i].head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+      std::cout << ee_pos[0] << "," << ee_pos[1] << std::endl; // Position
+    }      
+
 
   // ---- END TIMER
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
   time_sum += (time_span1.count()*1000.0);
 
-//  std::cout << "Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;
+  std::cout << "Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;
   ++count;
   if (count % 100 == 99){
     double ave_time = time_sum/((double)count);
