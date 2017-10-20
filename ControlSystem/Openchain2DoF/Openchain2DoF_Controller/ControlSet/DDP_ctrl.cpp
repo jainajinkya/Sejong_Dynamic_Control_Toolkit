@@ -552,14 +552,13 @@ void DDP_ctrl::_compute_ilqr(){
   // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
   sejong::Vector x = x_state_start;
 
-  double lm_lambda = 1.0; //  Regularization Parameter
+  double lambda = 1.0; //  Regularization Parameter
   for(size_t ii = 0; ii < ilqr_iters; ii++){
     // Step 1 Forward Pass -------------------------------------------------------------------------
     // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
     _initialize_x_sequence(x, u_sequence, x_sequence);
     // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
     _get_finite_differences();
-
 
     // Step 2 Backward Pass -------------------------------------------------------------------------
     double V = _l_cost(x_sequence.back(), u_sequence.back()); // back() is equivalent to N_horizon-1
@@ -574,11 +573,12 @@ void DDP_ctrl::_compute_ilqr(){
       sejong::Matrix Q_xx = l_xx[i] + f_x[i].transpose()*V_xx*f_x[i];
       sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()*V_xx*f_x[i];
       sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
-/*      std::cout << "i" << i << " V, Q, k, and K" << std::endl;
-      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
-      sejong::pretty_print(Q_u, std::cout, "Q_u");
-      sejong::pretty_print(Q_ux, std::cout, "Q_ux");
-*/
+
+
+      sejong::Matrix Q_uu_reg = Q_uu;// + lambda * sejong::Matrix::Identity(DIM_WBC_TASKS, DIM_WBC_TASKS);
+
+      Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
+      sejong::Matrix L = lltOfQuu.matrixL();
 
       // Compute inv(Q_uu) with Levenberg-Marquardt Heuristic
       Eigen::EigenSolver<sejong::Matrix> es(Q_uu);
@@ -594,7 +594,7 @@ void DDP_ctrl::_compute_ilqr(){
         }else{
           es_eigVals_recp[j] = es_eigVals[j];
         }
-        es_eigVals_recp[j] = 1.0/(es_eigVals_recp[j] + lm_lambda);
+        es_eigVals_recp[j] = 1.0/(es_eigVals_recp[j] + lambda);
         // std::cout << "eig recp j" << j << " " << es_eigVals_recp[j] << std::endl;
       }
       sejong::Matrix Q_uu_inv = es_eigVecs * (es_eigVals_recp.asDiagonal()) * (es_eigVecs.transpose());
@@ -604,7 +604,8 @@ void DDP_ctrl::_compute_ilqr(){
       // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
       // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
       // std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
-      // std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      */
+      std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
+      std::cout << "Cholesky Q_uu inverse is:" << std::endl << (L.inverse()).transpose()*(L.inverse()) << std::endl;            
 
       k_vec[i] = -Q_uu_inv*Q_u;
       K_vec[i] = -Q_uu_inv*Q_ux;
@@ -623,17 +624,16 @@ void DDP_ctrl::_compute_ilqr(){
     for(int i = 0; i < N_horizon-1; i++){
       u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
       x_new = _x_tp1(x_new, u_new_sequence[i]);
-      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+//      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
     }    
     _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
 
 
-    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
-    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
-
-    sejong::Vect3 ee_pos;
-    internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
-    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
+//    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
+//    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+//    sejong::Vect3 ee_pos;
+//      internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+//    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
 
 
     x_sequence = x_new_sequence;
