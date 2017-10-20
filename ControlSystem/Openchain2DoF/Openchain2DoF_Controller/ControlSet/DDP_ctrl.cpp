@@ -8,7 +8,7 @@
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
-                          N_horizon(10),
+                          N_horizon(50),
                           DIM_WBC_TASKS(2),                          
                           des_oper_goal(2),
                           finite_epsilon(0.0001),
@@ -554,18 +554,20 @@ void DDP_ctrl::_compute_ilqr(){
 
   double lm_lambda = 1.0; //  Regularization Parameter
   for(size_t ii = 0; ii < ilqr_iters; ii++){
+    // Step 1 Forward Pass -------------------------------------------------------------------------
     // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
     _initialize_x_sequence(x, u_sequence, x_sequence);
-    // Get Finite Difference: l_x, l_u, l_xx, l_uu, f_x, f_u
+    // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
     _get_finite_differences();
 
 
+    // Step 2 Backward Pass -------------------------------------------------------------------------
     double V = _l_cost(x_sequence.back(), u_sequence.back()); // back() is equivalent to N_horizon-1
     sejong::Vector V_x = l_x.back();
     sejong::Matrix V_xx = l_xx.back();
 
     // Work backwards to solve for V, Q, k, and K
-    for(int i = N_horizon-2; i >= 0; i--){
+    for(int i = N_horizon-1; i >= 0; i--){
       // V' is the next state.
       sejong::Vector Q_x = l_x[i] + f_x[i].transpose()*V_x;
       sejong::Vector Q_u = l_u[i] + f_u[i].transpose()*V_x;
@@ -597,6 +599,8 @@ void DDP_ctrl::_compute_ilqr(){
       }
       sejong::Matrix Q_uu_inv = es_eigVecs * (es_eigVals_recp.asDiagonal()) * (es_eigVecs.transpose());
 
+
+
       // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
       // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
       // std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
@@ -607,8 +611,6 @@ void DDP_ctrl::_compute_ilqr(){
 
       V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i]; 
       V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
-
-
 
     }
 
@@ -628,6 +630,11 @@ void DDP_ctrl::_compute_ilqr(){
 
     std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
     std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+
+    sejong::Vect3 ee_pos;
+    internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
+
 
     x_sequence = x_new_sequence;
     u_sequence = u_new_sequence;
