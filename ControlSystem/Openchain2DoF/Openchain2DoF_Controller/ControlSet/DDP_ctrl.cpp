@@ -246,16 +246,28 @@ void DDP_ctrl::_get_finite_differences(){
     // Calculate Finite Difference for l_x, l_xx, and l_xu 
     for (size_t i = 0; i < h_step.size(); i++){
       h_step[i] = finite_epsilon;
-      // l_x
-      l_x[n](i) = (_l_cost(x + h_step, u) - _l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+
+      if (n == N_horizon - 1){
+        l_x[n](i) = (_l_final_cost(x + h_step) - _l_final_cost(x - h_step) ) / (2.0*h_step[i]); 
+      }else{
+        // l_x
+        l_x[n](i) = (_l_cost(x + h_step, u) - _l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+      }
 
       // l_xx
       for (size_t j = 0; j < h_step.size(); j++){
         h2_step[j] = finite_epsilon;
-        l_xx[n](i,j) = (_l_cost(x + h_step + h2_step, u) - 
-                     _l_cost(x + h_step - h2_step, u) - 
-                     _l_cost(x - h_step + h2_step, u) + 
-                     _l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);
+        if (n == N_horizon - 1){
+          l_xx[n](i,j) = (_l_cost(x + h_step + h2_step, u) - 
+                       _l_cost(x + h_step - h2_step, u) - 
+                       _l_cost(x - h_step + h2_step, u) + 
+                       _l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);
+        }else{
+          l_xx[n](i,j) = (_l_final_cost(x + h_step + h2_step) - 
+                       _l_final_cost(x + h_step - h2_step) - 
+                       _l_final_cost(x - h_step + h2_step) + 
+                       _l_final_cost(x - h_step - h2_step))/(4*h_step[i]*h2_step[j]);          
+        }
         h2_step.setZero();        
       }
 
@@ -417,7 +429,7 @@ double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
 
   Q.setZero();
 
-  double cost_weight = 1.0;
+  double cost_weight = 50.0;
   Q(0,0) = cost_weight;
   Q(1,1) = 3.0*cost_weight;  
 
@@ -451,7 +463,7 @@ double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & 
   // if gamma_int is notNan
   //_getWBC_command(x_state, u_in, gamma_int); // We can get torque for any given state and desired acceleration
 
-  double cost_weight = 1.0;
+  double cost_weight = 0.01;
   double acc_cost_weight = 0.001;  
   Q(0,0) = cost_weight;
   Q(1,1) = 3*cost_weight;  
@@ -644,6 +656,7 @@ void DDP_ctrl::_compute_ilqr(){
         z = d_cost/expected;
       }else{
         z = -1;
+        std::cout << "alpha:" << alpha << std::endl;
         std::cout << "warning: Non positive error reduction. should not occur" << std::endl;
       }
       if (z > z_min){
@@ -667,14 +680,14 @@ void DDP_ctrl::_compute_ilqr(){
       x = x_sequence[0];
       compute_new_traj = true;
 
+
     }else{ // No Cost Improvement
       std::cout << "No Cost Improvement" << std::endl;
-      std::cout << "Increasing Lambda" << std::endl;
       dlambda  = std::max(dlambda * lambda_factor, lambda_factor);
       lambda   = std::max(lambda * dlambda, lambda_min);
+      std::cout << "Increasing Lambda to " << lambda << std::endl;
     }
     // --------------------
-
 
     std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
     std::cout << "  lambda:" << lambda << std::endl; // Cost of new Sequence    
@@ -682,6 +695,8 @@ void DDP_ctrl::_compute_ilqr(){
     internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
     std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
     // ----------------
+
+
 
 
   }
