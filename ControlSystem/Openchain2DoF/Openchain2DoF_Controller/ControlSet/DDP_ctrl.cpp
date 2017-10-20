@@ -553,6 +553,7 @@ void DDP_ctrl::_compute_ilqr(){
   sejong::Vector x = x_state_start;
 
   double lambda = 1.0; //  Regularization Parameter
+  sejong::Vector dV(2); //
   for(size_t ii = 0; ii < ilqr_iters; ii++){
     // Step 1 Forward Pass -------------------------------------------------------------------------
     // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
@@ -575,10 +576,12 @@ void DDP_ctrl::_compute_ilqr(){
       sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
 
 
-      sejong::Matrix Q_uu_reg = Q_uu;// + lambda * sejong::Matrix::Identity(DIM_WBC_TASKS, DIM_WBC_TASKS);
+      sejong::Matrix Q_uu_reg = Q_uu + lambda * sejong::Matrix::Identity(DIM_WBC_TASKS, DIM_WBC_TASKS);
 
+      // Compute Cholesky Decomposition
       Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
       sejong::Matrix L = lltOfQuu.matrixL();
+      sejong::Matrix Q_uu_reg_inv = (L.inverse()).transpose()*(L.inverse());
 
       // Compute inv(Q_uu) with Levenberg-Marquardt Heuristic
       Eigen::EigenSolver<sejong::Matrix> es(Q_uu);
@@ -604,14 +607,21 @@ void DDP_ctrl::_compute_ilqr(){
       // std::cout << "The eigenvalues of Q_uu are:" << std::endl << es_eigVals  << std::endl;
       // std::cout << "The matrix of eigenvectors, V, is:" << std::endl << es_eigVecs << std::endl;
       // std::cout << "regularized Q_uu inverse is:" << std::endl << Q_uu_inv << std::endl;
-      std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
-      std::cout << "Cholesky Q_uu inverse is:" << std::endl << (L.inverse()).transpose()*(L.inverse()) << std::endl;            
+      //std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
+      //std::cout << "Cholesky Q_uu inverse is:" << std::endl << Q_uu_reg_inv << std::endl;            
 
-      k_vec[i] = -Q_uu_inv*Q_u;
-      K_vec[i] = -Q_uu_inv*Q_ux;
+      k_vec[i] = -Q_uu_reg_inv*Q_u;
+      K_vec[i] = -Q_uu_reg_inv*Q_ux;
 
-      V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i]; 
-      V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
+      dV[0] = k_vec[i].transpose()*Q_u;
+      dV[1] = 0.5*k_vec[i].transpose()*Q_uu*k_vec[i];
+
+      //V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i];
+      //V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
+
+      V_x = Q_x + K_vec[i].transpose()*Q_uu*k_vec[i] + K_vec[i].transpose()*Q_u + Q_ux.transpose()*k_vec[i];
+      V_xx = Q_xx + K_vec[i].transpose()*Q_uu*K_vec[i] + K_vec[i].transpose()*Q_ux + Q_ux.transpose()*K_vec[i];      
+      V_xx = 0.5*(V_xx + V_xx.transpose().eval());
 
     }
 
@@ -624,16 +634,16 @@ void DDP_ctrl::_compute_ilqr(){
     for(int i = 0; i < N_horizon-1; i++){
       u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
       x_new = _x_tp1(x_new, u_new_sequence[i]);
-//      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+      std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
     }    
     _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
 
 
-//    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
-//    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
-//    sejong::Vect3 ee_pos;
-//      internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
-//    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
+    std::cout << "  Old Sequence cost:" << _J_cost(x_sequence, u_sequence) << std::endl; // Cost of old Sequence
+    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+    sejong::Vect3 ee_pos;
+      internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
 
 
     x_sequence = x_new_sequence;
