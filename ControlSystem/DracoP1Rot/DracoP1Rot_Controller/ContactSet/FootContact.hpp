@@ -1,8 +1,8 @@
-#ifndef DRACO_ROT_FOOT_CONTACT
-#define DRACO_ROT_FOOT_CONTACT
+#ifndef MERCURY_FOOT_CONTACT
+#define MERCURY_FOOT_CONTACT
 
 #include <WBDC/WBDC_ContactSpec.hpp>
-class DracoModel;
+class MercuryModel;
 class StateProvider;
 
 class FootContact: public WBDC_ContactSpec{
@@ -15,7 +15,7 @@ protected:
   virtual bool _UpdateJcDotQdot();
   virtual bool _UpdateUf();
 
-  DracoModel* model_;
+  MercuryModel* model_;
   StateProvider* sp_;
 };
 

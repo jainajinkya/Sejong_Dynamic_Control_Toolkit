@@ -14,6 +14,7 @@ if (CMAKE_SYSTEM_NAME MATCHES Linux)
 endif (CMAKE_SYSTEM_NAME MATCHES Linux)
 
 ###########  CAD FILE UNIT  ############
+SET(CAD_RATIO 1.0)
 if(CTRL_SYS STREQUAL "NAO")
     SET (CAD_RATIO 0.1)
 elseif(CTRL_SYS STREQUAL "Valkyrie")
@@ -22,6 +23,8 @@ elseif(CTRL_SYS STREQUAL "DracoP1")
     SET (CAD_RATIO 0.001)
 elseif(CTRL_SYS STREQUAL "DracoP1Rot")
     SET (CAD_RATIO 0.001)
+    elseif(CTRL_SYS STREQUAL "Mercury")
+    SET(CAD_RATIO 0.001)
 endif()
 
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Simulator/srSimulator/srconfig.h.cmake ${PROJECT_SOURCE_DIR}/Simulator/srSimulator/srConfiguration.h)
