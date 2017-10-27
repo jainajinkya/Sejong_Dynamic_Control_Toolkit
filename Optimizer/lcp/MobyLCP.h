@@ -1,6 +1,8 @@
 // Adapted with permission from code by Evan Drumwright
 // (https://github.com/edrumwri).
 // Taken from The Drake Library http://drake.mit.edu/
+// see: https://github.com/ggould-tri/drake/blob/master/drake/solvers/moby_lcp_solver.h
+//      https://github.com/RobotLocomotion/drake/blob/master/drake/solvers/moby_lcp_solver.h
 
 #ifndef SOLVERS_MOBYLCP_H_
 #define SOLVERS_MOBYLCP_H_
