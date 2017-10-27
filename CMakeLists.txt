@@ -47,6 +47,7 @@ add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 # add_subdirectory (MachineLearning_Package)
 # add_subdirectory (LocomotionPlanner)
+add_subdirectory(Tests) # For unit testing with googletest
 
 #------------------------------------------------------------------------
 # Configuration
