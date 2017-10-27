@@ -1,0 +1,2 @@
+add_executable(gtest_equals_one equals_one.cpp)
+target_link_libraries(gtest_equals_one gtest_main)

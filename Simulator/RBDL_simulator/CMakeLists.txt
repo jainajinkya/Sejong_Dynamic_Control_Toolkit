@@ -1,6 +1,6 @@
 include_directories(${PROJECT_SOURCE_DIR}/Simulator/RBDL_simulator)
 
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs 2.7 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Simulator/RBDL_simulator/RBDL_Sim_config.h.cmake ${PROJECT_SOURCE_DIR}/Simulator/RBDL_simulator/RBDL_Sim_Configuration.h)
