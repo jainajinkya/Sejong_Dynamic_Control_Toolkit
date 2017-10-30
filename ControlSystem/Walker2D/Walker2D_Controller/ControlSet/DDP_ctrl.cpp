@@ -15,7 +15,6 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
 {
   ilqr_ = new iLQR();  
   ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1);
-  ilqr_->l_cost_vec = std::bind( &DDP_ctrl::l_cost_vec, this, std::placeholders::_1);
 
   ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
@@ -33,12 +32,7 @@ void DDP_ctrl::Initialization(){
   phase_ = 10;
 }
 
-double DDP_ctrl::l_cost(double x){
-  std::cout << "Input:" << x << " Output:" << 3.0*x << std::endl;
-  return 3.0*x;
-}
-
-double DDP_ctrl::l_cost_vec(const sejong::Vector &x){
+double DDP_ctrl::l_cost(const sejong::Vector &x){
   std::cout << " Output:" << 100.0 << std::endl;  
   return 100;
 }

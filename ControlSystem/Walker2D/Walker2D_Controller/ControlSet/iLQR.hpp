@@ -13,8 +13,7 @@ public:
   iLQR();
   ~iLQR();
 
-  std::function<double(double)> l_cost;
-  std::function<double(const sejong::Vector)> l_cost_vec;  
+  std::function<double(const sejong::Vector)> l_cost;  
 
   void compute_ilqr();
 
