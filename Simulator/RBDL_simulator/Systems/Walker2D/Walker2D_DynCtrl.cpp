@@ -102,35 +102,128 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   J_lfc.block(0,0, 1, NUM_QDOT) = J_lf.block(1, 0, 1, NUM_QDOT); // Z
   J_rfc.block(0,0, 1, NUM_QDOT) = J_rf.block(1, 0, 1, NUM_QDOT); // Z
 
-  sejong::Matrix J_c(2,NUM_QDOT);  
+  sejong::Matrix J_phi(2,NUM_QDOT);  
   sejong::Vector phi(2); 
 
-  J_c.block(0,0, 1, NUM_QDOT) = J_lfc;
-  J_c.block(1,0, 1, NUM_QDOT) = J_rfc;     
-  phi[0] = lf_pos[1];
-  phi[1] = rf_pos[1];
+  J_phi.block(0,0, 1, NUM_QDOT) = J_lfc; // Jacobian of distance to contact point 1
+  J_phi.block(1,0, 1, NUM_QDOT) = J_rfc; // Jacobian of distance to contact point 2    
+  phi[0] = lf_pos[1]; // Distance to contact point 1
+  phi[1] = rf_pos[1]; // Distance to contact point 2
+
+
+  sejong::Vector qddot(NUM_QDOT);
+  sejong::Matrix A_inv = A_.inverse();
+  // With Friction Constraints ---------------------------------------------------------------------
+  const int p = 2; // Number of Contacts
+  const int d = 2; // Number of Friction Basis Vectors
+
+
+  double mu_static = 0.1;//10.0; // Friction Coefficient
+  sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
+  sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
+  sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
+  sejong::Matrix J_c2 = J_rf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 2  
+
+  // Set Projected Normal Forces Direction
+  sejong::Matrix N(NUM_QDOT, p);
+  N.block(0,0, NUM_QDOT, 1) = J_c1.transpose()*n1;
+  N.block(0,1, NUM_QDOT, 1) = J_c2.transpose()*n2;
+
+  // Set Basis Vectors of Friction Cone 
+  sejong::Matrix D1(d, d); // Basis for contact 1 
+  D1.setZero();
+  D1(0,0) = 1; 
+  D1(0,1) = -1;
+  sejong::Matrix D2 = D1; // Basis for contact 2
+  
+  // Set Projected Tangential Forces Direction
+  sejong::Matrix B(NUM_QDOT, p*d); 
+  B.block(0,0, NUM_QDOT, d) = J_c1.transpose()*D1;
+  B.block(0,2, NUM_QDOT, d) = J_c2.transpose()*D2;  
+
+  // Unit e vecs and E binary matrix
+  sejong::Vector e(d); // same size as number of friction basis direction 
+  e.setOnes();
+  sejong::Matrix E(p*d, d); 
+  E.setZero();
+  E.block(0, 0, e.size(),1) = e; 
+  E.block(2, 1, e.size(),1) = e;
+
+  // mu Matrix
+  sejong::Matrix Mu(p,p);
+  Mu.setOnes();
+  Mu *= mu_static;
 
   // Prepare the LCP problem
-  MobyLCPSolver l;
+  double h = m_sim_rate; // timestep
+  // Prepare Alpha Mu
+  // 1st Row
+  sejong::Matrix alpha_mu(p + p*d + p, p + p*d + p);
+  alpha_mu.setZero();
+  alpha_mu.block(0, 0, p, p) =  h*J_phi*A_inv*N;
+  alpha_mu.block(0, p, p, p*d) =  h*J_phi*A_inv*B;
+
+  // 2nd Row
+  alpha_mu.block(p, 0,     p*d, p) = h*B.transpose()*A_inv*N;
+  alpha_mu.block(p, p,     p*d, p*d) = h*B.transpose()*A_inv*B;
+  alpha_mu.block(p, p+p*d, p*d, p) = E;
+
+  // 3rd Row
+  alpha_mu.block(p+p*d, 0, p, p) = Mu;
+  alpha_mu.block(p+p*d, p, p, p*d) = -E.transpose();  
+
+  // Prepare Beta
+  sejong::Vector tau_star = A_*m_qdot + h*(m_cmd - cori_ - grav_);
+  sejong::Vector beta_mu(p + p*d + p);
+  beta_mu.setZero();
+  // 1st Row
+  beta_mu.block(0,0, p, 1) = phi/h + J_phi*A_inv*tau_star;
+  // 2nd Row
+  beta_mu.block(p,0, p*d, 1) = B.transpose()*A_inv*tau_star;  
+
+  sejong::Vector fn_fd_lambda(p + p*d + p);
+  fn_fd_lambda.setZero();
+
+  MobyLCPSolver l_mu;  
+  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
+                                              fn_fd_lambda[0] << ", " << 
+                                              fn_fd_lambda[1] << ", " <<
+                                              fn_fd_lambda[2] << ", " <<
+                                              fn_fd_lambda[3] << ", " <<
+                                              fn_fd_lambda[4] << ", " << std::endl;
+
+  sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
+  sejong::Vector fd = fn_fd_lambda.block(p, 0, p*d, 1);
+  
+  // Perform Semi Implicit Integration
+  // qdot_{t+1} = qddot_t*dt + qdot_{t}
+  // q_{t+1} = qdot_{t+1}*dt + q_{t}
+  qddot = A_inv*(m_cmd - cori_ - grav_ + N*fn + B*fd);
+  m_qdot = qddot * h + m_qdot;
+  m_q = m_qdot * h+ m_q;
+
+  // Without Friction Constraints ----------------------------------------
+  // Prepare the LCP problem
+/*  MobyLCPSolver l;
   sejong::Matrix alpha(phi.size(), phi.size());
   sejong::Vector beta(phi.size());
   sejong::Vector lambda(phi.size());
   lambda.setZero();
-
-  sejong::Matrix A_inv = A_.inverse();
-  alpha = J_c*A_inv*J_c.transpose()*m_sim_rate;
-  beta = phi/m_sim_rate + J_c*(m_qdot + m_sim_rate*A_inv*(m_cmd - cori_ - grav_));
+  alpha = J_phi*A_inv*J_phi.transpose()*m_sim_rate;
+  beta = phi/m_sim_rate + J_phi*(m_qdot + m_sim_rate*A_inv*(m_cmd - cori_ - grav_));
 
   bool result = l.lcp_lemke(alpha, beta, &lambda);
   std::cout << "LCP result" << result << " (l1, l2) = " << lambda[0] << ", " << lambda[1] << std::endl;
+  std::cout << "  Total Normal Force = " << lambda[0] + lambda[1] << std::endl;  
   // ----
   // Perform Semi Implicit Integration
   // qdot_{t+1} = qddot_t*dt + qdot_{t}
   // q_{t+1} = qdot_{t+1}*dt + q_{t}
-  sejong::Vector qddot(NUM_QDOT);
-  qddot = A_.inverse()*(m_cmd - cori_ - grav_ + J_c.transpose()*lambda);
+  qddot = A_.inverse()*(m_cmd - cori_ - grav_ + J_phi.transpose()*lambda);
   m_qdot = qddot * m_sim_rate + m_qdot;
-  m_q = m_qdot * m_sim_rate + m_q;
+  m_q = m_qdot * m_sim_rate + m_q;*/
+  // Without Friction Constraints ----------------------------------------  
 
 }
 
