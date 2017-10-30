@@ -5,6 +5,7 @@
 #include <Utils/DataManager.hpp>
 #include <Walker2D_Model/Walker2D_Model.hpp>
 
+
 DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
@@ -13,6 +14,10 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           act_vel_(2)
 {
   ilqr_ = new iLQR();  
+  ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1);
+  ilqr_->l_cost_vec = std::bind( &DDP_ctrl::l_cost_vec, this, std::placeholders::_1);
+
+  ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
 }
 
@@ -26,6 +31,16 @@ void DDP_ctrl::Initialization(){
   robot_model_->getPosition(sp_->Q_, SJLinkID::LK_BODY, ee_ini_);
   start_time_ = sp_->curr_time_;
   phase_ = 10;
+}
+
+double DDP_ctrl::l_cost(double x){
+  std::cout << "Input:" << x << " Output:" << 3.0*x << std::endl;
+  return 3.0*x;
+}
+
+double DDP_ctrl::l_cost_vec(const sejong::Vector &x){
+  std::cout << " Output:" << 100.0 << std::endl;  
+  return 100;
 }
 
 
