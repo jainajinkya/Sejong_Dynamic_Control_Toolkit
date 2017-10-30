@@ -3,6 +3,7 @@
 #include <Utils/utilities.hpp>
 #include <RBDL_Sim_Configuration.h>
 #include "Optimizer/lcp/MobyLCP.h"
+#include <chrono>
 
 Walker2D_DynCtrl::Walker2D_DynCtrl():DynControlTester(),
                                      jpos(NUM_ACT_JOINT),
@@ -118,7 +119,7 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   const int d = 2; // Number of Friction Basis Vectors
 
 
-  double mu_static = 10.0;//0.1; // Friction Coefficient
+  double mu_static = 1.0;//0.1; // Friction Coefficient
   sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
   sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
   sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
@@ -150,8 +151,9 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   E.block(2, 1, e.size(),1) = e;
 
   // mu Matrix
-  sejong::Matrix Mu(p,p);
-  Mu.setOnes();
+  //sejong::Matrix Mu(p,p);
+  //Mu.setOnes();
+  sejong::Matrix Mu = sejong::Matrix::Identity(p, p);
   Mu *= mu_static;
 
   // Prepare the LCP problem
@@ -168,9 +170,9 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   alpha_mu.block(p, p,     p*d, p*d) = h*B.transpose()*A_inv*B;
   alpha_mu.block(p, p+p*d, p*d, p) = E;
 
-  // 3rd Row
-  alpha_mu.block(p+p*d, 0, p, p) = Mu;
-  alpha_mu.block(p+p*d, p, p, p*d) = -E.transpose();  
+  // 3rd Row (Scaling for stabilization according to Tan, Jie. et al "Contact Handling for Articulated Rigid Bodies using LCP")
+  alpha_mu.block(p+p*d, 0, p, p) = Mu * h; // Scaling by h for stabilizing contact constraints
+  alpha_mu.block(p+p*d, p, p, p*d) = -E.transpose() * h;  // Scaling by h for stabilizing contact constraints
 
   // Prepare Beta
   sejong::Vector tau_star = A_*m_qdot + h*(m_cmd - cori_ - grav_);
@@ -184,17 +186,28 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   sejong::Vector fn_fd_lambda(p + p*d + p);
   fn_fd_lambda.setZero();
 
+  // Solve LCP Problem
+    // ---- START TIMER 
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+
+
   MobyLCPSolver l_mu;  
   bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
-  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
+
+/*  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
                                               fn_fd_lambda[0] << ", " << 
                                               fn_fd_lambda[1] << ", " <<
                                               fn_fd_lambda[2] << ", " <<
                                               fn_fd_lambda[3] << ", " <<
-                                              fn_fd_lambda[4] << ", " << std::endl;
+                                              fn_fd_lambda[4] << ", " << std::endl;*/
 
   sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
   sejong::Vector fd = fn_fd_lambda.block(p, 0, p*d, 1);
+    // ----- END TIMER
+  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+/*  std::cout << "  LCP solver took " << time_span1.count()*1000.0 << "ms"<<std::endl;  */
+
   
   // Perform Semi Implicit Integration
   // qdot_{t+1} = qddot_t*dt + qdot_{t}
