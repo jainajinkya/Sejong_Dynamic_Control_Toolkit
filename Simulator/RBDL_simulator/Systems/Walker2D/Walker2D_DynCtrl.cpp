@@ -119,7 +119,7 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   const int d = 2; // Number of Friction Basis Vectors
 
 
-  double mu_static = 5.0;//0.1; // Friction Coefficient
+  double mu_static = 1.0;//0.1; // Friction Coefficient
   sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
   sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
   sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
@@ -193,19 +193,20 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
 
   MobyLCPSolver l_mu;  
   bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
-  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
+
+/*  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
                                               fn_fd_lambda[0] << ", " << 
                                               fn_fd_lambda[1] << ", " <<
                                               fn_fd_lambda[2] << ", " <<
                                               fn_fd_lambda[3] << ", " <<
-                                              fn_fd_lambda[4] << ", " << std::endl;
+                                              fn_fd_lambda[4] << ", " << std::endl;*/
 
   sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
   sejong::Vector fd = fn_fd_lambda.block(p, 0, p*d, 1);
     // ----- END TIMER
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  std::cout << "  LCP solver took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
+/*  std::cout << "  LCP solver took " << time_span1.count()*1000.0 << "ms"<<std::endl;  */
 
   
   // Perform Semi Implicit Integration
