@@ -5,7 +5,6 @@
 #include <Utils/DataManager.hpp>
 #include <Walker2D_Model/Walker2D_Model.hpp>
 
-
 DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
@@ -14,7 +13,11 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           act_vel_(2)
 {
   ilqr_ = new iLQR();  
-  ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1);
+  ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1, std::placeholders::_2);
+  ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
+  ilqr_->get_WBC_command = std::bind( &DDP_ctrl::get_WBC_command, this, std::placeholders::_1, 
+                                                                        std::placeholders::_2, 
+                                                                        std::placeholders::_3);
 
   ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
@@ -32,9 +35,20 @@ void DDP_ctrl::Initialization(){
   phase_ = 10;
 }
 
-double DDP_ctrl::l_cost(const sejong::Vector &x){
+double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
+  std::cout << " Output:" << 200.0 << std::endl;  
+  return 200;
+}
+
+double DDP_ctrl::l_cost_final(const sejong::Vector &x){
   std::cout << " Output:" << 100.0 << std::endl;  
   return 100;
+}
+
+void DDP_ctrl::get_WBC_command(const sejong::Vector & x_state, 
+                               const sejong::Vector & des_acc, 
+                               sejong::Vector & gamma_int){
+  gamma_int.setZero();
 }
 
 

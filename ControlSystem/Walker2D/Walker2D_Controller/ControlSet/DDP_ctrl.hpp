@@ -12,7 +12,11 @@ public:
   virtual void ComputeTorqueCommand(sejong::Vector & gamma);
   virtual void Initialization();
 
-  double l_cost(const sejong::Vector &x);
+  double l_cost_final(const sejong::Vector &x);
+  double l_cost(const sejong::Vector &x, const sejong::Vector &u);  
+  void   get_WBC_command(const sejong::Vector & x_state, 
+                         const sejong::Vector & des_acc, 
+                         sejong::Vector & gamma_int); 
   iLQR* ilqr_;
 
 protected:
