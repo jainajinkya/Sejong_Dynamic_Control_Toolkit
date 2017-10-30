@@ -15,7 +15,7 @@ class MobyLCPSolver {
  public:
   MobyLCPSolver();
   virtual ~MobyLCPSolver() {};
-  void setLoggingEnabled(bool);
+  void setLoggingEnabled(bool enabled);
 
   bool lcp_fast(
       const Eigen::MatrixXd& M, const Eigen::VectorXd& q, Eigen::VectorXd* z,
@@ -53,7 +53,7 @@ class MobyLCPSolver {
                           Eigen::VectorXd* z) const;
 
   // TODO(sammy-tri) replace this with a proper logging hookup
-  std::ostream& LOG() const;
+  std::ostream& LOG_LCP() const;
   bool log_enabled_;
   mutable std::ofstream null_stream_;
 
