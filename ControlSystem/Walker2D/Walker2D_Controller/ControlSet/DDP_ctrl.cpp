@@ -92,8 +92,8 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
   sejong::Vector xddot_feet_des(4);
   xddot_feet_des.setZero();
-  xddot_feet_des[1] = 0.0; // Positive Z direction
-
+  xddot_feet_des[1] = -0.0; // Negative Z direction
+  xddot_feet_des[3] = -0.0; // Negative Z direction
 
   // COM Task
   sejong::Vector com_cur(2);
@@ -130,6 +130,7 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 /*  sejong::Matrix J1 = J_com;
   sejong::Vector x1ddot = xddot_com_des;  */
   sejong::Matrix J1 = J_feet;
+  sejong::Matrix J1_dot = J_feet_dot;  
   sejong::Vector x1ddot = xddot_feet_des;    
   sejong::Matrix J2 = J_pos;  
   sejong::Vector x2ddot = xddot_des_pos;
@@ -147,7 +148,7 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   // Calculate qddot task
   sejong::Vector qddot_1(NUM_Q);
   sejong::Vector qddot_2(NUM_Q);
-  qddot_1 = J1_bar*(x1ddot);
+  qddot_1 = J1_bar*(x1ddot - J1_dot*qdot_int);
   qddot_2 = J2_1_bar*(x2ddot - J2*qddot_1);
 
   sejong::pretty_print(qddot_1, std::cout, "qddot_1");

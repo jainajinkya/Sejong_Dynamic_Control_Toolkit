@@ -6,6 +6,7 @@
 #include <Walker2D_Model/Walker2D_Dyn_Model.hpp>
 #include <Walker2D_Model/Walker2D_Kin_Model.hpp>
 
+#include <Optimizer/Goldfarb/QuadProg++.hh>
 #include "iLQR.hpp"
 
 #define STATE_X_SIZE NUM_Q + NUM_QDOT
