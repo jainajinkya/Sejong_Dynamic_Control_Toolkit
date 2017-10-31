@@ -1,9 +1,11 @@
 #include "Walker2D_System.hpp"
-#include "ControlSet/Basic_ctrl.hpp"
+//#include "ControlSet/Basic_ctrl.hpp"
+#include "ControlSet/DDP_ctrl.hpp"
 
 Walker2D_System::Walker2D_System(){
   printf("System\n");
-  controller_ = new Basic_ctrl();
+//  controller_ = new Basic_ctrl();
+  controller_ = new DDP_ctrl();  
 
   // Add more controllers here.
   // Uncomment the line with your own controller to use it

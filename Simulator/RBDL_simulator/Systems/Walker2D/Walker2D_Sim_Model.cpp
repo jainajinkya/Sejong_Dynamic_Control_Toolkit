@@ -181,6 +181,7 @@ void Walker2D_Sim_Model::getFullJacobian(int link_id, sejong::Matrix & J) const 
                         model_->mBodies[bodyid].mCenterOfMass,
                         Jtmp, false);
   }
+
   // X, Z, Ry
   J.block(0,0, 1, NUM_QDOT) = Jtmp.block(3, 0, 1, NUM_QDOT); // X
   J.block(1,0, 1, NUM_QDOT) = Jtmp.block(5, 0, 1, NUM_QDOT); // Z

@@ -8,10 +8,10 @@
 DDP_ctrl::DDP_ctrl(): OC2Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
-                          N_horizon(5),
+                          N_horizon(50),
                           DIM_WBC_TASKS(2),                          
                           des_oper_goal(2),
-                          finite_epsilon(0.0001),
+                          finite_epsilon(0.0000001),
                           des_pos_(2),
                           act_pos_(2),
                           act_vel_(2)
@@ -31,7 +31,9 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     sejong::Matrix n_f_x(STATE_SIZE, STATE_SIZE);      
     sejong::Matrix n_f_u(STATE_SIZE, DIM_WBC_TASKS);
 
-
+    sejong::Vector n_k_vec(DIM_WBC_TASKS);
+    sejong::Matrix n_K_vec(DIM_WBC_TASKS, STATE_SIZE);    
+    
 
     n_l_x.setZero();
     n_l_xx.setZero();
@@ -51,34 +53,42 @@ DDP_ctrl::DDP_ctrl(): OC2Controller(),
     f_x.push_back(n_f_x);                
     f_u.push_back(n_f_u);                
 
+    k_vec.push_back(n_k_vec);
+    K_vec.push_back(n_K_vec);        
+
     // Create empty Hessian H = H(f1), H(f2), ..., H(fn)
     std::vector<sejong::Matrix> H_f_kxx;
     std::vector<sejong::Matrix> H_f_kxu; 
+    std::vector<sejong::Matrix> H_f_kux; 
     for (size_t j = 0; j < STATE_SIZE; j++){
       sejong::Matrix n_f_kxx(STATE_SIZE, STATE_SIZE);
       sejong::Matrix n_f_kxu(STATE_SIZE, DIM_WBC_TASKS);
+      sejong::Matrix n_f_kux(DIM_WBC_TASKS, STATE_SIZE);      
 
       n_f_kxx.setZero();
       n_f_kxu.setZero();      
       
       H_f_kxx.push_back(n_f_kxx);
-      H_f_kxu.push_back(n_f_kxu);      
+      H_f_kxu.push_back(n_f_kxu);  
+      H_f_kux.push_back(n_f_kux);    
     }
 
-    H_f_xx.push_back(H_f_kxx); 
-    H_f_xu.push_back(H_f_kxu);        
+    H_f_xx.push_back(H_f_kxx);     
+    H_f_xu.push_back(H_f_kxu); 
+    H_f_ux.push_back(H_f_kux);               
   }
 
 
-  des_oper_goal[0] = -0.25; // Reaching Task x
-  des_oper_goal[1] = 0.25; // Reaching Task y  
+  des_oper_goal[0] = 0.25; // Reaching Task x
+  des_oper_goal[1] = 0.35; // Reaching Task y  
+  ilqr_iters = 10;
 
-  _initiailize_u_sequence();
 
-  J_cost = 0.0;
+  _initialize_u_sequence(u_sequence);
+
   J_cost_tail = std::vector<double>(N_horizon);
 
-  mpc_time_step = SERVO_RATE; //SERVO_RATE/10; //0.001;
+  mpc_time_step = 0.01;//SERVO_RATE; //SERVO_RATE/10; //0.001;
   sim_rate = SERVO_RATE/10;
 
   count = 0;
@@ -115,21 +125,21 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 }
 
 
-void DDP_ctrl::_initiailize_u_sequence(){
+void DDP_ctrl::_initialize_u_sequence(std::vector<sejong::Vector> & U){
   // Near zero initialization
-  for(size_t i = 0; i < u_sequence.size(); i++){
+  for(size_t i = 0; i < U.size(); i++){
     sejong::Vector u_vec(DIM_WBC_TASKS); // task acceleration vector
     for (size_t j = 0; j < DIM_WBC_TASKS; j++){
-      u_vec[j] = 0.1;//0.001; // this can be random
+      u_vec[j] = 0.1; // this can be random
     }
-    u_sequence[i] = u_vec;
+    U[i] = u_vec;
   }
 }
 
 // Use U = {u1, u2, ..., uN} to find X = {x1, x2, ..., xN}
-void DDP_ctrl::_initiailize_x_sequence(const sejong::Vector & x_state_start){
-  x_sequence[0] = x_state_start;
-  _internal_simulate_sequence(u_sequence, x_sequence);
+void DDP_ctrl::_initialize_x_sequence(const sejong::Vector & x_state_start,  const std::vector<sejong::Vector> & U, std::vector<sejong::Vector> & X){
+  X[0] = x_state_start;
+  _internal_simulate_sequence(U, X);
 }
 
 void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
@@ -171,8 +181,8 @@ void DDP_ctrl::_internal_simulate_single_step(const sejong::Vector & x_state,
 
   // Perform Integration
   // Get q_{t+1} and qdot_{t+1}
-  sejong::Vector qdot_int_next = qdot_int + qddot_int*sim_rate;
-  sejong::Vector q_int_next = q_int + qdot_int*sim_rate ; 
+  sejong::Vector qdot_int_next = qdot_int + qddot_int*mpc_time_step;
+  sejong::Vector q_int_next = q_int + qdot_int*mpc_time_step ; 
 
   x_next_state.head(NUM_Q) = q_int_next;
   x_next_state.tail(NUM_QDOT) = qdot_int_next;  
@@ -184,30 +194,33 @@ void DDP_ctrl::_internal_simulate_sequence(const std::vector<sejong::Vector> & U
 
   double mpc_interval = 0.0;
   for(size_t i = 1; i < N_horizon; i++){
-    sejong::Vector gamma_int(NUM_ACT_JOINT);
+     sejong::Vector gamma_int(NUM_ACT_JOINT);
     _getWBC_command(X[i-1], U[i-1], gamma_int);
+
+
+
 
     sejong::Vector x_state_tmp = X[i-1];
     sejong::Vector x_next_state_tmp(x_state_tmp.size());
 
     // Simulate constant application of torque 
-    while (mpc_interval <= mpc_time_step){
+    //while (mpc_interval <= mpc_time_step){
       //Apply the same gamma_int within the mpc time step
       _internal_simulate_single_step(x_state_tmp, gamma_int, x_next_state_tmp);
-      x_state_tmp = x_next_state_tmp;
-      mpc_interval += sim_rate;      
-    }
+    //  x_state_tmp = x_next_state_tmp;
+   //   mpc_interval += sim_rate;      
+   // }
 
     X[i] = x_next_state_tmp; // Store X[i]    
-    mpc_interval = 0.0; // reset interval
+    //mpc_interval = 0.0; // reset interval
 
     // Debug Output    
 /*    std::cout << "X[" << i << "] = " << X[i][0] << " " 
                                      << X[i][1] << " "
                                      << X[i][2] << ""
                                      << X[i][3] << ""
-                                     << std::endl;
-*/    // sejong::pretty_print(X[i], std::cout, "X[i]");    
+                                     << std::endl;*/
+    // sejong::pretty_print(X[i], std::cout, "X[i]");    
 
   }
 
@@ -233,16 +246,28 @@ void DDP_ctrl::_get_finite_differences(){
     // Calculate Finite Difference for l_x, l_xx, and l_xu 
     for (size_t i = 0; i < h_step.size(); i++){
       h_step[i] = finite_epsilon;
-      // l_x
-      l_x[n](i) = (_l_cost(x + h_step, u) - _l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+
+      if (n == N_horizon - 1){
+        l_x[n](i) = (_l_final_cost(x + h_step) - _l_final_cost(x - h_step) ) / (2.0*h_step[i]); 
+      }else{
+        // l_x
+        l_x[n](i) = (_l_cost(x + h_step, u) - _l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+      }
 
       // l_xx
       for (size_t j = 0; j < h_step.size(); j++){
         h2_step[j] = finite_epsilon;
-        l_xx[n](i,j) = (_l_cost(x + h_step + h2_step, u) - 
-                     _l_cost(x + h_step - h2_step, u) - 
-                     _l_cost(x - h_step + h2_step, u) + 
-                     _l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);
+        if (n == N_horizon - 1){
+          l_xx[n](i,j) = (_l_cost(x + h_step + h2_step, u) - 
+                       _l_cost(x + h_step - h2_step, u) - 
+                       _l_cost(x - h_step + h2_step, u) + 
+                       _l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);
+        }else{
+          l_xx[n](i,j) = (_l_final_cost(x + h_step + h2_step) - 
+                       _l_final_cost(x + h_step - h2_step) - 
+                       _l_final_cost(x - h_step + h2_step) + 
+                       _l_final_cost(x - h_step - h2_step))/(4*h_step[i]*h2_step[j]);          
+        }
         h2_step.setZero();        
       }
 
@@ -325,7 +350,7 @@ void DDP_ctrl::_get_finite_differences(){
                  _x_tp1(x - h_step, u - k2_step)) / (4*h_step[i]*k2_step[j]);
 
         for (size_t k = 0; k < STATE_SIZE; k++){
-          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxu at k-th Hesisan's (i,j) element.
         }
 
         k2_step.setZero();
@@ -339,6 +364,26 @@ void DDP_ctrl::_get_finite_differences(){
     for (size_t i = 0; i < DIM_WBC_TASKS; i++){
       k_step[i] = finite_epsilon;
       f_u[n].col(i) = (_x_tp1(x, u + k_step) - _x_tp1(x, u - k_step))/ (2.0*k_step[i]);
+
+      // Calculate f_ux
+      for (size_t j = 0; j < STATE_SIZE; j++){
+        sejong::Vector f_kux(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
+        f_kux.setZero();
+        h2_step[j] = finite_epsilon;
+
+        f_kux = (_x_tp1(x + h2_step, u + k_step) -
+                 _x_tp1(x - h2_step, u + k_step) -
+                 _x_tp1(x + h2_step, u - k_step) +
+                 _x_tp1(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
+
+        for (size_t k = 0; k < STATE_SIZE; k++){
+          H_f_ux[n][k](i,j) = f_kux[k]; // Store k element of f_kux at k-th Hesisan's (i,j) element.
+        }
+
+        k2_step.setZero();
+      }
+
+
       k_step.setZero();
     }
 
@@ -352,12 +397,51 @@ void DDP_ctrl::_get_finite_differences(){
 //    sejong::pretty_print(f_x[n], std::cout, "n_f_x");      
 //    sejong::pretty_print(f_u[n], std::cout, "n_f_u");      
 //     sejong::pretty_print(H_f_xx[n][3], std::cout, "H_f_3xx");      
+/*     sejong::pretty_print(H_f_xu[n][3], std::cout, "H_f_3xu");          
+     sejong::pretty_print(H_f_ux[n][3], std::cout, "H_f_3ux");          */
 
 
   }
 //  l(x+h, u) - l(x-h, u) / 2h  
 }
 
+double DDP_ctrl::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U){
+  double J_cost = 0.0;
+  for(size_t i = 0; i < N_horizon-1; i++){
+    J_cost += _l_cost(X[i], U[i]);
+  }
+  J_cost += _l_final_cost(X[N_horizon-1]); 
+  return J_cost;
+}
+
+double DDP_ctrl::_l_final_cost(const sejong::Vector & x_state_final){
+  double cost = 0.0;
+
+  sejong::Vect3 ee_pos;
+  _update_internal_model(x_state_final);
+  internal_model->getPosition(x_state_final.head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+
+  sejong::Vector cur_ee_pos(2);
+  cur_ee_pos[0] = ee_pos[0];
+  cur_ee_pos[1] = ee_pos[1];
+
+  sejong::Matrix Q(cur_ee_pos.rows(), cur_ee_pos.rows()); // task cost
+
+  Q.setZero();
+
+  double cost_weight = 100.0;
+  Q(0,0) = cost_weight;
+  Q(1,1) = 3.0*cost_weight;  
+
+  sejong::Matrix cost_in_eigen;
+  cost_in_eigen = (des_oper_goal - cur_ee_pos).transpose() * Q * (des_oper_goal - cur_ee_pos);
+
+  cost = cost_in_eigen(0,0);
+  //std::cout << "cost = " << cost << std::endl;
+  return cost;  
+
+
+}
 
 double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & u_in){
   sejong::Vect3 ee_pos;
@@ -378,10 +462,10 @@ double DDP_ctrl::_l_cost(const sejong::Vector & x_state, const sejong::Vector & 
   // if gamma_int is notNan
   //_getWBC_command(x_state, u_in, gamma_int); // We can get torque for any given state and desired acceleration
 
-  double cost_weight = 0.01;
-  double acc_cost_weight = 0.01;  
+  double cost_weight = 10.0;
+  double acc_cost_weight = 0.001;  
   Q(0,0) = cost_weight;
-  Q(1,1) = cost_weight;  
+  Q(1,1) = 3.0*cost_weight;  
 
   R(0,0) = cost_weight;
   R(1,1) = cost_weight;    
@@ -470,6 +554,161 @@ void DDP_ctrl::_getWBC_command(const sejong::Vector & x_state, const sejong::Vec
 }
 
 
+void DDP_ctrl::_compute_ilqr(){
+  // Get starting state   // x = [q, qdot]
+  sejong::Vector x_state_start(NUM_Q + NUM_QDOT);
+  x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
+  x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
+
+  // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+  sejong::Vector x = x_state_start;
+
+  double lambda = 1.0; //  Regularization Parameter
+  double lambda_min = 0.000001; 
+  double dlambda = 1.0;
+  double lambda_factor = 1.6; // Lambda Factor
+  double z_min = 0.0;
+  sejong::Vector dV(2); //
+
+  std::vector<double> alpha_cand_pow = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
+  std::vector<double> alpha_cand;
+  for(size_t i = 0; i < alpha_cand_pow.size(); i++){
+    alpha_cand.push_back(pow(10.0, alpha_cand_pow[i]));
+  }
+
+
+  bool compute_new_traj = true;
+  for(size_t ii = 0; ii < ilqr_iters; ii++){
+    if (compute_new_traj){
+      // Step 1 Forward Pass -------------------------------------------------------------------------
+      // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+      _initialize_x_sequence(x, u_sequence, x_sequence);
+
+      // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
+      _get_finite_differences();
+      compute_new_traj = false;
+    }
+
+    // Step 2 Backward Pass -------------------------------------------------------------------------
+    double V = _l_final_cost(x_sequence.back()); // back() is equivalent to N_horizon-1
+    sejong::Vector V_x = l_x.back();
+    sejong::Matrix V_xx = l_xx.back();
+
+    // Work backwards to solve for V, Q, k, and K
+    for(int i = N_horizon-1; i >= 0; i--){
+      // V' is the next state.
+      sejong::Vector Q_x = l_x[i] + f_x[i].transpose()*V_x;
+      sejong::Vector Q_u = l_u[i] + f_u[i].transpose()*V_x;
+      sejong::Matrix Q_xx = l_xx[i] + f_x[i].transpose()*V_xx*f_x[i];
+      sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()*V_xx*f_x[i];
+      sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()*V_xx*f_u[i];
+
+
+      sejong::Matrix Q_uu_reg = Q_uu + lambda * sejong::Matrix::Identity(DIM_WBC_TASKS, DIM_WBC_TASKS);
+
+      // Compute Cholesky Decomposition
+      Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
+      sejong::Matrix L = lltOfQuu.matrixL();
+      sejong::Matrix Q_uu_reg_inv = (L.inverse()).transpose()*(L.inverse());
+
+      //std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
+      //std::cout << "Cholesky Q_uu inverse is:" << std::endl << Q_uu_reg_inv << std::endl;            
+
+      k_vec[i] = -Q_uu_reg_inv*Q_u;
+      K_vec[i] = -Q_uu_reg_inv*Q_ux;
+
+      dV[0] = k_vec[i].transpose()*Q_u;
+      dV[1] = 0.5*k_vec[i].transpose()*Q_uu*k_vec[i];
+
+      //V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i];
+      //V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
+
+      V_x = Q_x + K_vec[i].transpose()*Q_uu*k_vec[i] + K_vec[i].transpose()*Q_u + Q_ux.transpose()*k_vec[i];
+      V_xx = Q_xx + K_vec[i].transpose()*Q_uu*K_vec[i] + K_vec[i].transpose()*Q_ux + Q_ux.transpose()*K_vec[i];      
+      V_xx = 0.5*(V_xx + V_xx.transpose().eval());
+
+    }
+
+    // Check for termination due to small gradient
+
+
+    // Step 3 Line Search to find new control sequence  ------------------------------------------------
+    bool fwd_pass_done = false;
+    std::vector<sejong::Vector> x_new_sequence = x_sequence;//std::vector<sejong::Vector>(N_horizon);
+    std::vector<sejong::Vector> u_new_sequence = u_sequence;//std::vector<sejong::Vector>(N_horizon);
+
+    std::cout << "iter:" << ii << std::endl;
+    for(size_t j = 0; j < alpha_cand.size(); j++){
+      double alpha = alpha_cand[j];
+
+      // Update u sequence
+      sejong::Vector x_new = x;
+      for(int i = 0; i < N_horizon-1; i++){
+        u_new_sequence[i] = u_sequence[i] + alpha*k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
+        x_new = _x_tp1(x_new, u_new_sequence[i]);
+        //std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+      }    
+      // Forward pass using U_sequence
+      _initialize_x_sequence(x, u_new_sequence, x_new_sequence);
+
+      double d_cost = _J_cost(x_sequence, u_sequence) - _J_cost(x_new_sequence, u_new_sequence);
+      double expected = -alpha*(dV[0] + alpha*dV[1]);
+      double z = 0.0;
+
+      if (expected > 0){
+        z = d_cost/expected;
+      }else{
+        z = -1;
+        std::cout << "alpha:" << alpha << std::endl;
+        std::cout << "warning: Non positive error reduction. should not occur" << std::endl;
+      }
+      if (z > z_min){
+        fwd_pass_done = true;
+        break;
+      }
+    }
+
+    // Step 4 Accept Changes or not  ------------------------------------------------
+    if (fwd_pass_done){
+      dlambda = std::min( dlambda/lambda_factor, 1.0/lambda_factor );
+      if (lambda > lambda_min){
+        lambda *= dlambda;
+      }else{
+        lambda = 0.0;
+      }
+
+
+
+      // Accept Changes
+      x_sequence = x_new_sequence;
+      u_sequence = u_new_sequence;
+      x = x_sequence[0];
+      compute_new_traj = true;
+
+
+    }else{ // No Cost Improvement
+      std::cout << "No Cost Improvement" << std::endl;
+      dlambda  = std::max(dlambda * lambda_factor, lambda_factor);
+      lambda   = std::max(lambda * dlambda, lambda_min);
+      std::cout << "Increasing Lambda to " << lambda << std::endl;
+    }
+    // --------------------
+
+    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+    std::cout << "  lambda:" << lambda << std::endl; // Cost of new Sequence    
+    sejong::Vect3 ee_pos;
+    _update_internal_model(x_new_sequence.back());
+    internal_model->getPosition(x_new_sequence.back().head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+    std::cout << "  (X,Y) = (" << ee_pos[0] << "," << ee_pos[1] << ")" << std::endl; // Position
+    // ----------------
+
+  }
+
+
+}
+
+
+
 
 void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   gamma.setZero();  
@@ -478,33 +717,30 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
   x_state_start.head(NUM_Q) = sp_->Q_; // Store current Q position to state
   x_state_start.tail(NUM_QDOT) = sp_->Qdot_; // Store current Qdot position
 
-  // ---- START TIMER
+  // ---- START TIMER 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-  // ---- START TIMER
-
-
-  // --------------------------------------------------------------------------------------------
+  // -------------------------------------------------------------------------------------------
   // Computation Block
-
-  // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
-  _initiailize_x_sequence(x_state_start);
-
-  // Test Finite Difference
-  _get_finite_differences();
-  
-  // Test WBC command given u_sequence[0]
-  x_sequence[0] = x_state_start;
-  _getWBC_command(x_sequence[0], u_sequence[0], gamma);
+  _compute_ilqr();
 
   // End Computation Block
   // --------------------------------------------------------------------------------------------
+
+    std::cout << "(X,Y)" << std::endl;
+    for (size_t i = 0; i < x_sequence.size(); i++){
+      sejong::Vect3 ee_pos;
+      _update_internal_model(x_sequence[i]);
+      internal_model->getPosition(x_sequence[i].head(NUM_Q), SJLinkID::LK_EE, ee_pos);
+      std::cout << ee_pos[0] << "," << ee_pos[1] << std::endl; // Position
+    }      
+
 
   // ---- END TIMER
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
   time_sum += (time_span1.count()*1000.0);
 
-//  std::cout << "Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;
+  std::cout << "Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;
   ++count;
   if (count % 100 == 99){
     double ave_time = time_sum/((double)count);
@@ -513,6 +749,10 @@ void DDP_ctrl::_mpc_ctrl(sejong::Vector & gamma){
     time_sum = 0.;
   }
   // ---- END TIMER
+
+  // Test WBC command given u_sequence[0]
+  x_sequence[0] = x_state_start;
+  _getWBC_command(x_sequence[0], u_sequence[0], gamma);
 
   // Test cost function
   double cost = _l_cost(x_sequence[0], u_sequence[0]);
