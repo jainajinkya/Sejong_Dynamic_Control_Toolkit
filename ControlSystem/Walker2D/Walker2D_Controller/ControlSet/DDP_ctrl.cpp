@@ -53,6 +53,20 @@ double DDP_ctrl::l_cost_final(const sejong::Vector &x){
 }
 // ---------------------------------------------------------------------
 
+
+void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
+  // Initialize States
+  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
+
+  // Update internal model
+  internal_model->UpdateModel(q_int, qdot_int);
+  internal_model->getMassInertia(A_int);
+  internal_model->getInverseMassInertia(Ainv_int);
+  internal_model->getGravity(grav_int);
+  internal_model->getCoriolis(coriolis_int);  
+}
+
 void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, sejong::Vector & c_out){
   sejong::Vector q_int = x_state.head(NUM_QDOT);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);
@@ -109,8 +123,8 @@ void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, 
 }
 
 void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state, 
-                               const sejong::Vector & des_acc, 
-                               sejong::Vector & gamma_int){
+                                const sejong::Vector & u_input, 
+                                sejong::Vector & gamma_int){
 
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);   
@@ -119,9 +133,8 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   // Task 2 Posture Task 
 
   // Set Desired Accelerations
-  // Feet Task
-  sejong::Vector xddot_feet_des(4);
-  xddot_feet_des.setZero();
+  // Feet Tasks
+  sejong::Vector xddot_feet_des = u_input;
 
   // Joint Position Posture Task
   sejong::Vector xddot_des_pos(NUM_ACT_JOINT);
@@ -143,10 +156,11 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
   // Calculate qddot task
   sejong::Vector qddot_des = (B*xddot_des + c);
-  sejong::pretty_print(qddot_des, std::cout, "qddot_des");  
 
   // Whole Body Dynamics
-  sejong::Vector tau = A_ * qddot_des + coriolis_ + grav_;
+  _update_internal_model(x_state);
+  sejong::Vector tau = A_int * qddot_des + coriolis_int + grav_int;
+
   // Extract Actuated Torque
   gamma_int = tau.tail(NUM_ACT_JOINT);
 }
@@ -166,7 +180,7 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   gamma.setZero();
   sejong::Vector x_state(STATE_X_SIZE);
-  sejong::Vector u_vec(2); 
+  sejong::Vector u_vec(4); 
   u_vec.setZero();
   x_state.head(NUM_Q) = sp_->Q_;
   x_state.tail(NUM_QDOT) = sp_->Qdot_;

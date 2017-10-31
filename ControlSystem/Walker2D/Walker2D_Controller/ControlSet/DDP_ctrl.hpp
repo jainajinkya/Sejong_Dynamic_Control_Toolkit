@@ -36,15 +36,18 @@ protected:
   sejong::Vect3 ee_ini_;
 
   void _update_internal_model(const sejong::Vector & x_state);
-
   void _get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, sejong::Vector & c_out);   
   void _get_WBC_command(const sejong::Vector & x_state, 
-                        const sejong::Vector & des_acc, 
+                        const sejong::Vector & u_input, 
                         sejong::Vector & gamma_int); 
 
   iLQR* ilqr_;
   // Get Internal Model of the robot for DDP
   Walker2D_Model* internal_model;
+  sejong::Matrix A_int;
+  sejong::Matrix Ainv_int;
+  sejong::Vector grav_int;
+  sejong::Vector coriolis_int;
 
   std::vector<sejong::Vector> gamma_sequence;  
   sejong::Matrix Q;
