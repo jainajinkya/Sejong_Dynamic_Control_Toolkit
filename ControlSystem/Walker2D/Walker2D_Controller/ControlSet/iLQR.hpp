@@ -55,6 +55,8 @@ protected:
   double z_min = 0.0;
 
   void   _initialize_gradients_hessians();
+  void   _initialize_U_sequence();
+  void   _compute_X_sequence();
   void   _compute_finite_differences();
   double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
 

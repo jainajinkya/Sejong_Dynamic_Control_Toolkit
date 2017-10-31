@@ -31,15 +31,15 @@ void Walker2D_DynCtrl::Initialization(){
   m_jpos_ini[1] = 1.0;
 
   // m_jpos_ini[1] = -2.0;
-  m_jpos_ini[2] = 0.6;
+  m_jpos_ini[2] = 0.1;//0.6;
   m_jpos_ini[3] = 1.0;
 
   m_q.tail(NUM_ACT_JOINT) = m_jpos_ini;
 
   // height
-  m_q[1] = 0.9;
+  m_q[1] = 0.45;//0.9;
   // ori
-  m_q[2] = 0.2;
+  m_q[2] = 0.0; //0.2;
 }
 
 void Walker2D_DynCtrl::_UpdateLinePosition(){
