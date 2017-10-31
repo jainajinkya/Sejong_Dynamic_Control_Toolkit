@@ -59,13 +59,18 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);   
+
   sejong::Vect3 com_pos;
 
-  sejong::Vect3 lf_pos3, rf_pos3;
+  // Get EE positions
+  sejong::Vect3 lf_pos3, rf_pos3, body_pos3;
   internal_model->getPosition(q_int, SJLinkID::LK_LEFT_FOOT, lf_pos3);
   internal_model->getPosition(q_int, SJLinkID::LK_RIGHT_FOOT, rf_pos3);  
+  internal_model->getPosition(q_int, SJLinkID::LK_BODY, body_pos3);    
   sejong::Vector lf_pos = lf_pos3.head(2); // X, Z
-  sejong::Vector rf_pos = rf_pos3.head(2); // X, Z  
+  sejong::Vector rf_pos = rf_pos3.head(2); // X, Z
+  sejong::Vector body_ry = body_pos3.tail(1); // Ry   
+  sejong::pretty_print(body_ry, std::cout, "body_ry");
 
   if (std::abs(lf_pos[1]) <= NEAR_ZERO){
     std::cout << "left foot contact active" << std::endl;
@@ -89,13 +94,26 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   J_feet_dot.block(0,0, 2, NUM_Q) = J_lf_dot.block(0, 0, 2, NUM_Q);
   J_feet_dot.block(2,0, 2, NUM_Q) = J_rf_dot.block(0, 0, 2, NUM_Q);  
 
-
   sejong::Vector xddot_feet_des(4);
   xddot_feet_des.setZero();
-  xddot_feet_des[1] = -0.0; // Negative Z direction
-  xddot_feet_des[3] = -0.0; // Negative Z direction
+  xddot_feet_des[0] = 0;//-32.0; // LF X direction
+  xddot_feet_des[1] = 0;//-32.0; // LF Z direction
 
-  // COM Task
+  xddot_feet_des[2] = 0;//-42.0; // RF X direction
+  xddot_feet_des[3] = 0;//-42.0; // RF Z direction
+
+  // Body Ry Task
+  sejong::Matrix J_bry;  
+  sejong::Matrix J_bry_dot;    
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_BODY, J_bry);
+  internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_BODY, J_bry_dot);  
+  
+  sejong::Matrix J_body = J_bry.block(2, 0, 1, NUM_Q);
+  sejong::Matrix J_body_dot = J_bry_dot.block(2, 0, 1, NUM_Q);  
+  sejong::Vector xddot_body_des(1);
+  xddot_body_des[0] = 10*(0 - body_ry[0]);
+
+    // COM Task
   sejong::Vector com_cur(2);
   internal_model->getCoMPosition(q_int, com_pos);
 
@@ -117,13 +135,15 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
   // Joint Position Task
   sejong::Matrix J_pos(NUM_ACT_JOINT, NUM_Q);
+  sejong::Matrix J_pos_dot(NUM_ACT_JOINT, NUM_Q);
   J_pos.setZero();
   J_pos.block(0, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);  
+  J_pos_dot.setZero();
 
   sejong::Vector xddot_des_pos(NUM_ACT_JOINT);
   xddot_des_pos.setZero();
-  double kp(50.);
-  double kd(15.);
+  double kp(300.); // 50
+  double kd(50.);  // 15
   sejong::Vector jpos_des = jpos_ini_;
   xddot_des_pos = kp*(jpos_des - q_int.tail(NUM_ACT_JOINT)) + kd * ( -qdot_int.tail(NUM_ACT_JOINT));
 
@@ -132,8 +152,15 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Matrix J1 = J_feet;
   sejong::Matrix J1_dot = J_feet_dot;  
   sejong::Vector x1ddot = xddot_feet_des;    
+
   sejong::Matrix J2 = J_pos;  
+  sejong::Matrix J2_dot = J_pos_dot;  
   sejong::Vector x2ddot = xddot_des_pos;
+
+  sejong::Matrix J3 = J_body;  
+  sejong::Matrix J3_dot = J_body_dot;    
+  sejong::Vector x3ddot = xddot_body_des;  
+
 
   // Prepare Projections
   sejong::Matrix J1_bar;
@@ -145,13 +172,18 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Matrix J2_1_bar;
   _DynConsistent_Inverse(J2_1, J2_1_bar); 
 
+/*  sejong::Matrix N2_1 = (sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - J2_1_bar*J2_1_bar);
+  sejong::Matrix J3_21 = J3*N1*N2_1;
+  sejong::Matrix J3_21_bar;
+  _DynConsistent_Inverse(J3_21, J3_21_bar);   */
+
   // Calculate qddot task
   sejong::Vector qddot_1(NUM_Q);
   sejong::Vector qddot_2(NUM_Q);
+  sejong::Vector qddot_3(NUM_Q);  
   qddot_1 = J1_bar*(x1ddot - J1_dot*qdot_int);
-  qddot_2 = J2_1_bar*(x2ddot - J2*qddot_1);
-
-  sejong::pretty_print(qddot_1, std::cout, "qddot_1");
+  qddot_2 = J2_1_bar*(x2ddot - J2_dot*qdot_int - J2*qddot_1);
+  //qddot_3 = J3_21_bar*(x3ddot - J3_dot*qdot_int - J3*(qddot_1 + qddot_2));
 
   sejong::Matrix J_pos_bar;
   _DynConsistent_Inverse(J_pos, J_pos_bar);
@@ -160,16 +192,15 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
 //  qddot =  J_pos_bar*(xddot_des_pos);
   qddot =  qddot_1 + qddot_2;
-
   sejong::Vector tau = A_ * qddot + coriolis_ + grav_;
 
-  gamma_int = qddot.tail(NUM_ACT_JOINT);
-//  gamma_int = tau.tail(NUM_ACT_JOINT);
+//  gamma_int = qddot.tail(NUM_ACT_JOINT);
+  gamma_int = tau.tail(NUM_ACT_JOINT);
 
+  sejong::pretty_print(q_int, std::cout, "q_int");
 
-  // Task 1 Control CoM (x,z) position
-  // Task 2 Left and Right Foot Accelerations
-  // Task 3 Posture Task 
+  // Task 1 Left and Right Foot Accelerations
+  // Task 2 Posture Task 
 }
 
 
