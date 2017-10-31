@@ -60,26 +60,10 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Vector q_int = x_state.head(NUM_Q);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);   
 
-  sejong::Vect3 com_pos;
+  // Task 1 Left and Right Foot Accelerations
+  // Task 2 Posture Task 
 
-  // Get EE positions
-  sejong::Vect3 lf_pos3, rf_pos3, body_pos3;
-  internal_model->getPosition(q_int, SJLinkID::LK_LEFT_FOOT, lf_pos3);
-  internal_model->getPosition(q_int, SJLinkID::LK_RIGHT_FOOT, rf_pos3);  
-  internal_model->getPosition(q_int, SJLinkID::LK_BODY, body_pos3);    
-  sejong::Vector lf_pos = lf_pos3.head(2); // X, Z
-  sejong::Vector rf_pos = rf_pos3.head(2); // X, Z
-  sejong::Vector body_ry = body_pos3.tail(1); // Ry   
-  sejong::pretty_print(body_ry, std::cout, "body_ry");
-
-  if (std::abs(lf_pos[1]) <= NEAR_ZERO){
-    std::cout << "left foot contact active" << std::endl;
-  }
-  if (std::abs(rf_pos[1]) <= NEAR_ZERO){
-    std::cout << "right foot contact active" << std::endl;
-  }
- 
-  // Foot Tasks
+  // Foot Tasks--------------------------------------------------------------
   sejong::Matrix J_lf, J_rf;  
   sejong::Matrix J_lf_dot, J_rf_dot;    
   internal_model->getFullJacobian(q_int, SJLinkID::LK_LEFT_FOOT, J_lf);
@@ -87,6 +71,7 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_LEFT_FOOT, J_lf_dot);
   internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_RIGHT_FOOT, J_rf_dot);
 
+  // Stack the Jacobians
   sejong::Matrix J_feet(4, NUM_Q);
   J_feet.block(0,0, 2, NUM_Q) = J_lf.block(0, 0, 2, NUM_Q);
   J_feet.block(2,0, 2, NUM_Q) = J_rf.block(0, 0, 2, NUM_Q);  
@@ -96,44 +81,8 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 
   sejong::Vector xddot_feet_des(4);
   xddot_feet_des.setZero();
-  xddot_feet_des[0] = 0;//-32.0; // LF X direction
-  xddot_feet_des[1] = 0;//-32.0; // LF Z direction
 
-  xddot_feet_des[2] = 0;//-42.0; // RF X direction
-  xddot_feet_des[3] = 0;//-42.0; // RF Z direction
-
-  // Body Ry Task
-  sejong::Matrix J_bry;  
-  sejong::Matrix J_bry_dot;    
-  internal_model->getFullJacobian(q_int, SJLinkID::LK_BODY, J_bry);
-  internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_BODY, J_bry_dot);  
-  
-  sejong::Matrix J_body = J_bry.block(2, 0, 1, NUM_Q);
-  sejong::Matrix J_body_dot = J_bry_dot.block(2, 0, 1, NUM_Q);  
-  sejong::Vector xddot_body_des(1);
-  xddot_body_des[0] = 10*(0 - body_ry[0]);
-
-    // COM Task
-  sejong::Vector com_cur(2);
-  internal_model->getCoMPosition(q_int, com_pos);
-
-  com_cur[0] = com_pos[0]; // x
-  com_cur[1] = com_pos[2]; // z
-  sejong::pretty_print(com_cur, std::cout, "COM_pos");
-
-  sejong::Matrix J_com_tmp;
-  internal_model->getCoMJacobian(q_int, J_com_tmp);
-  sejong::Matrix J_com(2, NUM_Q);
-  J_com.block(0,0, 1, NUM_Q) = J_com_tmp.block(0,0, 1, NUM_Q);
-  J_com.block(1,0, 1, NUM_Q) = J_com_tmp.block(2,0, 1, NUM_Q);  
-
-  sejong::Vector xddot_com_des(2);
-  double omega(2.*M_PI * 1.);
-  xddot_com_des[0] = 0.0;
-  xddot_com_des[1] = ((0.01 * sin(-omega * state_machine_time_) + 0.29) - com_cur[1]); 
-
-
-  // Joint Position Task
+  // Joint Position Task----------------------------------------------------------
   sejong::Matrix J_pos(NUM_ACT_JOINT, NUM_Q);
   sejong::Matrix J_pos_dot(NUM_ACT_JOINT, NUM_Q);
   J_pos.setZero();
@@ -147,8 +96,7 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Vector jpos_des = jpos_ini_;
   xddot_des_pos = kp*(jpos_des - q_int.tail(NUM_ACT_JOINT)) + kd * ( -qdot_int.tail(NUM_ACT_JOINT));
 
-/*  sejong::Matrix J1 = J_com;
-  sejong::Vector x1ddot = xddot_com_des;  */
+  // Set Hierarchy
   sejong::Matrix J1 = J_feet;
   sejong::Matrix J1_dot = J_feet_dot;  
   sejong::Vector x1ddot = xddot_feet_des;    
@@ -156,11 +104,6 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Matrix J2 = J_pos;  
   sejong::Matrix J2_dot = J_pos_dot;  
   sejong::Vector x2ddot = xddot_des_pos;
-
-  sejong::Matrix J3 = J_body;  
-  sejong::Matrix J3_dot = J_body_dot;    
-  sejong::Vector x3ddot = xddot_body_des;  
-
 
   // Prepare Projections
   sejong::Matrix J1_bar;
@@ -172,35 +115,15 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Matrix J2_1_bar;
   _DynConsistent_Inverse(J2_1, J2_1_bar); 
 
-/*  sejong::Matrix N2_1 = (sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - J2_1_bar*J2_1_bar);
-  sejong::Matrix J3_21 = J3*N1*N2_1;
-  sejong::Matrix J3_21_bar;
-  _DynConsistent_Inverse(J3_21, J3_21_bar);   */
-
   // Calculate qddot task
-  sejong::Vector qddot_1(NUM_Q);
-  sejong::Vector qddot_2(NUM_Q);
-  sejong::Vector qddot_3(NUM_Q);  
-  qddot_1 = J1_bar*(x1ddot - J1_dot*qdot_int);
-  qddot_2 = J2_1_bar*(x2ddot - J2_dot*qdot_int - J2*qddot_1);
-  //qddot_3 = J3_21_bar*(x3ddot - J3_dot*qdot_int - J3*(qddot_1 + qddot_2));
+  sejong::Vector qddot_1 = J1_bar*(x1ddot - J1_dot*qdot_int);
+  sejong::Vector qddot_2 = J2_1_bar*(x2ddot - J2_dot*qdot_int - J2*qddot_1);
+  sejong::Vector qddot =  qddot_1 + qddot_2;
 
-  sejong::Matrix J_pos_bar;
-  _DynConsistent_Inverse(J_pos, J_pos_bar);
-
-  sejong::Vector qddot(NUM_Q);
-
-//  qddot =  J_pos_bar*(xddot_des_pos);
-  qddot =  qddot_1 + qddot_2;
+  // Whole Body Dynamics
   sejong::Vector tau = A_ * qddot + coriolis_ + grav_;
-
-//  gamma_int = qddot.tail(NUM_ACT_JOINT);
+  // Extract Actuated Torque
   gamma_int = tau.tail(NUM_ACT_JOINT);
-
-  sejong::pretty_print(q_int, std::cout, "q_int");
-
-  // Task 1 Left and Right Foot Accelerations
-  // Task 2 Posture Task 
 }
 
 
