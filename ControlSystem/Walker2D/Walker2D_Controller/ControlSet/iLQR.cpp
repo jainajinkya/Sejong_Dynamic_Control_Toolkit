@@ -1,36 +1,50 @@
 #include "iLQR.hpp"
 
-WBC_iLQR::WBC_iLQR(){
+iLQR::iLQR(){
   _initialize_gradients_hessians();
-  printf("[WBC_iLQR] Constructor Initialized\n");
+  printf("[iLQR] Constructor Initialized\n");
 }
 
-WBC_iLQR::WBC_iLQR(int DIM_WBC_TASKS_in){
-  DIM_WBC_TASKS = DIM_WBC_TASKS_in;
-  printf("[WBC_iLQR] Constructor Initialized\n");
+iLQR::iLQR(int DIM_u_in){
+  set_DIM_u(DIM_u_in);  
+  printf("[iLQR] Constructor Initialized\n");
 }
 
-WBC_iLQR::~WBC_iLQR(){
+iLQR::~iLQR(){
 }
 
-void WBC_iLQR::set_DIM_WBC_TASKS(int DIM_WBC_TASKS_in){
-	DIM_WBC_TASKS = DIM_WBC_TASKS_in;
+void iLQR::set_DIM_x(int DIM_x_in){
+  STATE_SIZE = DIM_x_in;
+  printf("[iLQR] |x| = %i \n", STATE_SIZE);
+  _initialize_gradients_hessians();  
 }
 
+void iLQR::set_DIM_u(int DIM_u_in){
+	DIM_u = DIM_u_in;
+  printf("[iLQR] |u| = %i \n", DIM_u);
+  _initialize_gradients_hessians();  
+}
 
-void WBC_iLQR::_initialize_gradients_hessians(){
+void iLQR::set_N_horizon(int N_horizon_in){
+  N_horizon = N_horizon_in;
+  printf("[iLQR] |N_horizon| = %i \n", N_horizon);  
+  _initialize_gradients_hessians();  
+}
+
+void iLQR::_initialize_gradients_hessians(){
+  printf("[iLQR] Initializing Gradients and Hessians \n");  
   for (size_t i = 0; i < N_horizon; i++){
     sejong::Vector n_l_x(STATE_SIZE);
     sejong::Matrix n_l_xx(STATE_SIZE, STATE_SIZE);
-    sejong::Matrix n_l_xu(STATE_SIZE, DIM_WBC_TASKS);  
-    sejong::Vector n_l_u(DIM_WBC_TASKS);
-    sejong::Matrix n_l_uu(DIM_WBC_TASKS, DIM_WBC_TASKS);    
-    sejong::Matrix n_l_ux(DIM_WBC_TASKS, STATE_SIZE);      
+    sejong::Matrix n_l_xu(STATE_SIZE, DIM_u);  
+    sejong::Vector n_l_u(DIM_u);
+    sejong::Matrix n_l_uu(DIM_u, DIM_u);    
+    sejong::Matrix n_l_ux(DIM_u, STATE_SIZE);      
     sejong::Matrix n_f_x(STATE_SIZE, STATE_SIZE);      
-    sejong::Matrix n_f_u(STATE_SIZE, DIM_WBC_TASKS);
+    sejong::Matrix n_f_u(STATE_SIZE, DIM_u);
 
-    sejong::Vector n_k_vec(DIM_WBC_TASKS);
-    sejong::Matrix n_K_vec(DIM_WBC_TASKS, STATE_SIZE);    
+    sejong::Vector n_k_vec(DIM_u);
+    sejong::Matrix n_K_vec(DIM_u, STATE_SIZE);    
     
 
     n_l_x.setZero();
@@ -60,8 +74,8 @@ void WBC_iLQR::_initialize_gradients_hessians(){
     std::vector<sejong::Matrix> H_f_kux; 
     for (size_t j = 0; j < STATE_SIZE; j++){
       sejong::Matrix n_f_kxx(STATE_SIZE, STATE_SIZE);
-      sejong::Matrix n_f_kxu(STATE_SIZE, DIM_WBC_TASKS);
-      sejong::Matrix n_f_kux(DIM_WBC_TASKS, STATE_SIZE);      
+      sejong::Matrix n_f_kxu(STATE_SIZE, DIM_u);
+      sejong::Matrix n_f_kux(DIM_u, STATE_SIZE);      
 
       n_f_kxx.setZero();
       n_f_kxu.setZero();      
@@ -78,22 +92,16 @@ void WBC_iLQR::_initialize_gradients_hessians(){
 
 }
 
-void WBC_iLQR::compute_ilqr(){
-	sejong::Vector x_vec_empty(10);
-	sejong::Vector u_vec_empty(10);
-	sejong::Vector gamma(5);	
+void iLQR::compute_ilqr(){
+	sejong::Vector x_vec_empty(STATE_SIZE);
+	sejong::Vector u_vec_empty(DIM_u);
 	x_vec_empty.setOnes();
 	u_vec_empty.setOnes();
-	gamma.setOnes();	
 	l_cost(x_vec_empty, u_vec_empty);
 	l_cost_final(x_vec_empty);
-
-	sejong::pretty_print(gamma, std::cout, "gamma before wbc");
-	get_WBC_command(x_vec_empty, u_vec_empty, gamma);
-	sejong::pretty_print(gamma, std::cout, "gamma after wbc");	
 }
 
-double WBC_iLQR::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U){
+double iLQR::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U){
   double J_cost = 0.0;
   for(size_t i = 0; i < N_horizon-1; i++){
     J_cost += l_cost(X[i], U[i]);

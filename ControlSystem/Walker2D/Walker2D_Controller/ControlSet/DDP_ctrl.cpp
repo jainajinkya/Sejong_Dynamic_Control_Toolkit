@@ -12,14 +12,12 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           act_pos_(2),
                           act_vel_(2)
 {
-  wbc_ilqr_ = new WBC_iLQR();  
-  wbc_ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1, std::placeholders::_2);
-  wbc_ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
-  wbc_ilqr_->get_WBC_command = std::bind( &DDP_ctrl::get_WBC_command, this, std::placeholders::_1, 
-                                                                        std::placeholders::_2, 
-                                                                        std::placeholders::_3);
+  ilqr_ = new iLQR();  
+  ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1, std::placeholders::_2);
+  ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
 
-  wbc_ilqr_->compute_ilqr();
+
+  ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
 }
 

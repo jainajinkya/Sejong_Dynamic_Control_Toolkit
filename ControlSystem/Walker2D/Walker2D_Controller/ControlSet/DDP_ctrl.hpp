@@ -12,20 +12,29 @@ public:
   virtual void ComputeTorqueCommand(sejong::Vector & gamma);
   virtual void Initialization();
 
-  // x_{t+1} = f(x_t, u_t)
-  sejong::Vector x_next(const sejong::Vector & x, const sejong::Vector & u); 
-  double l_cost_final(const sejong::Vector &x);
+  // Computes x_{t+1} = f(x_t, u_t)
+  sejong::Vector f(const sejong::Vector & x, const sejong::Vector & u); 
+  // Computes l(x, u)   
   double l_cost(const sejong::Vector &x, const sejong::Vector &u);  
-  void   get_WBC_command(const sejong::Vector & x_state, 
-                         const sejong::Vector & des_acc, 
-                         sejong::Vector & gamma_int); 
-  WBC_iLQR* wbc_ilqr_;
+  // Computes l_F(x)  
+  double l_cost_final(const sejong::Vector &x);
+
+  iLQR* ilqr_;
 
 protected:
   // Functions
   void _DDP_ctrl(sejong::Vector & gamma);  
   void _jpos_ctrl(sejong::Vector & gamma);
   sejong::Vect3 ee_ini_;
+
+  void   get_WBC_command(const sejong::Vector & x_state, 
+                         const sejong::Vector & des_acc, 
+                         sejong::Vector & gamma_int); 
+
+  std::vector<sejong::Vector> gamma_sequence;  
+  sejong::Matrix Q;
+  sejong::Matrix N;
+  sejong::Matrix T;    
 
   // Data Save
   sejong::Vector des_pos_;
