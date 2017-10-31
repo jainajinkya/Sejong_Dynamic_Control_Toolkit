@@ -53,6 +53,61 @@ double DDP_ctrl::l_cost_final(const sejong::Vector &x){
 }
 // ---------------------------------------------------------------------
 
+void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, sejong::Vector & c_out){
+  sejong::Vector q_int = x_state.head(NUM_QDOT);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);
+
+  // Task 1 Left and Right Foot Accelerations
+  // Task 2 Posture Task 
+  sejong::Matrix J_lf, J_rf;  
+  sejong::Matrix J_lf_dot, J_rf_dot;    
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_LEFT_FOOT, J_lf);
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_RIGHT_FOOT, J_rf);
+  internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_LEFT_FOOT, J_lf_dot);
+  internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_RIGHT_FOOT, J_rf_dot);
+
+  // Stack the Jacobians
+  sejong::Matrix J_feet(4, NUM_QDOT);
+  J_feet.block(0,0, 2, NUM_QDOT) = J_lf.block(0, 0, 2, NUM_QDOT);
+  J_feet.block(2,0, 2, NUM_QDOT) = J_rf.block(0, 0, 2, NUM_QDOT);  
+  sejong::Matrix J_feet_dot(4, NUM_QDOT);
+  J_feet_dot.block(0,0, 2, NUM_QDOT) = J_lf_dot.block(0, 0, 2, NUM_QDOT);
+  J_feet_dot.block(2,0, 2, NUM_QDOT) = J_rf_dot.block(0, 0, 2, NUM_QDOT);  
+
+  // Joint Position Task----------------------------------------------------------
+  sejong::Matrix J_pos(NUM_ACT_JOINT, NUM_QDOT);
+  sejong::Matrix J_pos_dot(NUM_ACT_JOINT, NUM_QDOT);
+  J_pos.setZero();
+  J_pos.block(0, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);  
+  J_pos_dot.setZero();
+
+  // Set Hierarchy
+  sejong::Matrix J1 = J_feet;
+  sejong::Matrix J1_dot = J_feet_dot;
+  sejong::Matrix J2 = J_pos;  
+  sejong::Matrix J2_dot = J_pos_dot;  
+
+  // Prepare Projections
+  sejong::Matrix J1_bar;
+  _DynConsistent_Inverse(J1, J1_bar);
+
+  sejong::Matrix N1 = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT) - J1_bar*J1;
+  sejong::Matrix J2_1 = J2*N1;
+  sejong::Matrix J2_1_bar;
+  _DynConsistent_Inverse(J2_1, J2_1_bar); 
+
+  sejong::Matrix B(NUM_QDOT, 4 + NUM_ACT_JOINT);
+  sejong::Vector c(NUM_QDOT);
+
+  B.block(0, 0, NUM_QDOT, 4) = J1_bar - J2_1_bar*J2*J1_bar;
+  B.block(0, 4, NUM_QDOT, NUM_ACT_JOINT) = J2_1_bar;  
+  c = (-J1_bar*J1_dot - J2_1_bar*J2_dot + J2_1_bar*J2*J1_bar*J1_dot)*qdot_int;
+
+  B_out = B;
+  c_out = c;
+
+}
+
 void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state, 
                                const sejong::Vector & des_acc, 
                                sejong::Vector & gamma_int){
@@ -79,8 +134,6 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   J_feet_dot.block(0,0, 2, NUM_Q) = J_lf_dot.block(0, 0, 2, NUM_Q);
   J_feet_dot.block(2,0, 2, NUM_Q) = J_rf_dot.block(0, 0, 2, NUM_Q);  
 
-  sejong::Vector xddot_feet_des(4);
-  xddot_feet_des.setZero();
 
   // Joint Position Task----------------------------------------------------------
   sejong::Matrix J_pos(NUM_ACT_JOINT, NUM_Q);
@@ -89,12 +142,24 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   J_pos.block(0, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);  
   J_pos_dot.setZero();
 
+
+  // Set Desired Accelerations
+  sejong::Vector xddot_feet_des(4);
+  xddot_feet_des.setZero();
+
   sejong::Vector xddot_des_pos(NUM_ACT_JOINT);
   xddot_des_pos.setZero();
   double kp(300.); // 50
   double kd(50.);  // 15
   sejong::Vector jpos_des = jpos_ini_;
   xddot_des_pos = kp*(jpos_des - q_int.tail(NUM_ACT_JOINT)) + kd * ( -qdot_int.tail(NUM_ACT_JOINT));
+
+  sejong::Matrix B;
+  sejong::Vector c;
+  _get_B_c(x_state, B, c);
+
+  sejong::pretty_print(B, std::cout, "B" );
+  sejong::pretty_print(c, std::cout, "c" );  
 
   // Set Hierarchy
   sejong::Matrix J1 = J_feet;
@@ -104,6 +169,11 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Matrix J2 = J_pos;  
   sejong::Matrix J2_dot = J_pos_dot;  
   sejong::Vector x2ddot = xddot_des_pos;
+
+  // Task xddot
+  sejong::Vector xddot_des(4 + NUM_ACT_JOINT);
+  xddot_des.head(4) = xddot_feet_des;
+  xddot_des.tail(NUM_ACT_JOINT) = xddot_des_pos;  
 
   // Prepare Projections
   sejong::Matrix J1_bar;
@@ -119,6 +189,11 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   sejong::Vector qddot_1 = J1_bar*(x1ddot - J1_dot*qdot_int);
   sejong::Vector qddot_2 = J2_1_bar*(x2ddot - J2_dot*qdot_int - J2*qddot_1);
   sejong::Vector qddot =  qddot_1 + qddot_2;
+
+  sejong::Vector qddot_prop = (B*xddot_des + c);
+
+  sejong::pretty_print(qddot, std::cout, "qddot");
+  sejong::pretty_print(qddot_prop, std::cout, "qddot_prop");  
 
   // Whole Body Dynamics
   sejong::Vector tau = A_ * qddot + coriolis_ + grav_;

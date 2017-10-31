@@ -36,6 +36,8 @@ protected:
   sejong::Vect3 ee_ini_;
 
   void _update_internal_model(const sejong::Vector & x_state);
+
+  void _get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, sejong::Vector & c_out);   
   void _get_WBC_command(const sejong::Vector & x_state, 
                         const sejong::Vector & des_acc, 
                         sejong::Vector & gamma_int); 
