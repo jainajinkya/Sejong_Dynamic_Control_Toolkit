@@ -35,7 +35,7 @@ public:
   void l_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_u);
   void l_uu_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_uu);  
   void l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_ux);
-  void f_u_fast(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u);
+  void f_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u);
   void f_x_fast(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_x);        
 
   double custom_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);

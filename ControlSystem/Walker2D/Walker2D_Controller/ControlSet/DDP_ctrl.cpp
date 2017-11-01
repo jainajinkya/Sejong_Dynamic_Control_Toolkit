@@ -94,29 +94,52 @@ void DDP_ctrl::l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u,
   l_ux = sejong::Matrix::Zero(DIM_u_SIZE, STATE_SIZE);  
 }
 
-void DDP_ctrl::f_u_fast(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u){
+void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u){
   // Configuration doesn't change so update model only once.
   _update_internal_model(x);
+
+  // Get B, c WBC Matrices
+  sejong::Matrix B_tmp;
+  sejong::Vector c;
+  _get_B_c(x, B_tmp, c);
+
+  // Extract the B components corresponding to task accelerations of the end effector and not the posture task
+  sejong::Matrix B = B_tmp.block(0, 0, NUM_QDOT, 4);
+
+  // Construct Analytical f_u
+  sejong::Matrix f_u_tmp(STATE_SIZE, DIM_u_SIZE);
+  sejong::Matrix U(NUM_QDOT, NUM_QDOT); // selector matrix to extract components corresponding to actuated torques
+  f_u_tmp.setZero();
+  U.setZero();
+  U.block(NUM_VIRTUAL, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);
+
+
+  // Note that our f has the form f = [q_{t+1}, qdot_{t+1}]^T 
+  //                                = [qdot_{t+1}, qddot_{t}]^T *dt + I [q_t, qdot_t]^T
+  //                                = [qddot_{t}*dt + qdot_t, qddot_{t}]^T *dt + I [q_t, qdot_t]^T
+  // Thus, f_u = [ \partial(qddot_{t}*dt^2) w.r.t. u , \partial qddot_{t}*dt w.r.t u ]^T
+  //         But, qddot = A_inv (tau - b - g + external forces)
+  //         and tau = U*(A*(B*u + c) + b + g)
+  //         so partial qddot w.r.t u is  A_inv*U*A*B
+  //         thus, f_u = [ A_inv*U*A*B*dt^2, A_inv*U*A*B*dt ]^T \in \mathbb{R}^{STATE_SIZE x DIM_u_SIZE} 
+
+  sejong::Matrix AinvUAB = Ainv_int*U*A_int*B;  // note this is partial_qddot_wrt_u
+
+  double h = ddp_time_step;
+  f_u_tmp.block(0, 0,        NUM_QDOT, DIM_u_SIZE) = AinvUAB*h*h;
+  f_u_tmp.block(NUM_QDOT, 0, NUM_QDOT, DIM_u_SIZE) = AinvUAB*h; 
+
+  f_u = f_u_tmp; 
 }
 
 // Computes x_{t+1} = f(x_t, u_t)
 sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
-  // ---- START TIMER 
-  //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   sejong::Vector q_int = x.head(NUM_QDOT);  
   sejong::Vector qdot_int = x.tail(NUM_QDOT);    
-
   sejong::Vector gamma_int;
-  // Compute WBC given (x,u)
+  // Compute WBC given (x,u). This also updates the model
   _get_WBC_command(x, u, gamma_int);
-
   return f_given_tact(x, gamma_int);
-
-  // ----- END TIMER
-  //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  //std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  //std::cout << "  f(x,u) took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
-
 }
 // ---------------------------------------------------------------------
 // ==============================================================================
@@ -255,6 +278,10 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   _get_WBC_command(x_state, u_vec, gamma);
   f(x_state, u_vec);
 
+/*  sejong::Matrix f_u;
+  f_u_analytical(x_state, u_vec, f_u);*/
+
+
 /*  sejong::Vector l_x, l_xF, l_u;
   sejong::Matrix l_xx, l_xxF, l_uu, l_ux;
   l_x_analytical(x_state, u_vec, l_x);
@@ -304,6 +331,9 @@ void DDP_ctrl::_jpos_ctrl(sejong::Vector & gamma){
 // x_{t+1} = f(x, gamma);
 // Provides the next state given the current state and torque inputs
 sejong::Vector DDP_ctrl::f_given_tact(const sejong::Vector & x, const sejong::Vector & gamma_int){
+  // ---- START TIMER 
+  //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+
   sejong::Vector q_int = x.head(NUM_QDOT);  
   sejong::Vector qdot_int = x.tail(NUM_QDOT);    
 
@@ -430,6 +460,12 @@ sejong::Vector DDP_ctrl::f_given_tact(const sejong::Vector & x, const sejong::Ve
   x_next.head(NUM_QDOT) = q_next;
   x_next.tail(NUM_QDOT) = qdot_next;  
 
+  // ----- END TIMER
+  //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  //std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+  //std::cout << "  f(x,u) took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
+
   return x_next;
+
 }
 
