@@ -192,7 +192,9 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
 
 
   MobyLCPSolver l_mu;  
-  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+//  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+  bool result_mu = l_mu.lcp_fast(alpha_mu, beta_mu, &fn_fd_lambda);
+
 
 /*  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
                                               fn_fd_lambda[0] << ", " << 
@@ -216,7 +218,8 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   m_qdot = qddot * h + m_qdot;
   m_q = m_qdot * h+ m_q;
 
-  sejong::pretty_print(m_q, std::cout, "q_next actual"); 
+  //sejong::pretty_print(m_q, std::cout, "q_next actual"); 
+
   // Without Friction Constraints ----------------------------------------
   // Prepare the LCP problem
 /*  MobyLCPSolver l;

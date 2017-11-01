@@ -5,6 +5,7 @@
 #include <Utils/DataManager.hpp>
 #include <Walker2D_Model/Walker2D_Model.hpp>
 #include "Optimizer/lcp/MobyLCP.h"
+#include <chrono>
 
 DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           count_command_(0),
@@ -37,6 +38,8 @@ void DDP_ctrl::Initialization(){
 
 // iLQR functions ----------------------------------------------------
 sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
+  // ---- START TIMER 
+  //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
   sejong::Vector q_int = x.head(NUM_QDOT);  
   sejong::Vector qdot_int = x.tail(NUM_QDOT);    
 
@@ -148,7 +151,9 @@ sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
 
   // Solve LCP Problem
   MobyLCPSolver l_mu;  
-  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);  
+//  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+  bool result_mu = l_mu.lcp_fast(alpha_mu, beta_mu, &fn_fd_lambda);  
+  
 
   // Extract Normal and Tangential Forces
   sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
@@ -159,11 +164,16 @@ sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
   qdot_next = qddot_now * h + qdot_int;
   q_next = qdot_next * h + q_int;
 
-  sejong::pretty_print(q_next, std::cout, "q_next predicted"); 
+  //sejong::pretty_print(q_next, std::cout, "q_next predicted"); 
 
   sejong::Vector x_next(NUM_QDOT + NUM_QDOT);
   x_next.head(NUM_QDOT) = q_next;
   x_next.tail(NUM_QDOT) = qdot_next;  
+
+  // ----- END TIMER
+  //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  //std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+  //std::cout << "  f(x,u) took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
 
   return x_next;
 }
