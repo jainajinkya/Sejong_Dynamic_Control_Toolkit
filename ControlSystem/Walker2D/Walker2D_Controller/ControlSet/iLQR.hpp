@@ -45,7 +45,7 @@ public:
   bool custom_H_f_ux = false;    
 
 protected:
-  int STATE_SIZE = NUM_Q + NUM_QDOT;
+  int STATE_SIZE = NUM_QDOT + NUM_QDOT;
   int DIM_u = 2;
   int N_horizon = 10;
   double lambda = 1.0; //  Regularization Parameter

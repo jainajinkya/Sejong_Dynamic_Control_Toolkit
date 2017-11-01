@@ -18,7 +18,7 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
   ilqr_->f = std::bind( &DDP_ctrl::f, this, std::placeholders::_1, std::placeholders::_2);
 
-  ilqr_->compute_ilqr();
+  //ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
 }
 
@@ -36,6 +36,8 @@ void DDP_ctrl::Initialization(){
 
 // iLQR functions ----------------------------------------------------
 sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
+  sejong::Vector gamma_int;
+  _get_WBC_command(x, u, gamma_int);
   // Compute WBC given (x,u)
   // Store gamma_out
   // Solve LCP problem
@@ -56,7 +58,7 @@ double DDP_ctrl::l_cost_final(const sejong::Vector &x){
 
 void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
   // Initialize States
-  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector q_int = x_state.head(NUM_QDOT);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);    
 
   // Update internal model
@@ -126,7 +128,7 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
                                 const sejong::Vector & u_input, 
                                 sejong::Vector & gamma_int){
 
-  sejong::Vector q_int = x_state.head(NUM_Q);  
+  sejong::Vector q_int = x_state.head(NUM_QDOT);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);   
 
   // Task 1 Left and Right Foot Accelerations
@@ -178,12 +180,12 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
 }
 
 void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
-  gamma.setZero();
-  sejong::Vector x_state(STATE_X_SIZE);
+  sejong::Vector x_state(STATE_SIZE);
+  x_state.head(NUM_QDOT) = sp_->Q_;
+  x_state.tail(NUM_QDOT) = sp_->Qdot_;
+
   sejong::Vector u_vec(4); 
   u_vec.setZero();
-  x_state.head(NUM_Q) = sp_->Q_;
-  x_state.tail(NUM_QDOT) = sp_->Qdot_;
 
   _get_WBC_command(x_state, u_vec, gamma);
 

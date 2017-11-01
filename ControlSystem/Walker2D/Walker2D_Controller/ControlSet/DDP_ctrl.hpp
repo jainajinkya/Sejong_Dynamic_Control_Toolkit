@@ -9,8 +9,6 @@
 #include <Optimizer/Goldfarb/QuadProg++.hh>
 #include "iLQR.hpp"
 
-#define STATE_X_SIZE NUM_Q + NUM_QDOT
-
 class DDP_ctrl: public Walker2D_Controller{
 public:
   DDP_ctrl();
@@ -29,6 +27,7 @@ public:
   double custom_J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
 
 protected:
+  int STATE_SIZE =  NUM_QDOT + NUM_QDOT;
   const double NEAR_ZERO = std::sqrt(std::numeric_limits<double>::epsilon());
   // Functions
   void _DDP_ctrl(sejong::Vector & gamma);  
