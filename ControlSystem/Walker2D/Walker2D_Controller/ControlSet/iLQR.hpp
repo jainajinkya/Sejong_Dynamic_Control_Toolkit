@@ -13,8 +13,8 @@ class iLQR{
 public:
   iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
        int DIM_u_in = 4,
-       int N_horizon_in = 100,
-       int ilqr_iters_in = 10000);
+       int N_horizon_in = 5,
+       int ilqr_iters_in = 500);
   ~iLQR();
 
   // Function Pointers ---------------------------------------------------------
@@ -77,7 +77,10 @@ public:
   void set_DIM_x(int DIM_x_in);
   void set_DIM_u(int DIM_u_in);
   void set_N_horizon(int N_horizon_in);
+  void compute_ilqr_old(const sejong::Vector & x_state_start, sejong::Vector & u_out);
+
   void compute_ilqr(const sejong::Vector & x_state_start, sejong::Vector & u_out);
+
 
   // If cusom, finite difference will not be computed
   bool custom_l_x = false;
@@ -100,12 +103,14 @@ protected:
   int N_horizon; 
   int ilqr_iters;
   double finite_epsilon = 1e-6;
-  double lambda = 0.000001; //  Regularization Parameter
-  double lambda_min = 0.000001; 
-  double dlambda = 1.0;
-  double lambda_factor = 1.6; // Lambda Factor
-  double z_min = 0.0;
 
+  double lambda = 1.0; //  Regularization Parameter
+  double dlambda = 1.0;
+  double lambda_min = 1e-6; 
+  double lambda_max = 1e10;   
+  double lambda_factor = 1.6; // Lambda Factor
+
+  double z_min = 0.0;
 
   double mu_1 = 0.0000001;
   double mu_2 = 0.0000001;  
@@ -119,16 +124,14 @@ protected:
   std::vector<double> alpha_cand_pow;// = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
   std::vector<double> alpha_cand;
 
-
-  void   _initialize_X_U();
-  void   _initialize_gradients_hessians();
-
+  void   _initialize_empty_X_sequence(std::vector<sejong::Vector> & X_seq_in);
   void   _initialize_U_sequence(std::vector<sejong::Vector> & U);
+  void   _initialize_gradients_hessians();
 
   void   _compute_X_sequence(const sejong::Vector & x_state_start,  
                              const std::vector<sejong::Vector> & U, 
                                    std::vector<sejong::Vector> & X);
-  void   _compute_finite_differences();
+  void   _compute_finite_differences(const std::vector<sejong::Vector> & X_seq_in, const std::vector<sejong::Vector> & U_seq_in);
   double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
 
   // Member Variables
