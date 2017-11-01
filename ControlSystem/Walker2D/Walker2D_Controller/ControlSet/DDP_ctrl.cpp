@@ -4,6 +4,7 @@
 #include <Utils/utilities.hpp>
 #include <Utils/DataManager.hpp>
 #include <Walker2D_Model/Walker2D_Model.hpp>
+#include "Optimizer/lcp/MobyLCP.h"
 
 DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           count_command_(0),
@@ -36,12 +37,135 @@ void DDP_ctrl::Initialization(){
 
 // iLQR functions ----------------------------------------------------
 sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
+  sejong::Vector q_int = x.head(NUM_QDOT);  
+  sejong::Vector qdot_int = x.tail(NUM_QDOT);    
+
   sejong::Vector gamma_int;
-  _get_WBC_command(x, u, gamma_int);
   // Compute WBC given (x,u)
-  // Store gamma_out
+  _get_WBC_command(x, u, gamma_int);
+
   // Solve LCP problem
-  return x;
+  // Contact Model : Time step integrator Linear Complimentary Problem
+  sejong::Vect3 lf_pos;
+  sejong::Matrix J_lf(3,NUM_QDOT);
+  sejong::Matrix J_lfc(1,NUM_QDOT);  
+
+  sejong::Vect3 rf_pos;  
+  sejong::Matrix J_rf(3,NUM_QDOT);
+  sejong::Matrix J_rfc(1,NUM_QDOT);  
+
+  internal_model->getPosition(q_int, SJLinkID::LK_LEFT_FOOT, lf_pos);
+  internal_model->getPosition(q_int, SJLinkID::LK_RIGHT_FOOT, rf_pos);  
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_LEFT_FOOT, J_lf);
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_RIGHT_FOOT, J_rf);
+
+  J_lfc.block(0,0, 1, NUM_QDOT) = J_lf.block(1, 0, 1, NUM_QDOT); // Z
+  J_rfc.block(0,0, 1, NUM_QDOT) = J_rf.block(1, 0, 1, NUM_QDOT); // Z
+
+  sejong::Matrix J_phi(2,NUM_QDOT);  
+  sejong::Vector phi(2); 
+
+  J_phi.block(0,0, 1, NUM_QDOT) = J_lfc; // Jacobian of distance to contact point 1
+  J_phi.block(1,0, 1, NUM_QDOT) = J_rfc; // Jacobian of distance to contact point 2    
+  phi[0] = lf_pos[1]; // Distance to contact point 1
+  phi[1] = rf_pos[1]; // Distance to contact point 2
+
+  sejong::Vector qddot(NUM_QDOT);
+
+  sejong::Matrix A_inv = Ainv_int;
+  // With Friction Constraints ---------------------------------------------------------------------
+  const int p = 2; // Number of Contacts
+  const int d = 2; // Number of Friction Basis Vectors
+
+  double mu_static = 1.0;//0.1; // Friction Coefficient
+  sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
+  sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
+  sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
+  sejong::Matrix J_c2 = J_rf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 2  
+
+  // Set Projected Normal Forces Direction
+  sejong::Matrix N(NUM_QDOT, p);
+  N.block(0,0, NUM_QDOT, 1) = J_c1.transpose()*n1;
+  N.block(0,1, NUM_QDOT, 1) = J_c2.transpose()*n2;
+
+  // Set Basis Vectors of Friction Cone 
+  sejong::Matrix D1(d, d); // Basis for contact 1 
+  D1.setZero();
+  D1(0,0) = 1; 
+  D1(0,1) = -1;
+  sejong::Matrix D2 = D1; // Basis for contact 2
+  
+  // Set Projected Tangential Forces Direction
+  sejong::Matrix B(NUM_QDOT, p*d); 
+  B.block(0,0, NUM_QDOT, d) = J_c1.transpose()*D1;
+  B.block(0,2, NUM_QDOT, d) = J_c2.transpose()*D2;  
+
+  // Unit e vecs and E binary matrix
+  sejong::Vector e(d); // same size as number of friction basis direction 
+  e.setOnes();
+  sejong::Matrix E(p*d, d); 
+  E.setZero();
+  E.block(0, 0, e.size(),1) = e; 
+  E.block(2, 1, e.size(),1) = e;
+
+  // mu Matrix
+  //sejong::Matrix Mu(p,p);
+  //Mu.setOnes();
+  sejong::Matrix Mu = sejong::Matrix::Identity(p, p);
+  Mu *= mu_static;
+
+  // Prepare the LCP problem------------------------------------------------------------
+  double h = ddp_time_step; // timestep
+  // Prepare Alpha Mu
+  // 1st Row
+  sejong::Matrix alpha_mu(p + p*d + p, p + p*d + p);
+  alpha_mu.setZero();
+  alpha_mu.block(0, 0, p, p) =  h*J_phi*A_inv*N;
+  alpha_mu.block(0, p, p, p*d) =  h*J_phi*A_inv*B;
+
+  // 2nd Row
+  alpha_mu.block(p, 0,     p*d, p) = h*B.transpose()*A_inv*N;
+  alpha_mu.block(p, p,     p*d, p*d) = h*B.transpose()*A_inv*B;
+  alpha_mu.block(p, p+p*d, p*d, p) = E;
+
+  // 3rd Row (Scaling for stabilization according to Tan, Jie. et al "Contact Handling for Articulated Rigid Bodies using LCP")
+  alpha_mu.block(p+p*d, 0, p, p) = Mu * h; // Scaling by h for stabilizing contact constraints
+  alpha_mu.block(p+p*d, p, p, p*d) = -E.transpose() * h;  // Scaling by h for stabilizing contact constraints
+
+  // Prepare Beta
+  sejong::Vector gamma_simulate(NUM_QDOT);
+  gamma_simulate.tail(NUM_ACT_JOINT) = gamma_int;
+  sejong::Vector tau_star = A_int*qdot_int + h*(gamma_simulate - coriolis_int - grav_int);
+  sejong::Vector beta_mu(p + p*d + p);
+  beta_mu.setZero();
+  // 1st Row
+  beta_mu.block(0,0, p, 1) = phi/h + J_phi*A_inv*tau_star;
+  // 2nd Row
+  beta_mu.block(p,0, p*d, 1) = B.transpose()*A_inv*tau_star;  
+
+  sejong::Vector fn_fd_lambda(p + p*d + p);
+  fn_fd_lambda.setZero();
+
+  // Solve LCP Problem
+  MobyLCPSolver l_mu;  
+  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);  
+
+  // Extract Normal and Tangential Forces
+  sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
+  sejong::Vector fd = fn_fd_lambda.block(p, 0, p*d, 1);
+
+  sejong::Vector qddot_now, qdot_next, q_next;
+  qddot_now = A_inv*(gamma_simulate - coriolis_int - grav_int + N*fn + B*fd);
+  qdot_next = qddot_now * h + qdot_int;
+  q_next = qdot_next * h + q_int;
+
+  sejong::pretty_print(q_next, std::cout, "q_next predicted"); 
+
+  sejong::Vector x_next(NUM_QDOT + NUM_QDOT);
+  x_next.head(NUM_QDOT) = q_next;
+  x_next.tail(NUM_QDOT) = qdot_next;  
+
+  return x_next;
 }
 
 double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
@@ -188,6 +312,8 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   u_vec.setZero();
 
   _get_WBC_command(x_state, u_vec, gamma);
+
+  f(x_state, u_vec);
 
   //_jpos_ctrl(gamma);
 
