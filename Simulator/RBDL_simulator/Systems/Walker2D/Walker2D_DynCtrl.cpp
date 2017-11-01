@@ -36,6 +36,8 @@ void Walker2D_DynCtrl::Initialization(){
 
   m_q.tail(NUM_ACT_JOINT) = m_jpos_ini;
 
+  // x_pos
+  m_q[0] = -0.65;//0.0;
   // height
   m_q[1] = 0.45;//0.9;
   // ori

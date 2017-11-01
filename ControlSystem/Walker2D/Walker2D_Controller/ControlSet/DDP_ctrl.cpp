@@ -14,11 +14,32 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           act_pos_(2),
                           act_vel_(2)
 {
+
   internal_model = Walker2D_Model::GetWalker2D_Model();
+
+  // Prepare iLQR
   ilqr_ = new iLQR();  
   ilqr_->l_cost = std::bind( &DDP_ctrl::l_cost, this, std::placeholders::_1, std::placeholders::_2);
   ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
   ilqr_->f = std::bind( &DDP_ctrl::f, this, std::placeholders::_1, std::placeholders::_2);
+
+  // Prepare Quadratic Cost Matrices
+  // x = [x_virt, z_virt, ry_virt, lf_j1, lf_j2, rf_j1, rf_j2]
+  x_des_final = sejong::Matrix::Zero(STATE_SIZE, 1);
+  x_des_final[0] = 0.65; // Walk to this value from x = -0.65
+  x_des_final[1] = 0.5; //  Hip at this height from the ground   
+  Q_run = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
+  Q_final = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
+
+  // Running Cost on Pose of Body. ie: We want the body to be upright
+  Q_run(2,2) = 1.0; 
+  // Running Cost on Foot Accelerations
+  N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
+
+  // Final cost on final pose of the body
+  Q_final.block(0, 0, NUM_VIRTUAL, NUM_VIRTUAL) = sejong::Matrix::Identity(NUM_VIRTUAL, NUM_VIRTUAL);    
+  // States should have zero velocity at the end
+  Q_final.block(NUM_QDOT, NUM_QDOT, NUM_QDOT, NUM_QDOT) = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT);      
 
   //ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
@@ -36,7 +57,51 @@ void DDP_ctrl::Initialization(){
   phase_ = 10;
 }
 
-// iLQR functions ----------------------------------------------------
+// ==============================================================================
+// iLQR functions ---------------------------------------------------------------
+// Computes the running cost
+double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
+  sejong::Vector cost = x.transpose()*Q_run*x + u.transpose()*N_run*u; 
+  return cost[0];
+}
+
+// Computes the final cost
+double DDP_ctrl::l_cost_final(const sejong::Vector &x_F){
+  sejong::Vector cost = x_F.transpose()*Q_final*x_F;
+  return cost[0];
+}
+
+// For the defined cost, we can have analytical forms.
+void DDP_ctrl::l_x_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x){
+  l_x = (Q_run + Q_run.transpose())*x;
+}
+void DDP_ctrl::l_x_final_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x){
+  l_x = (Q_final + Q_final.transpose())*x;
+}
+void DDP_ctrl::l_xx_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx){
+  l_xx = (Q_run + Q_run.transpose());
+}
+void DDP_ctrl::l_xx_final_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx){
+  l_xx = (Q_final + Q_final.transpose());
+}
+void DDP_ctrl::l_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_u){
+  l_u = (N_run + N_run.transpose())*u;
+}
+void DDP_ctrl::l_uu_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_uu){
+  l_uu = (N_run + N_run.transpose());  
+}
+void DDP_ctrl::l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_ux){
+  l_ux = sejong::Matrix::Zero(DIM_u_SIZE, STATE_SIZE);  
+}
+
+void DDP_ctrl::f_u_fast(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u){
+  // Configuration doesn't change so update model only once.
+  _update_internal_model(x);
+
+}
+
+
+// Computes x_{t+1} = f(x_t, u_t)
 sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
   // ---- START TIMER 
   //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -177,18 +242,8 @@ sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
 
   return x_next;
 }
-
-double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
-  std::cout << " Output:" << 200.0 << std::endl;  
-  return 200;
-}
-
-double DDP_ctrl::l_cost_final(const sejong::Vector &x){
-  std::cout << " Output:" << 100.0 << std::endl;  
-  return 100;
-}
 // ---------------------------------------------------------------------
-
+// ==============================================================================
 
 void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
   // Initialize States
@@ -322,8 +377,22 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   u_vec.setZero();
 
   _get_WBC_command(x_state, u_vec, gamma);
-
   f(x_state, u_vec);
+
+/*  sejong::Vector l_x, l_xF, l_u;
+  sejong::Matrix l_xx, l_xxF, l_uu, l_ux;
+  l_x_analytical(x_state, u_vec, l_x);
+  l_x_final_analytical(x_state, u_vec, l_xF);
+  l_xx_analytical(x_state, u_vec, l_xx);
+  l_xx_final_analytical(x_state, u_vec, l_xxF);
+  l_u_analytical(x_state, u_vec, l_u);
+  l_uu_analytical(x_state, u_vec, l_uu);
+  l_ux_analytical(x_state, u_vec, l_ux);*/
+
+  sejong::pretty_print(x_state, std::cout, "x_state");
+
+
+
 
   //_jpos_ctrl(gamma);
 
