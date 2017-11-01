@@ -113,13 +113,14 @@ void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u, 
   U.setZero();
   U.block(NUM_VIRTUAL, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);
 
-
   // Note that our f has the form f = [q_{t+1}, qdot_{t+1}]^T 
   //                                = [qdot_{t+1}, qddot_{t}]^T *dt + I [q_t, qdot_t]^T
   //                                = [qddot_{t}*dt + qdot_t, qddot_{t}]^T *dt + I [q_t, qdot_t]^T
   // Thus, f_u = [ \partial(qddot_{t}*dt^2) w.r.t. u , \partial qddot_{t}*dt w.r.t u ]^T
-  //         But, qddot = A_inv (tau - b - g + external forces)
+  //         But, qddot = A_inv (tau - b - g + external forces) 
   //         and tau = U*(A*(B*u + c) + b + g)
+  //         let's assume that the external forces are also constant during this interval. 
+  //         (although this is not necessarily true as ground forces can change with xddot.)
   //         so partial qddot w.r.t u is  A_inv*U*A*B
   //         thus, f_u = [ A_inv*U*A*B*dt^2, A_inv*U*A*B*dt ]^T \in \mathbb{R}^{STATE_SIZE x DIM_u_SIZE} 
 
@@ -132,12 +133,11 @@ void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u, 
   f_u = f_u_tmp; 
 }
 
+
 // Computes x_{t+1} = f(x_t, u_t)
-sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
-  sejong::Vector q_int = x.head(NUM_QDOT);  
-  sejong::Vector qdot_int = x.tail(NUM_QDOT);    
-  sejong::Vector gamma_int;
+sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){   
   // Compute WBC given (x,u). This also updates the model
+  sejong::Vector gamma_int;
   _get_WBC_command(x, u, gamma_int);
   return f_given_tact(x, gamma_int);
 }
