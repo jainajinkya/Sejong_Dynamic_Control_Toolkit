@@ -12,13 +12,17 @@ iLQR::iLQR(int STATE_SIZE_in, int DIM_u_in, int N_horizon_in, int ilqr_iters_in)
   _initialize_U_sequence(u_sequence);
   _initialize_gradients_hessians();
 
-  alpha_cand.push_back(1); // Start at 1.0
+  for (size_t i = 0; i < alpha_cand_pow.size(); i++){
+    alpha_cand.push_back(pow(10.0, alpha_cand_pow[i]));
+  }
+
+/*  alpha_cand.push_back(1); // Start at 1.0
   double cand_start = -0.0001;
   double incr = 2;  
   while (cand_start > - 4.0){
     alpha_cand.push_back(pow(10.0, cand_start));
     cand_start *= incr;
-  }
+  }*/
   //--------------------
 
   printf("[iLQR] Constructor Initialized\n");
@@ -58,8 +62,6 @@ void iLQR::_initialize_U_sequence(std::vector<sejong::Vector> & U){
     for (size_t j = 0; j < DIM_u; j++){
       u_vec[j] = 0.0; // this can be random
     }
-    std::cout << i << std::endl;
-    sejong::pretty_print(u_vec, std::cout, "u_vec");
     U_tmp.push_back(u_vec);
   }
   U = U_tmp;
@@ -168,25 +170,27 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
 
   double old_Jcost = 0.0;
   double new_Jcost = 0.0;
-  bool new_traj = true;
+  bool flag_change = true;
 
   // Initialize X_sequence given the current u_sequence
   _compute_X_sequence(x_start, U_seq, X_seq); 
   for(size_t ii = 0; ii < ilqr_iters; ii++){
-    // Step 1: Compute Derivatives
-    if (new_traj){
+    // Step 1: Compute Derivatives and cost along new traj =========================================
+    if (flag_change){
       _compute_finite_differences(X_seq, U_seq);
+      old_Jcost = _J_cost(X_seq, U_seq);
+      flag_change = false;
     }
 
-    // Step 2: Backwards Pass
+    // Step 2: Backwards Pass ======================================================================
     // Initialize Value Function with its terminal cost and derivatives 
     double V = l_cost_final(X_seq.back());
     sejong::Vector V_x = l_x.back(); 
     sejong::Matrix V_xx = l_xx.back();
     sejong::Vector dV(2); dV.setZero();
+    double dcost = 0.0;
 
     bool backward_pass_done = false;
-
     while (!backward_pass_done){
       // Work backwards to solve for V, Q, k, and K
       for(int i = N_horizon-2; i >= 0; i--){
@@ -231,16 +235,109 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         V_xx = Q_xx + K_vec[i].transpose()*Q_uu*K_vec[i] + K_vec[i].transpose()*Q_ux + Q_ux.transpose()*K_vec[i];      
         V_xx = 0.5*(V_xx + V_xx.transpose().eval());
 
-        std::cout << "backwards i: " << i << std::endl; 
-        std::cout << "dV = " << dV[0] + dV[1] << std::endl;
-        sejong::pretty_print(dV, std::cout, "dV");
+        std::cout << "backpass i: " << i << std::endl; 
+        std::cout << "  dV = " << dV[0] + dV[1] << std::endl;
+
 
         backward_pass_done = true;
       }
     }
 
-    // Check for termination condition due to a small gradient
+    // Calculate max gradient of k
+    sejong::Matrix g_vec_Mat(DIM_u, N_horizon-1);
+    for(size_t i = 0; i < DIM_u; i++){
+      for(size_t n = 0; n < N_horizon-1; n++){     
+        g_vec_Mat(i, n) = std::abs(k_vec[n][i]) / (std::abs(U_seq[n][i]) + 1.0);
+      }
+    }
+    sejong::Vector g_vec = g_vec_Mat.rowwise().maxCoeff();
 
+    // Check for termination condition due to a small gradient
+    // calculate gradient norm
+    double g_norm = g_vec.sum();
+    if ((g_norm < tolGrad) && (lambda < 1e-5)){
+      dlambda = std::min(dlambda/lambda_factor, 1.0/lambda_factor);
+      if (lambda > lambda_min){
+        lambda = lambda*dlambda;      
+      }else{
+        lambda = 0.0;
+      }
+      std::cout << "Success! Gradient Norm , tolGrad" << std::endl;
+      break; // Exit iLQR loop
+    }
+
+   // Step 3: Line Search =====================================================================
+   bool forward_pass_done = false;
+
+   std::vector<sejong::Vector> X_seq_tmp;
+   std::vector<sejong::Vector> U_seq_tmp;
+   _initialize_empty_X_sequence(X_seq_tmp);
+   _initialize_U_sequence(U_seq_tmp);
+
+   if (backward_pass_done){    
+     std::cout << "Line Search" << std::endl;
+     for(size_t j = 0; j < alpha_cand.size(); j++){
+        double alpha = alpha_cand[j];
+
+        // Compute Forward Pass ----------------------------
+        sejong::Vector x_i = X_seq[0]; // Starting Condition
+        X_seq_tmp[0] = x_i;
+        for (size_t i = 0; i < N_horizon-1; i++){ 
+          sejong::Vector u_i = U_seq[i] + alpha*k_vec[i] + K_vec[i]*(x_i - X_seq[i]);
+          x_i = f(x_i, u_i); // x_{i+1}  
+          // Store to temporary X_seq_tmp and U_seq_tmp;
+          X_seq_tmp[i+1] = x_i;
+          U_seq_tmp[i] = u_i;
+        }
+
+        new_Jcost = _J_cost(X_seq_tmp, U_seq_tmp);
+        dcost = old_Jcost - new_Jcost;
+        double expected = -alpha*(dV[0] + alpha*dV[1]);
+
+        double z = - 1;
+
+        std::cout << "  alpha:" << alpha << std::endl;
+        std::cout << "  Old Cost: " << old_Jcost << "New Cost: " << new_Jcost << std::endl;
+        std::cout << "  expected: " << expected << std::endl;        
+        std::cout << "  dcost: " << dcost << std::endl;        
+        std::cout << " " << std::endl;
+
+        if (expected > 0){
+          z = dcost / expected;        
+        }else{
+          std::cout << "Non-Positive Expected Reduction. Should not occur" << std::endl;
+        }
+        if (z > z_min){
+          forward_pass_done = true;
+          break;
+        }
+
+
+
+
+
+/*        for (size_t i = 0; i < N_horizon; i++){ 
+          std::cout << "i" << i << std::endl;
+          sejong::pretty_print(X_seq[i], std::cout, "X_seq[i]");           
+          sejong::pretty_print(X_seq_tmp[i], std::cout, "X_seq_tmp[i]"); 
+        }
+        for (size_t i = 0; i < N_horizon-1; i++){ 
+          std::cout << "i" << i << std::endl;
+          sejong::pretty_print(U_seq[i], std::cout, "U_seq[i]");           
+          sejong::pretty_print(U_seq_tmp[i], std::cout, "U_seq_tmp[i]"); 
+        }       */ 
+
+
+
+
+      }  
+
+
+
+   }
+
+
+    //
     exit(1);
   }
 

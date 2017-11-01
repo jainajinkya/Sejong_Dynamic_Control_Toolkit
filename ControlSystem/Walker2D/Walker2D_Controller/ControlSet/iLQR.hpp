@@ -110,6 +110,8 @@ protected:
   double lambda_max = 1e10;   
   double lambda_factor = 1.6; // Lambda Factor
 
+  double tolGrad = 1e-4; // Gradient Exit Condition
+
   double z_min = 0.0;
 
   double mu_1 = 0.0000001;
@@ -121,7 +123,7 @@ protected:
   double alpha_1 = 1.01;
   double alpha_2 = 1.01;
 
-  std::vector<double> alpha_cand_pow;// = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
+  std::vector<double> alpha_cand_pow = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
   std::vector<double> alpha_cand;
 
   void   _initialize_empty_X_sequence(std::vector<sejong::Vector> & X_seq_in);
