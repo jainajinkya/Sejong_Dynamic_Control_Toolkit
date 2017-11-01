@@ -161,11 +161,6 @@ double iLQR::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<se
   return J_cost;
 }
 
-
-
-
-
-
 void iLQR::_compute_finite_differences(){
   sejong::Vector h_step(STATE_SIZE);  // Same size as state x
   sejong::Vector h2_step(STATE_SIZE); // Same size as state x  
@@ -179,19 +174,31 @@ void iLQR::_compute_finite_differences(){
   //------------------------------------------------------------------------------------------------
   sejong::Vector x = x_sequence[N_horizon-1];
   // Compute finite difference at the end
+
+  if (custom_l_xF){  l_x_final_analytical(x, l_x[N_horizon-1]);   }
+  if (custom_l_xxF){ l_xx_final_analytical(x, l_xx[N_horizon-1]); }  
+
   for (size_t i = 0; i < h_step.size(); i++){
     h_step[i] = finite_epsilon;
-    // l_x
-    l_x[N_horizon-1](i) = (l_cost_final(x + h_step) - l_cost_final(x - h_step) ) / (2.0*h_step[i]); 
+    if (!custom_l_xF){
+      // l_xF
+      l_x[N_horizon-1](i) = (l_cost_final(x + h_step) - l_cost_final(x - h_step) ) / (2.0*h_step[i]); 
+      std::cout << "Calculating l_xF" << std::endl;
+    }
 
-    // l_xx
-    for (size_t j = 0; j < h_step.size(); j++){
-      h2_step[j] = finite_epsilon;
-      l_xx[N_horizon-1](i,j) = (l_cost_final(x + h_step + h2_step) - 
-                     l_cost_final(x + h_step - h2_step) - 
-                     l_cost_final(x - h_step + h2_step) + 
-                     l_cost_final(x - h_step - h2_step))/(4*h_step[i]*h2_step[j]);
-      h2_step.setZero();        
+    if(!custom_l_xxF){
+      // l_xxF
+      for (size_t j = 0; j < h_step.size(); j++){
+        h2_step[j] = finite_epsilon;
+        l_xx[N_horizon-1](i,j) = (l_cost_final(x + h_step + h2_step) - 
+                       l_cost_final(x + h_step - h2_step) - 
+                       l_cost_final(x - h_step + h2_step) + 
+                       l_cost_final(x - h_step - h2_step))/(4*h_step[i]*h2_step[j]);
+      std::cout << "Calculating l_xxF" << std::endl;
+        h2_step.setZero();        
+      }
+    }else{
+      break;
     }
     h_step.setZero();
   }
@@ -204,138 +211,182 @@ void iLQR::_compute_finite_differences(){
     sejong::Vector x = x_sequence[n];
     sejong::Vector u = u_sequence[n];    
 
-    // -----------------------------------
-    // Calculate Finite Difference for l_x, l_xx, and l_xu 
-    for (size_t i = 0; i < h_step.size(); i++){
-      h_step[i] = finite_epsilon;
-      // l_x
-       l_x[n](i) = (l_cost(x + h_step, u) - l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+    if (custom_l_x)  { l_x_analytical(x, u,  l_x[n]);  }//std::cout << "computing l_x_analytical" << std::endl;   }
+    if (custom_l_xx) { l_xx_analytical(x, u, l_xx[n]); }//std::cout << "computing l_xx_analytical" << std::endl;   }  
+    if (custom_l_u)  { l_u_analytical(x, u,  l_u[n]);  }//std::cout << "computing l_u_analytical" << std::endl;   }
+    if (custom_l_uu) { l_uu_analytical(x, u, l_uu[n]); }//std::cout << "computing l_uu_analytical" << std::endl;   }     
+    if (custom_l_ux) { l_ux_analytical(x, u, l_ux[n]); }//std::cout << "computing l_ux_analytical" << std::endl;   }
+    if (custom_f_u)  {  f_u_analytical(x, u,  f_u[n]); }//std::cout << "computing f_u_analytical" << std::endl;   }          
+    if (custom_f_x)  {  f_x_analytical(x, u,  f_x[n]); }//std::cout << "computing f_x_analytical" << std::endl;   }              
 
-      // l_xx
-      for (size_t j = 0; j < h_step.size(); j++){
-        h2_step[j] = finite_epsilon;
-        l_xx[n](i,j) = (l_cost(x + h_step + h2_step, u) - 
-                       l_cost(x + h_step - h2_step, u) - 
-                       l_cost(x - h_step + h2_step, u) + 
-                       l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);         
-        h2_step.setZero();        
+    // Skip Finite Difference if l_x, l_xx, and l_xu or l_ux have analytical forms
+    if (!(custom_l_x && custom_l_xx && (custom_l_xu || custom_l_ux))){
+      // -----------------------------------
+      // Calculate Finite Difference for l_x, l_xx, and l_xu 
+      for (size_t i = 0; i < h_step.size(); i++){
+        h_step[i] = finite_epsilon;
+        // l_x
+        if (!custom_l_x){ // Compute finite diff if analytical form is not available
+         l_x[n](i) = (l_cost(x + h_step, u) - l_cost(x - h_step, u) ) / (2.0*h_step[i]); 
+         //std::cout << "finite l_x" << std::endl;
+        }
+
+        if (!custom_l_xx){ // Compute finite diff if analytical form is not available
+          // l_xx
+          for (size_t j = 0; j < h_step.size(); j++){
+            h2_step[j] = finite_epsilon;
+            l_xx[n](i,j) = (l_cost(x + h_step + h2_step, u) - 
+                           l_cost(x + h_step - h2_step, u) - 
+                           l_cost(x - h_step + h2_step, u) + 
+                           l_cost(x - h_step - h2_step, u))/(4*h_step[i]*h2_step[j]);         
+            h2_step.setZero();        
+          }
+         //std::cout << "finite l_xx" << std::endl;
+        }
+
+        if (! (custom_l_xu || custom_l_ux) ){ // Compute finite diff if analytical form is not available   
+          // l_xu
+          for (size_t j = 0; j < k_step.size(); j++){
+            k_step[j] = finite_epsilon;        
+            l_xu[n](i,j) = (l_cost(x + h_step, u + k_step) - 
+                         l_cost(x + h_step, u - k_step) - 
+                         l_cost(x - h_step, u + k_step) + 
+                         l_cost(x - h_step, u - k_step))/(4*h_step[i]*k_step[j]);
+            k_step.setZero();        
+          }
+          //std::cout << "finite l_xu" << std::endl;
+        } //END IF      
+
+        h_step.setZero();
+        //std::cout << "    i:" << i << " l_x[i] = "<< l_x[i] << std::endl;
       }
+    }// END IF
 
-      // l_xu
-      for (size_t j = 0; j < k_step.size(); j++){
-        k_step[j] = finite_epsilon;        
-        l_xu[n](i,j) = (l_cost(x + h_step, u + k_step) - 
-                     l_cost(x + h_step, u - k_step) - 
-                     l_cost(x - h_step, u + k_step) + 
-                     l_cost(x - h_step, u - k_step))/(4*h_step[i]*k_step[j]);
-        k_step.setZero();        
-      }      
+    // Skip Finite Difference if l_x, l_xx, and l_xu or l_ux have analytical forms
+    if (!(custom_l_u && custom_l_uu && (custom_l_xu || custom_l_ux))){
+      // -----------------------------------
+      // Calculate Finite Difference for l_u, l_uu, and l_ux 
+      for (size_t i = 0; i < k_step.size(); i++){
+        k_step[i] = finite_epsilon;    
+        if (!custom_l_u){ // Compute finite diff if analytical form is not available        
+          // Calculate l_u
+          l_u[n](i) = (l_cost(x, u + k_step) - l_cost(x, u - k_step) ) / (2.0*k_step[i]);
+          //std::cout << "finite l_u" << std::endl;
+        }
+  
+        if (!custom_l_uu){ // Compute finite diff if analytical form is not available        
+          // Calculate l_uu
+          for (size_t j = 0; j < k2_step.size(); j++){
+            k2_step[j] = finite_epsilon;
+            l_uu[n](i,j) = (l_cost(x, u + k_step + k2_step) -
+                      l_cost(x, u + k_step - k2_step) -
+                      l_cost(x, u - k_step + k2_step) +
+                      l_cost(x, u - k_step - k2_step)) / (4*k_step[i]*k2_step[j]);
+            k2_step.setZero();
+          }
+          //std::cout << "finite l_uu" << std::endl;
+        }
 
-      h_step.setZero();
-      //std::cout << "    i:" << i << " l_x[i] = "<< l_x[i] << std::endl;
-    }
+        if (! (custom_l_xu || custom_l_ux) ){ // Compute finite diff if analytical form is not available   
+          // Calculate l_ux
+          for (size_t j = 0; j < h2_step.size(); j++){
+            h2_step[j] = finite_epsilon;
+            l_ux[n](i,j) = (l_cost(x + h2_step, u + k_step) -
+                      l_cost(x - h2_step, u + k_step) -
+                      l_cost(x + h2_step, u - k_step) +
+                      l_cost(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
+            h2_step.setZero();
+          }
+          //std::cout << "finite l_ux" << std::endl;
+        } // END IF
 
-    // -----------------------------------
-    // Calculate Finite Difference for l_u, l_uu, and l_ux 
-    for (size_t i = 0; i < k_step.size(); i++){
-      k_step[i] = finite_epsilon;    
-      // Calculate l_u
-      l_u[n](i) = (l_cost(x, u + k_step) - l_cost(x, u - k_step) ) / (2.0*k_step[i]);
-
-      // Calculate l_uu
-      for (size_t j = 0; j < k2_step.size(); j++){
-        k2_step[j] = finite_epsilon;
-        l_uu[n](i,j) = (l_cost(x, u + k_step + k2_step) -
-                  l_cost(x, u + k_step - k2_step) -
-                  l_cost(x, u - k_step + k2_step) +
-                  l_cost(x, u - k_step - k2_step)) / (4*k_step[i]*k2_step[j]);
-        k2_step.setZero();
+        k_step.setZero();
       }
+    }// END IF
 
-      // Calculate l_ux
-      for (size_t j = 0; j < h2_step.size(); j++){
-        h2_step[j] = finite_epsilon;
-        l_ux[n](i,j) = (l_cost(x + h2_step, u + k_step) -
-                  l_cost(x - h2_step, u + k_step) -
-                  l_cost(x + h2_step, u - k_step) +
-                  l_cost(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
-        h2_step.setZero();
-      }
-
-      k_step.setZero();
-    }
-
-    // Calculate f_x
     h_step.setZero();
-    for (size_t i = 0; i < STATE_SIZE; i++){
-      h_step[i] = finite_epsilon;
-      f_x[n].col(i) = (f(x + h_step, u) - f(x - h_step, u))/ (2.0*h_step[i]);
 
-// Skip Hessian calculation of f-------------------------------------------------------------------
-/*  // Calculate f_xx
-      for (size_t j = 0; j < STATE_SIZE; j++){
-        sejong::Vector f_kxx(STATE_SIZE); // partial derivative of f vector with respect to x_i,x_j
-        f_kxx.setZero();
-        h2_step[j] = finite_epsilon;
-        f_kxx = (f(x + h_step + h2_step, u) -
-                 f(x + h_step - h2_step, u) -
-                 f(x - h_step + h2_step, u) +
-                 f(x - h_step - h2_step, u)) / (4*h_step[i]*h2_step[j]);
 
-        for (size_t k = 0; k < STATE_SIZE; k++){
-          H_f_xx[n][k](i,j) = f_kxx[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+    if(!custom_f_x){
+      // Calculate f_x
+      for (size_t i = 0; i < STATE_SIZE; i++){
+        h_step[i] = finite_epsilon;
+        if(!custom_f_x){ // Compute finite diff if analytical form is not available   
+          f_x[n].col(i) = (f(x + h_step, u) - f(x - h_step, u))/ (2.0*h_step[i]);
+          //std::cout << "finite f_x" << std::endl;
+        } // END IF
+
+  // Skip Hessian calculation of f-------------------------------------------------------------------
+  /*  // Calculate f_xx
+        for (size_t j = 0; j < STATE_SIZE; j++){
+          sejong::Vector f_kxx(STATE_SIZE); // partial derivative of f vector with respect to x_i,x_j
+          f_kxx.setZero();
+          h2_step[j] = finite_epsilon;
+          f_kxx = (f(x + h_step + h2_step, u) -
+                   f(x + h_step - h2_step, u) -
+                   f(x - h_step + h2_step, u) +
+                   f(x - h_step - h2_step, u)) / (4*h_step[i]*h2_step[j]);
+
+          for (size_t k = 0; k < STATE_SIZE; k++){
+            H_f_xx[n][k](i,j) = f_kxx[k]; // Store k element of f_kxx at k-th Hesisan's (i,j) element.
+          }
+          h2_step.setZero();
         }
-        h2_step.setZero();
+
+        // Calculate f_xu
+        for (size_t j = 0; j < DIM_u; j++){
+          sejong::Vector f_kxu(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
+          f_kxu.setZero();
+          k2_step[j] = finite_epsilon;
+
+          f_kxu = (f(x + h_step, u + k2_step) -
+                   f(x + h_step, u - k2_step) -
+                   f(x - h_step, u + k2_step) +
+                   f(x - h_step, u - k2_step)) / (4*h_step[i]*k2_step[j]);
+
+          for (size_t k = 0; k < STATE_SIZE; k++){
+            H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxu at k-th Hesisan's (i,j) element.
+          }
+
+          k2_step.setZero();
+        }*/
+  // Skip Hessian calculation of f-------------------------------------------------------------------
+
+        h_step.setZero();
       }
+    } // END IF
 
-      // Calculate f_xu
-      for (size_t j = 0; j < DIM_u; j++){
-        sejong::Vector f_kxu(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
-        f_kxu.setZero();
-        k2_step[j] = finite_epsilon;
+    if(!custom_f_u){
+      // Calculate f_u
+      for (size_t i = 0; i < DIM_u; i++){
+        k_step[i] = finite_epsilon;
+        if(!custom_f_u){ // Compute finite diff if analytical form is not available   
+          f_u[n].col(i) = (f(x, u + k_step) - f(x, u - k_step))/ (2.0*k_step[i]);
+          //std::cout << "finite f_u" << std::endl;          
+        }// END IF
 
-        f_kxu = (f(x + h_step, u + k2_step) -
-                 f(x + h_step, u - k2_step) -
-                 f(x - h_step, u + k2_step) +
-                 f(x - h_step, u - k2_step)) / (4*h_step[i]*k2_step[j]);
+  // Skip Hessian calculation of f-------------------------------------------------------------------
+  /*      // Calculate f_ux
+        for (size_t j = 0; j < STATE_SIZE; j++){
+          sejong::Vector f_kux(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
+          f_kux.setZero();
+          h2_step[j] = finite_epsilon;
 
-        for (size_t k = 0; k < STATE_SIZE; k++){
-          H_f_xu[n][k](i,j) = f_kxu[k]; // Store k element of f_kxu at k-th Hesisan's (i,j) element.
-        }
+          f_kux = (f(x + h2_step, u + k_step) -
+                   f(x - h2_step, u + k_step) -
+                   f(x + h2_step, u - k_step) +
+                   f(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
 
-        k2_step.setZero();
-      }*/
-// Skip Hessian calculation of f-------------------------------------------------------------------
+          for (size_t k = 0; k < STATE_SIZE; k++){
+            H_f_ux[n][k](i,j) = f_kux[k]; // Store k element of f_kux at k-th Hesisan's (i,j) element.
+          }
+          k2_step.setZero();
+        }*/
+  // Skip Hessian calculation of f-------------------------------------------------------------------
 
-      h_step.setZero();
-    }
-
-    // Calculate f_u
-    for (size_t i = 0; i < DIM_u; i++){
-      k_step[i] = finite_epsilon;
-      f_u[n].col(i) = (f(x, u + k_step) - f(x, u - k_step))/ (2.0*k_step[i]);
-
-// Skip Hessian calculation of f-------------------------------------------------------------------
-/*      // Calculate f_ux
-      for (size_t j = 0; j < STATE_SIZE; j++){
-        sejong::Vector f_kux(STATE_SIZE); // partial derivative of f vector with respect to x_i, u_j
-        f_kux.setZero();
-        h2_step[j] = finite_epsilon;
-
-        f_kux = (f(x + h2_step, u + k_step) -
-                 f(x - h2_step, u + k_step) -
-                 f(x + h2_step, u - k_step) +
-                 f(x - h2_step, u - k_step)) / (4*k_step[i]*h2_step[j]);
-
-        for (size_t k = 0; k < STATE_SIZE; k++){
-          H_f_ux[n][k](i,j) = f_kux[k]; // Store k element of f_kux at k-th Hesisan's (i,j) element.
-        }
-        k2_step.setZero();
-      }*/
-// Skip Hessian calculation of f-------------------------------------------------------------------
-
-      k_step.setZero();
-    }
+        k_step.setZero();
+      }
+    }// END IF
 
 
 //    sejong::pretty_print(l_x[n], std::cout, "l_x");    
@@ -350,6 +401,14 @@ void iLQR::_compute_finite_differences(){
 //     sejong::pretty_print(H_f_xu[n][3], std::cout, "H_f_3xu");          
 //     sejong::pretty_print(H_f_ux[n][3], std::cout, "H_f_3ux");          
   }
+
+//    sejong::pretty_print(l_x[0], std::cout, "l_x");    
+//      sejong::pretty_print(l_xx[0], std::cout, "l_xx");        
+//    sejong::pretty_print(l_u[0], std::cout, "l_u");        
+//    sejong::pretty_print(l_uu[0], std::cout, "l_uu");              
+//    sejong::pretty_print(l_ux[0], std::cout, "l_ux");  
+//    sejong::pretty_print(f_x[0], std::cout, "n_f_x");      
+//    sejong::pretty_print(f_u[0], std::cout, "n_f_u");  
 
 
 //  l(x+h, u) - l(x-h, u) / 2h  

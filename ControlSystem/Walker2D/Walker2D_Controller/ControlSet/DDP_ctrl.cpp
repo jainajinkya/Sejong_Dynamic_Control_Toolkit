@@ -23,6 +23,41 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   ilqr_->l_cost_final = std::bind( &DDP_ctrl::l_cost_final, this, std::placeholders::_1);
   ilqr_->f = std::bind( &DDP_ctrl::f, this, std::placeholders::_1, std::placeholders::_2);
 
+
+  // Assign Analytical Gradients
+  ilqr_->custom_l_xF = true;
+  ilqr_->l_x_final_analytical = std::bind( &DDP_ctrl::l_x_final_analytical, this, std::placeholders::_1, 
+                                                                                  std::placeholders::_2);
+  ilqr_->custom_l_xxF = true;
+  ilqr_->l_xx_final_analytical = std::bind( &DDP_ctrl::l_xx_final_analytical, this, std::placeholders::_1, 
+                                                                                    std::placeholders::_2);
+
+  ilqr_->custom_l_x = true;
+  ilqr_->l_x_analytical = std::bind( &DDP_ctrl::l_x_analytical, this, std::placeholders::_1, 
+                                                                      std::placeholders::_2,
+                                                                      std::placeholders::_3);
+
+  ilqr_->custom_l_xx = true;
+  ilqr_->l_xx_analytical = std::bind( &DDP_ctrl::l_xx_analytical, this, std::placeholders::_1, 
+                                                                      std::placeholders::_2,
+                                                                      std::placeholders::_3);
+  ilqr_->custom_l_u = true;
+  ilqr_->l_u_analytical = std::bind( &DDP_ctrl::l_u_analytical, this, std::placeholders::_1, 
+                                                                      std::placeholders::_2,
+                                                                      std::placeholders::_3);
+  ilqr_->custom_l_uu = true;
+  ilqr_->l_uu_analytical = std::bind( &DDP_ctrl::l_uu_analytical, this, std::placeholders::_1, 
+                                                                       std::placeholders::_2,
+                                                                       std::placeholders::_3);
+  ilqr_->custom_l_ux = true;
+  ilqr_->l_ux_analytical = std::bind( &DDP_ctrl::l_ux_analytical, this, std::placeholders::_1, 
+                                                                        std::placeholders::_2,
+                                                                        std::placeholders::_3);  
+  ilqr_->custom_f_u = true;
+  ilqr_->f_u_analytical = std::bind( &DDP_ctrl::f_u_analytical, this, std::placeholders::_1, 
+                                                                      std::placeholders::_2,
+                                                                      std::placeholders::_3);    
+
   // Prepare Quadratic Cost Matrices
   // x = [x_virt, z_virt, ry_virt, lf_j1, lf_j2, rf_j1, rf_j2]
   x_des_final = sejong::Matrix::Zero(STATE_SIZE, 1);
@@ -75,14 +110,14 @@ double DDP_ctrl::l_cost_final(const sejong::Vector &x_F){
 void DDP_ctrl::l_x_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x){
   l_x = (Q_run + Q_run.transpose())*x;
 }
-void DDP_ctrl::l_x_final_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x){
-  l_x = (Q_final + Q_final.transpose())*x;
+void DDP_ctrl::l_x_final_analytical(const sejong::Vector &x,  sejong::Vector & l_xF){
+  l_xF = (Q_final + Q_final.transpose())*x;
 }
 void DDP_ctrl::l_xx_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx){
   l_xx = (Q_run + Q_run.transpose());
 }
-void DDP_ctrl::l_xx_final_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx){
-  l_xx = (Q_final + Q_final.transpose());
+void DDP_ctrl::l_xx_final_analytical(const sejong::Vector &x, sejong::Matrix & l_xxF){
+  l_xxF = (Q_final + Q_final.transpose());
 }
 void DDP_ctrl::l_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_u){
   l_u = (N_run + N_run.transpose())*u;
@@ -282,9 +317,9 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
 /*  sejong::Vector l_x, l_xF, l_u;
   sejong::Matrix l_xx, l_xxF, l_uu, l_ux, f_u;
   l_x_analytical(x_state, u_vec, l_x);
-  l_x_final_analytical(x_state, u_vec, l_xF);
+  l_x_final_analytical(x_state, l_xF);
   l_xx_analytical(x_state, u_vec, l_xx);
-  l_xx_final_analytical(x_state, u_vec, l_xxF);
+  l_xx_final_analytical(x_state, l_xxF);
   l_u_analytical(x_state, u_vec, l_u);
   l_uu_analytical(x_state, u_vec, l_uu);
   l_ux_analytical(x_state, u_vec, l_ux);

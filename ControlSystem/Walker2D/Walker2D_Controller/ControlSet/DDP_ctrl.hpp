@@ -29,9 +29,9 @@ public:
   double l_cost_final(const sejong::Vector &x_F);
 
   void l_x_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x);
-  void l_x_final_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x);  
+  void l_x_final_analytical(const sejong::Vector &x, sejong::Vector & l_xF);  
   void l_xx_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx);  
-  void l_xx_final_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx);  
+  void l_xx_final_analytical(const sejong::Vector &x, sejong::Matrix & l_xxF);  
   void l_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_u);
   void l_uu_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_uu);  
   void l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_ux);

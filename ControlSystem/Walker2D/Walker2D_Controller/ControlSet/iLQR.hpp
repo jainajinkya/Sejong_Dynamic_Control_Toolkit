@@ -21,12 +21,57 @@ public:
   // Computes x_{t+1} = f(x_t, u_t)
   // Output Vector x_{t+1}. Input x_t, u_t 
   std::function<sejong::Vector(const sejong::Vector&, const sejong::Vector &)> f; 
+
   // Computes l(x, u) 
   // Output: double cost. Input: Vector x, Vector u
   std::function<double(const sejong::Vector&, const sejong::Vector&)> l_cost; 
+
   // Computes l_F(x)
   // Output: double cost. Input: Vector x_state
   std::function<double(const sejong::Vector&)> l_cost_final;     
+
+
+  // User Defined Analytical Gradients---------------------------------------------------------------------
+  // Output: sejong::Vector & l_x 
+  // Input:  const sejong::Vector &x, const sejong::Vector &u  
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Vector&)> l_x_analytical;
+
+  // Output: sejong::Vector & l_xF 
+  // Input:  const sejong::Vector &x  
+  std::function<void(const sejong::Vector&, sejong::Vector&)> l_x_final_analytical;
+
+  // Output: sejong::Matrix & l_xx 
+  // Input:  const sejong::Vector &x, const sejong::Vector &u
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Matrix&)> l_xx_analytical;
+
+  // Output: sejong::Matrix & l_xxF 
+  // Input:  const sejong::Vector &x
+  std::function<void(const sejong::Vector&, sejong::Matrix&)> l_xx_final_analytical;
+
+  // Output: sejong::Vector & l_u
+  // Input:  const sejong::Vector &x, const sejong::Vector &u,
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Vector&)> l_u_analytical;
+
+  // Output: sejong::Matrix & l_uu
+  // Input:  const sejong::Vector &x, const sejong::Vector &u,
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Matrix&)> l_uu_analytical;  
+
+  // Output: sejong::Matrix & l_ux
+  // Input:  const sejong::Vector &x, const sejong::Vector &u,
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Matrix&)> l_ux_analytical;  
+
+  // Output: sejong::Matrix & f_u
+  // Input:  const sejong::Vector &x, const sejong::Vector &u,
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Matrix&)> f_u_analytical;    
+
+  // Output: sejong::Matrix & f_x
+  // Input:  const sejong::Vector &x, const sejong::Vector &u,
+  std::function<void(const sejong::Vector&, const sejong::Vector&, sejong::Matrix&)> f_x_analytical;      
+
+
+
+
+
 
   // Public Functions ---------------------------------------------------------
   void set_DIM_x(int DIM_x_in);
@@ -37,14 +82,17 @@ public:
   // If cusom, finite difference will not be computed
   bool custom_l_x = false;
   bool custom_l_xx = false;
+  bool custom_l_xF = false;
+  bool custom_l_xxF = false;  
   bool custom_l_u = false;
-  bool custom_l_uu = false;
+  bool custom_l_uu = false; 
   bool custom_l_ux = false;
+  bool custom_l_xu = false;
   bool custom_f_x = false;
   bool custom_f_u = false;  
-  bool custom_H_f_xx = false;    
+/*  bool custom_H_f_xx = false;    
   bool custom_H_f_xu = false;      
-  bool custom_H_f_ux = false;    
+  bool custom_H_f_ux = false;    */
 
 protected:
   int STATE_SIZE;
