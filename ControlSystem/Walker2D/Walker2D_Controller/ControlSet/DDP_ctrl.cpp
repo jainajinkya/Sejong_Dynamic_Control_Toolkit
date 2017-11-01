@@ -104,7 +104,7 @@ void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u, 
   _get_B_c(x, B_tmp, c);
 
   // Extract the B components corresponding to task accelerations of the end effector and not the posture task
-  sejong::Matrix B = B_tmp.block(0, 0, NUM_QDOT, 4);
+  sejong::Matrix B = B_tmp.block(0, 0, NUM_QDOT, DIM_u_SIZE);
 
   // Construct Analytical f_u
   sejong::Matrix f_u_tmp(STATE_SIZE, DIM_u_SIZE);
