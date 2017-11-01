@@ -19,7 +19,7 @@ typedef std::map<std::string, URDFJointPtr> URDFJointMap;
 
 class SystemGenerator: public srSystem
 {
- private:
+ protected:
 
   void _Parsing(std::string file);
   void _SetLinkIdx();
