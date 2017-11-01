@@ -1,13 +1,26 @@
 #include "iLQR.hpp"
 
-iLQR::iLQR(){
-  _initialize_gradients_hessians();
-  printf("[iLQR] Constructor Initialized\n");
-}
+iLQR::iLQR(int STATE_SIZE_in, int DIM_u_in, int N_horizon_in){
+  // Set Parameters
+  STATE_SIZE = STATE_SIZE_in;
+  DIM_u = DIM_u_in;
+  N_horizon = N_horizon_in;
 
-iLQR::iLQR(int DIM_u_in){
-  set_DIM_u(DIM_u_in);  
+  // Initialize Values
+  _initialize_X_U();
+  _initialize_U_sequence(u_sequence);
+  _initialize_gradients_hessians();
+
+  for(size_t i = 0; i < alpha_cand_pow.size(); i++){
+    alpha_cand.push_back(pow(10.0, alpha_cand_pow[i]));
+  }
+  //--------------------
+
   printf("[iLQR] Constructor Initialized\n");
+  std::cout << "[iLQR] Parameters ----" << std::endl;
+  std::cout << "         STATE_SIZE :" << STATE_SIZE << std::endl;    
+  std::cout << "         DIM_u      :" << DIM_u << std::endl;    
+  std::cout << "         N_horizon  :" << N_horizon << std::endl;
 }
 
 iLQR::~iLQR(){
@@ -31,6 +44,25 @@ void iLQR::set_N_horizon(int N_horizon_in){
   _initialize_gradients_hessians();  
 }
 
+void iLQR::_initialize_X_U(){
+  x_sequence = std::vector<sejong::Vector>(N_horizon);
+  u_sequence = std::vector<sejong::Vector>(N_horizon - 1); 
+}
+
+void iLQR::_initialize_U_sequence(std::vector<sejong::Vector> & U){
+  // Near zero initialization
+  for(size_t i = 0; i < U.size(); i++){
+    sejong::Vector u_vec(DIM_u); // task acceleration vector
+    for (size_t j = 0; j < DIM_u; j++){
+      u_vec[j] = 0.0; // this can be random
+    }
+    std::cout << i << std::endl;
+    sejong::pretty_print(u_vec, std::cout, "u_vec");
+    U[i] = u_vec;
+  }
+}
+
+
 void iLQR::_initialize_gradients_hessians(){
   printf("[iLQR] Initializing Gradients and Hessians \n");  
   for (size_t i = 0; i < N_horizon; i++){
@@ -46,7 +78,6 @@ void iLQR::_initialize_gradients_hessians(){
     sejong::Vector n_k_vec(DIM_u);
     sejong::Matrix n_K_vec(DIM_u, STATE_SIZE);    
     
-
     n_l_x.setZero();
     n_l_xx.setZero();
     n_l_xu.setZero();

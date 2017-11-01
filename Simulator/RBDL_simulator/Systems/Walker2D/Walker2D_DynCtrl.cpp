@@ -36,6 +36,8 @@ void Walker2D_DynCtrl::Initialization(){
 
   m_q.tail(NUM_ACT_JOINT) = m_jpos_ini;
 
+  // x_pos
+  m_q[0] = -0.65;//0.0;
   // height
   m_q[1] = 0.45;//0.9;
   // ori
@@ -192,15 +194,17 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
 
 
   MobyLCPSolver l_mu;  
-  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+//  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+  bool result_mu = l_mu.lcp_fast(alpha_mu, beta_mu, &fn_fd_lambda);
+
 
 /*  std::cout << "mu LCP result " << result_mu << " (fn1, fn2, fd1, -fd1, fd2, -fd2) = " << 
                                               fn_fd_lambda[0] << ", " << 
                                               fn_fd_lambda[1] << ", " <<
                                               fn_fd_lambda[2] << ", " <<
                                               fn_fd_lambda[3] << ", " <<
-                                              fn_fd_lambda[4] << ", " << std::endl;*/
-
+                                              fn_fd_lambda[4] << ", " << std::endl;
+*/
   sejong::Vector fn = fn_fd_lambda.block(0, 0, p, 1);
   sejong::Vector fd = fn_fd_lambda.block(p, 0, p*d, 1);
     // ----- END TIMER
@@ -215,6 +219,8 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   qddot = A_inv*(m_cmd - cori_ - grav_ + N*fn + B*fd);
   m_qdot = qddot * h + m_qdot;
   m_q = m_qdot * h+ m_q;
+
+  //sejong::pretty_print(m_q, std::cout, "q_next actual"); 
 
   // Without Friction Constraints ----------------------------------------
   // Prepare the LCP problem

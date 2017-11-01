@@ -11,8 +11,9 @@
 
 class iLQR{
 public:
-  iLQR();
-  iLQR(int DIM_u_in);  
+  iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
+       int DIM_u_in = 4,
+       int N_horizon_in = 10);
   ~iLQR();
 
   // Function Pointers ---------------------------------------------------------
@@ -45,17 +46,24 @@ public:
   bool custom_H_f_ux = false;    
 
 protected:
-  int STATE_SIZE = NUM_Q + NUM_QDOT;
-  int DIM_u = 2;
-  int N_horizon = 10;
+  int STATE_SIZE;
+  int DIM_u;
+  int N_horizon; 
   double lambda = 1.0; //  Regularization Parameter
   double lambda_min = 0.000001; 
   double dlambda = 1.0;
   double lambda_factor = 1.6; // Lambda Factor
   double z_min = 0.0;
 
+  std::vector<double> alpha_cand_pow = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
+  std::vector<double> alpha_cand;
+
+
+  void   _initialize_X_U();
   void   _initialize_gradients_hessians();
-  void   _initialize_U_sequence();
+
+  void   _initialize_U_sequence(std::vector<sejong::Vector> & U);
+
   void   _compute_X_sequence();
   void   _compute_finite_differences();
   double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
