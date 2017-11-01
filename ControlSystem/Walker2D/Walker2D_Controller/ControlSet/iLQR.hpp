@@ -13,7 +13,8 @@ class iLQR{
 public:
   iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
        int DIM_u_in = 4,
-       int N_horizon_in = 10);
+       int N_horizon_in = 10,
+       int ilqr_iters_in = 15);
   ~iLQR();
 
   // Function Pointers ---------------------------------------------------------
@@ -31,7 +32,7 @@ public:
   void set_DIM_x(int DIM_x_in);
   void set_DIM_u(int DIM_u_in);
   void set_N_horizon(int N_horizon_in);
-  void compute_ilqr();
+  void compute_ilqr(const sejong::Vector & x_state_start);
 
   // If cusom, finite difference will not be computed
   bool custom_l_x = false;
@@ -49,6 +50,8 @@ protected:
   int STATE_SIZE;
   int DIM_u;
   int N_horizon; 
+  int ilqr_iters;
+  double finite_epsilon = 1e-6;
   double lambda = 1.0; //  Regularization Parameter
   double lambda_min = 0.000001; 
   double dlambda = 1.0;
@@ -64,7 +67,9 @@ protected:
 
   void   _initialize_U_sequence(std::vector<sejong::Vector> & U);
 
-  void   _compute_X_sequence();
+  void   _compute_X_sequence(const sejong::Vector & x_state_start,  
+                             const std::vector<sejong::Vector> & U, 
+                                   std::vector<sejong::Vector> & X);
   void   _compute_finite_differences();
   double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
 

@@ -276,21 +276,19 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   u_vec.setZero();
 
   _get_WBC_command(x_state, u_vec, gamma);
-  f(x_state, u_vec);
 
-/*  sejong::Matrix f_u;
-  f_u_analytical(x_state, u_vec, f_u);*/
-
+  ilqr_->compute_ilqr(x_state);
 
 /*  sejong::Vector l_x, l_xF, l_u;
-  sejong::Matrix l_xx, l_xxF, l_uu, l_ux;
+  sejong::Matrix l_xx, l_xxF, l_uu, l_ux, f_u;
   l_x_analytical(x_state, u_vec, l_x);
   l_x_final_analytical(x_state, u_vec, l_xF);
   l_xx_analytical(x_state, u_vec, l_xx);
   l_xx_final_analytical(x_state, u_vec, l_xxF);
   l_u_analytical(x_state, u_vec, l_u);
   l_uu_analytical(x_state, u_vec, l_uu);
-  l_ux_analytical(x_state, u_vec, l_ux);*/
+  l_ux_analytical(x_state, u_vec, l_ux);
+  f_u_analytical(x_state, u_vec, f_u);*/
 
   //sejong::pretty_print(x_state, std::cout, "x_state");
 
