@@ -13,7 +13,7 @@ class iLQR{
 public:
   iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
        int DIM_u_in = 4,
-       int N_horizon_in = 5,
+       int N_horizon_in = 50,
        int ilqr_iters_in = 500);
   ~iLQR();
 
@@ -111,6 +111,7 @@ protected:
   double lambda_factor = 1.6; // Lambda Factor
 
   double tolGrad = 1e-4; // Gradient Exit Condition
+  double tolFun = 1e-7;  // reduction Exit Criterion
 
   double z_min = 0.0;
 
@@ -137,8 +138,7 @@ protected:
   double _J_cost(const std::vector<sejong::Vector> & X, const std::vector<sejong::Vector> & U);
 
   // Member Variables
-  std::vector<sejong::Vector> x_sequence;  
-  std::vector<sejong::Vector> u_sequence;
+  std::vector<sejong::Vector> U_seq;
 
   std::vector<sejong::Vector> l_x;  
   std::vector<sejong::Matrix> l_xx;  

@@ -9,7 +9,7 @@ iLQR::iLQR(int STATE_SIZE_in, int DIM_u_in, int N_horizon_in, int ilqr_iters_in)
   ilqr_iters = ilqr_iters_in;
 
   // Initialize Values
-  _initialize_U_sequence(u_sequence);
+  _initialize_U_sequence(U_seq);
   _initialize_gradients_hessians();
 
   for (size_t i = 0; i < alpha_cand_pow.size(); i++){
@@ -163,8 +163,7 @@ double iLQR::_J_cost(const std::vector<sejong::Vector> & X_seq_in, const std::ve
 void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
                         sejong::Vector & u_out){
   // Initialize U_seq and prepare X_seq for Initialization
-  sejong::Vector x_start = x_state_start;
-  std::vector<sejong::Vector> U_seq = u_sequence;  
+  sejong::Vector x_start = x_state_start; 
   std::vector<sejong::Vector> X_seq;
   _initialize_empty_X_sequence(X_seq);
 
@@ -189,9 +188,12 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
     sejong::Matrix V_xx = l_xx.back();
     sejong::Vector dV(2); dV.setZero();
     double dcost = 0.0;
+    double expected = 0.0;
+
+    bool cholesky_failure = false;
 
     bool backward_pass_done = false;
-    while (!backward_pass_done){
+    while (!backward_pass_done && !cholesky_failure){
       // Work backwards to solve for V, Q, k, and K
       for(int i = N_horizon-2; i >= 0; i--){
         sejong::Vector Q_x = l_x[i] + f_x[i].transpose()*V_x;
@@ -207,7 +209,6 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
                                   f_u[i].transpose()* (V_xx + lambda *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_u[i];
                                   //mu_2 * sejong::Matrix::Identity(DIM_u, DIM_u);
 
-
         // Compute Cholesky Decomposition
         Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
         sejong::Matrix L = lltOfQuu.matrixL();
@@ -217,9 +218,11 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         if (isnan(Q_uu_reg_inv(0,0))){
           dlambda = std::max(dlambda * lambda_factor, lambda_factor);
           lambda  = std::max(lambda_min, dlambda * lambda_factor);
-          std::cout << "Cholesky failed. Increasing Lambda" << std::endl;
+          std::cout << "  Cholesky decomposition failed. Increasing Lambda" << std::endl;
           if (lambda > lambda_max){
-            std::cout << "Lambda cannot be increased anymore. iLQR cannot find a better solution" << std::endl;
+
+            std::cout << " ii" << ii << " Lambda cannot be increased anymore. iLQR cannot find a better solution" << std::endl;
+            cholesky_failure = true;
             break;
           }
           continue; // keep trying for a successful Cholesky Decomposition
@@ -234,10 +237,6 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         V_x = Q_x + K_vec[i].transpose()*Q_uu*k_vec[i] + K_vec[i].transpose()*Q_u + Q_ux.transpose()*k_vec[i];
         V_xx = Q_xx + K_vec[i].transpose()*Q_uu*K_vec[i] + K_vec[i].transpose()*Q_ux + Q_ux.transpose()*K_vec[i];      
         V_xx = 0.5*(V_xx + V_xx.transpose().eval());
-
-        std::cout << "backpass i: " << i << std::endl; 
-        std::cout << "  dV = " << dV[0] + dV[1] << std::endl;
-
 
         backward_pass_done = true;
       }
@@ -262,7 +261,7 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       }else{
         lambda = 0.0;
       }
-      std::cout << "Success! Gradient Norm , tolGrad" << std::endl;
+      std::cout << "Success! Gradient Norm < tolGrad" << std::endl;
       break; // Exit iLQR loop
     }
 
@@ -275,7 +274,6 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
    _initialize_U_sequence(U_seq_tmp);
 
    if (backward_pass_done){    
-     std::cout << "Line Search" << std::endl;
      for(size_t j = 0; j < alpha_cand.size(); j++){
         double alpha = alpha_cand[j];
 
@@ -292,15 +290,15 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
 
         new_Jcost = _J_cost(X_seq_tmp, U_seq_tmp);
         dcost = old_Jcost - new_Jcost;
-        double expected = -alpha*(dV[0] + alpha*dV[1]);
+        expected = -alpha*(dV[0] + alpha*dV[1]);
 
         double z = - 1;
 
-        std::cout << "  alpha:" << alpha << std::endl;
+/*        std::cout << "  alpha:" << alpha << std::endl;
         std::cout << "  Old Cost: " << old_Jcost << "New Cost: " << new_Jcost << std::endl;
         std::cout << "  expected: " << expected << std::endl;        
         std::cout << "  dcost: " << dcost << std::endl;        
-        std::cout << " " << std::endl;
+        std::cout << " " << std::endl;*/
 
         if (expected > 0){
           z = dcost / expected;        
@@ -311,10 +309,6 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
           forward_pass_done = true;
           break;
         }
-
-
-
-
 
 /*        for (size_t i = 0; i < N_horizon; i++){ 
           std::cout << "i" << i << std::endl;
@@ -327,24 +321,54 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
           sejong::pretty_print(U_seq_tmp[i], std::cout, "U_seq_tmp[i]"); 
         }       */ 
 
+      }
+    } // Line Search Done  
+
+    // Step 4: Accept or Discard Changes      
+    std::cout << "iteration, cost, reduction, expected, gradient, log10(lambda)" << std::endl;
+    if (forward_pass_done){
+      std::cout << " " << ii << "  " << old_Jcost << " " << dcost << " " << expected << " " << g_norm << " " << log10(lambda) << std::endl;  
+
+      // Decrease Lambda
+      dlambda = std::min(dlambda/lambda_factor, 1.0/lambda_factor );
+      if (lambda > lambda_min){
+        lambda = lambda*dlambda;      
+      }else{
+        lambda = 0.0;
+      }
+
+      // Accept Changes
+      U_seq = U_seq_tmp;
+      X_seq = X_seq_tmp;      
+      flag_change = 1.0;
+
+      if (dcost < tolFun){
+        std::cout << "Success! cost change < tolFun" << std::endl;
+        break;
+      }
+
+    }else{ // No Cost Improvement
+      // Increase Lambda
+      dlambda = std::max(dlambda * lambda_factor, lambda_factor);
+      lambda  = std::max(lambda_min, dlambda * lambda_factor);
+
+      std::cout << " " << ii << "  " << "NO STEP" << " " << dcost << " " << expected << " " << g_norm << " " << log10(lambda) << std::endl;  
+
+      if (lambda > lambda_max){
+        std::cout << "EXIT: lambda > lambda_max" << std::endl;
+        break;
+      }
+    } // Accept or Discard Changes
 
 
-
-      }  
-
-
-
-   }
-
-
-    //
-    exit(1);
+/*    if (ii > 2){
+      exit(1);
+    }*/
   }
 
 
-
-
-  u_out.setZero();
+  u_out = U_seq[0];
+  sejong::pretty_print(u_out, std::cout, "u_out");
 }
 
 
