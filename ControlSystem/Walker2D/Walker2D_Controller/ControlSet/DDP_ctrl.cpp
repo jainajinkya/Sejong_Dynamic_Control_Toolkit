@@ -130,9 +130,6 @@ void DDP_ctrl::l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u,
 }
 
 void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Matrix & f_u){
-  // Configuration doesn't change so update model only once.
-  _update_internal_model(x);
-
   // Get B, c WBC Matrices
   sejong::Matrix B_tmp;
   sejong::Vector c;
@@ -194,6 +191,7 @@ void DDP_ctrl::_update_internal_model(const sejong::Vector & x_state){
 }
 
 void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, sejong::Vector & c_out){
+  _update_internal_model(x_state);
   sejong::Vector q_int = x_state.head(NUM_QDOT);  
   sejong::Vector qdot_int = x_state.tail(NUM_QDOT);
 
@@ -243,6 +241,15 @@ void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, 
   B.block(0, 4, NUM_QDOT, NUM_ACT_JOINT) = J2_1_bar;  
   c = (-J1_bar*J1_dot - J2_1_bar*J2_dot + J2_1_bar*J2*J1_bar*J1_dot)*qdot_int;
 
+  if (isnan(B(0,0))){      
+    std::cout << "B became nan" << std::endl;
+    sejong::pretty_print(J1, std::cout, "J_feet");
+    sejong::pretty_print(J1_bar, std::cout, "J1_bar");
+    sejong::pretty_print(J2_1_bar, std::cout, "J2_1_bar");
+    sejong::pretty_print(J2, std::cout, "J2"); 
+    exit(1);
+  }
+
   B_out = B;
   c_out = c;
 
@@ -281,10 +288,9 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   _get_B_c(x_state, B, c);
 
   // Calculate qddot task
-  sejong::Vector qddot_des = (B*xddot_des + c);
+  sejong::Vector qddot_des = (B*xddot_des); //(B*xddot_des + c);
 
   // Whole Body Dynamics
-  _update_internal_model(x_state);
   sejong::Vector tau = A_int * qddot_des + coriolis_int + grav_int;
 
   // Extract Actuated Torque
@@ -307,12 +313,15 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   sejong::Vector x_state(STATE_SIZE);
   x_state.head(NUM_QDOT) = sp_->Q_;
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
+  sejong::pretty_print(x_state, std::cout, "x_state");
 
   sejong::Vector u_vec(DIM_u_SIZE); 
   u_vec.setZero();
 
   ilqr_->compute_ilqr(x_state, u_vec);
   _get_WBC_command(x_state, u_vec, gamma);
+
+
 
 /*  sejong::Vector l_x, l_xF, l_u;
   sejong::Matrix l_xx, l_xxF, l_uu, l_ux, f_u;
@@ -325,7 +334,7 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   l_ux_analytical(x_state, u_vec, l_ux);
   f_u_analytical(x_state, u_vec, f_u);*/
 
-  //sejong::pretty_print(x_state, std::cout, "x_state");
+  sejong::pretty_print(gamma, std::cout, "gamma");
 
 
 

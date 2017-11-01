@@ -14,7 +14,7 @@ public:
   iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
        int DIM_u_in = 4,
        int N_horizon_in = 50,
-       int ilqr_iters_in = 500);
+       int ilqr_iters_in = 10);
   ~iLQR();
 
   // Function Pointers ---------------------------------------------------------
