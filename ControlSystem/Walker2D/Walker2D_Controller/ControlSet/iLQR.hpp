@@ -13,8 +13,8 @@ class iLQR{
 public:
   iLQR(int STATE_SIZE_in = NUM_QDOT + NUM_QDOT,
        int DIM_u_in = 4,
-       int N_horizon_in = 10,
-       int ilqr_iters_in = 15);
+       int N_horizon_in = 100,
+       int ilqr_iters_in = 10000);
   ~iLQR();
 
   // Function Pointers ---------------------------------------------------------
@@ -77,7 +77,7 @@ public:
   void set_DIM_x(int DIM_x_in);
   void set_DIM_u(int DIM_u_in);
   void set_N_horizon(int N_horizon_in);
-  void compute_ilqr(const sejong::Vector & x_state_start);
+  void compute_ilqr(const sejong::Vector & x_state_start, sejong::Vector & u_out);
 
   // If cusom, finite difference will not be computed
   bool custom_l_x = false;
@@ -100,13 +100,23 @@ protected:
   int N_horizon; 
   int ilqr_iters;
   double finite_epsilon = 1e-6;
-  double lambda = 1.0; //  Regularization Parameter
+  double lambda = 0.000001; //  Regularization Parameter
   double lambda_min = 0.000001; 
   double dlambda = 1.0;
   double lambda_factor = 1.6; // Lambda Factor
   double z_min = 0.0;
 
-  std::vector<double> alpha_cand_pow = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
+
+  double mu_1 = 0.0000001;
+  double mu_2 = 0.0000001;  
+
+  double beta_1 = 0.999;
+  double beta_2 = 0.999;  
+
+  double alpha_1 = 1.01;
+  double alpha_2 = 1.01;
+
+  std::vector<double> alpha_cand_pow;// = {0, -0.3, -0.6, -1.2, -1.5, -1.8, -2.1, -2.4, -2.7, -3.0};
   std::vector<double> alpha_cand;
 
 

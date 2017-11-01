@@ -69,7 +69,7 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   // Running Cost on Pose of Body. ie: We want the body to be upright
   Q_run(2,2) = 1.0; 
   // Running Cost on Foot Accelerations
-  N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
+  N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  //sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
 
   // Final cost on final pose of the body
   Q_final.block(0, 0, NUM_VIRTUAL, NUM_VIRTUAL) = sejong::Matrix::Identity(NUM_VIRTUAL, NUM_VIRTUAL);    
@@ -137,6 +137,7 @@ void DDP_ctrl::f_u_analytical(const sejong::Vector &x, const sejong::Vector &u, 
   sejong::Matrix B_tmp;
   sejong::Vector c;
   _get_B_c(x, B_tmp, c);
+
 
   // Extract the B components corresponding to task accelerations of the end effector and not the posture task
   sejong::Matrix B = B_tmp.block(0, 0, NUM_QDOT, DIM_u_SIZE);
@@ -307,12 +308,11 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   x_state.head(NUM_QDOT) = sp_->Q_;
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
 
-  sejong::Vector u_vec(4); 
+  sejong::Vector u_vec(DIM_u_SIZE); 
   u_vec.setZero();
 
+  ilqr_->compute_ilqr(x_state, u_vec);
   _get_WBC_command(x_state, u_vec, gamma);
-
-  ilqr_->compute_ilqr(x_state);
 
 /*  sejong::Vector l_x, l_xF, l_u;
   sejong::Matrix l_xx, l_xxF, l_uu, l_ux, f_u;

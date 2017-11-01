@@ -13,8 +13,12 @@ iLQR::iLQR(int STATE_SIZE_in, int DIM_u_in, int N_horizon_in, int ilqr_iters_in)
   _initialize_U_sequence(u_sequence);
   _initialize_gradients_hessians();
 
-  for(size_t i = 0; i < alpha_cand_pow.size(); i++){
-    alpha_cand.push_back(pow(10.0, alpha_cand_pow[i]));
+  alpha_cand.push_back(1); // Start at 1.0
+  double cand_start = -0.0001;
+  double incr = 2;  
+  while (cand_start > - 4.0){
+    alpha_cand.push_back(pow(10.0, cand_start));
+    cand_start *= incr;
   }
   //--------------------
 
@@ -135,13 +139,170 @@ void  iLQR::_compute_X_sequence(const sejong::Vector & x_state_start,
   }
 }
 
-void iLQR::compute_ilqr(const sejong::Vector & x_state_start){
+void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
+                        sejong::Vector & u_out){
   std::cout << "[iLQR] Computing iLQR" << std::endl;
 
-  bool compute_new_traj = true;
 
-  _compute_X_sequence(x_state_start, u_sequence, x_sequence);
+/*  _compute_X_sequence(x_state_start, u_sequence, x_sequence);
   _compute_finite_differences();
+*/
+  sejong::Vector x = x_state_start;
+  sejong::Vector dV(2);
+
+  bool compute_new_traj = true;
+  for(size_t ii = 0; ii < ilqr_iters; ii++){
+    if (compute_new_traj){
+      // Step 1 Forward Pass -------------------------------------------------------------------------
+      // Initialize X = {x1, x2, ..., xN} using U = {u1, u2, ..., uN} 
+      _compute_X_sequence(x, u_sequence, x_sequence);
+
+      // Get Finite Difference: l_x, l_u, l_xx, l_xu, l_uu, f_x, f_u, f_xx, f_xu
+      _compute_finite_differences();
+      compute_new_traj = false;
+    }
+
+    // Step 2 Backward Pass -------------------------------------------------------------------------
+    double V = l_cost_final(x_sequence.back()); // back() is equivalent to N_horizon-1
+    sejong::Vector V_x = l_x.back();
+    sejong::Matrix V_xx = l_xx.back();
+
+    // Work backwards to solve for V, Q, k, and K
+    for(int i = N_horizon-2; i >= 0; i--){
+      // V' is the next state.
+      sejong::Vector Q_x = l_x[i] + f_x[i].transpose()*V_x;
+      sejong::Vector Q_u = l_u[i] + f_u[i].transpose()*V_x;
+      sejong::Matrix Q_xx = l_xx[i] + f_x[i].transpose()*V_xx*f_x[i];
+      sejong::Matrix Q_ux = l_ux[i] + f_u[i].transpose()* (V_xx + mu_1 *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_x[i];
+      sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()* (V_xx + mu_1 *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_u[i];
+
+//      std::cout << "i " << i << std::endl;
+/*      sejong::pretty_print(l_uu[i], std::cout, "l_uu[i]");
+      sejong::pretty_print(f_u[i], std::cout, "f_u[i]");
+      sejong::pretty_print(V_xx, std::cout, "V'_xx");            
+      sejong::pretty_print(Q_uu, std::cout, "Q_uu");
+*/
+
+      sejong::Matrix Q_uu_reg = Q_uu + mu_2 * sejong::Matrix::Identity(DIM_u, DIM_u);
+
+      // Compute Cholesky Decomposition
+      Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
+      sejong::Matrix L = lltOfQuu.matrixL();
+      sejong::Matrix Q_uu_reg_inv = (L.inverse()).transpose()*(L.inverse());
+
+/*      std::cout << "real Q_uu inverse is:" << std::endl << Q_uu.inverse() << std::endl;      
+      std::cout << "Cholesky Q_uu inverse is:" << std::endl << Q_uu_reg_inv << std::endl;     */
+      if (isnan(Q_uu_reg_inv(0,0))){
+        exit(1);
+      }
+
+      k_vec[i] = -Q_uu_reg_inv*Q_u;
+      K_vec[i] = -Q_uu_reg_inv*Q_ux;
+
+      dV[0] = k_vec[i].transpose()*Q_u;
+      dV[1] = 0.5*k_vec[i].transpose()*Q_uu*k_vec[i];
+
+      //V_x = Q_x - K_vec[i].transpose()*Q_uu*k_vec[i];
+      //V_xx = Q_xx - K_vec[i].transpose()* Q_uu * K_vec[i];
+
+      V_x = Q_x + K_vec[i].transpose()*Q_uu*k_vec[i] + K_vec[i].transpose()*Q_u + Q_ux.transpose()*k_vec[i];
+      V_xx = Q_xx + K_vec[i].transpose()*Q_uu*K_vec[i] + K_vec[i].transpose()*Q_ux + Q_ux.transpose()*K_vec[i];      
+      V_xx = 0.5*(V_xx + V_xx.transpose().eval());
+
+    }
+
+    // Check for termination due to small gradient
+
+
+    // Step 3 Line Search to find new control sequence  ------------------------------------------------
+    bool fwd_pass_done = false;
+    std::vector<sejong::Vector> x_new_sequence = x_sequence;//std::vector<sejong::Vector>(N_horizon);
+    std::vector<sejong::Vector> u_new_sequence = u_sequence;//std::vector<sejong::Vector>(N_horizon);
+
+    std::cout << "iter:" << ii << std::endl;
+/*    for(size_t j = 0; j < alpha_cand.size(); j++){
+      double alpha = alpha_cand[j];
+
+      // Update u sequence
+      sejong::Vector x_new = x;
+      for(int i = 0; i < N_horizon-1; i++){
+        u_new_sequence[i] = u_sequence[i] + alpha*k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
+        x_new = f(x_new, u_new_sequence[i]);
+        //std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+      }    
+      // Forward pass using U_sequence
+      _compute_X_sequence(x, u_new_sequence, x_new_sequence);
+
+      double d_cost = _J_cost(x_sequence, u_sequence) - _J_cost(x_new_sequence, u_new_sequence);
+      std::cout << "Old Cost: " << _J_cost(x_sequence, u_sequence) << " New Cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl;
+      double expected = -alpha*(dV[0] + alpha*dV[1]);
+      double z = 0.0;
+
+      if (expected > 0){
+        z = d_cost/expected;
+      }else{
+        z = -1;
+        std::cout << "alpha:" << alpha << std::endl;
+        std::cout << "warning: Non positive error reduction. should not occur" << std::endl;
+      }
+      if (z > z_min){
+        fwd_pass_done = true;
+        break;
+      }
+    }*/
+    // Update u sequence
+    sejong::Vector x_new = x;
+    for(int i = 0; i < N_horizon-1; i++){
+      u_new_sequence[i] = u_sequence[i] + k_vec[i] + K_vec[i]*(x_new - x_sequence[i]);
+      x_new = f(x_new, u_new_sequence[i]);
+      //std::cout << "  U[" << i << "]:" << std::endl << u_new_sequence[i] << std::endl;    
+    }    
+    // Forward pass using U_sequence
+    _compute_X_sequence(x, u_new_sequence, x_new_sequence);
+
+
+    // Step 4 Accept Changes or not  ------------------------------------------------
+    double J_old = _J_cost(x_sequence, u_sequence);
+    double J_new = _J_cost(x_new_sequence, u_new_sequence);     
+//    if (fwd_pass_done){
+    if( J_new < J_old){
+      std::cout << "Cost Improvement" << std::endl;
+      mu_1 *= beta_1;
+      mu_2 *= beta_2;      
+      std::cout << "Decreasing (mu_1, mu_2) to (" << mu_1 << ", " << mu_2 << ")" << std::endl;
+/*      dlambda = std::min( dlambda/lambda_factor, 1.0/lambda_factor );
+      if (lambda > lambda_min){
+        lambda *= dlambda;
+      }else{
+        lambda = 0.0;
+      }
+*/
+     // Accept Changes
+      x_sequence = x_new_sequence;
+      u_sequence = u_new_sequence;
+
+      std::cout << "J_new_seq " << _J_cost(x_new_sequence, u_new_sequence) << std::endl;      
+      x = x_sequence[0];
+      compute_new_traj = true;
+
+    }else{ // No Cost Improvement
+      std::cout << "No Cost Improvement" << std::endl;
+      mu_1 *= alpha_1;
+      mu_2 *= alpha_2;      
+      std::cout << "Increasing (mu_1, mu_2) to (" << mu_1 << ", " << mu_2 << ")" << std::endl;
+/*      dlambda  = std::max(dlambda * lambda_factor, lambda_factor);
+      lambda   = std::max(lambda * dlambda, lambda_min);
+      std::cout << "Increasing Lambda to " << lambda << std::endl;*/
+    }
+    // --------------------
+    std::cout << "  New Sequence cost:" << _J_cost(x_new_sequence, u_new_sequence) << std::endl; // Cost of new Sequence
+    // ----------------
+    sejong::pretty_print(u_sequence[0], std::cout, "u");      
+  }
+
+
+  u_out = u_sequence[0];
+  sejong::pretty_print(u_out, std::cout, "u_out");
 
 /*	sejong::Vector x_vec_empty(STATE_SIZE);
 	sejong::Vector u_vec_empty(DIM_u);
@@ -156,6 +317,8 @@ double iLQR::_J_cost(const std::vector<sejong::Vector> & X, const std::vector<se
   double J_cost = 0.0;
   for(size_t i = 0; i < N_horizon-1; i++){
     J_cost += l_cost(X[i], U[i]);
+    //sejong::pretty_print(X[i], std::cout, "X[i]");
+    //sejong::pretty_print(U[i], std::cout, "U[i]");    
   }
   J_cost += l_cost_final(X[N_horizon-1]); 
   return J_cost;
@@ -306,7 +469,6 @@ void iLQR::_compute_finite_differences(){
 
     h_step.setZero();
 
-
     if(!custom_f_x){
       // Calculate f_x
       for (size_t i = 0; i < STATE_SIZE; i++){
@@ -355,6 +517,8 @@ void iLQR::_compute_finite_differences(){
         h_step.setZero();
       }
     } // END IF
+
+
 
     if(!custom_f_u){
       // Calculate f_u
