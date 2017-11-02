@@ -5,19 +5,9 @@
 
 #include "common/utils.h"
 
-#include <ControlSystem/Valkyrie/Valkyrie_Controller/interface.h>
-#include <ControlSystem/Valkyrie/Valkyrie_Controller/StateProvider.h>
-#include <LocomotionPlanner/EnvironmentSetup/Obstacle.h>
-#include <LocomotionPlanner/EnvironmentSetup/ObstacleBuilder.h>
-#include <srTerrain/srPlane.h>
-#include <srTerrain/srUpstairTerrain.h>
-#include <srTerrain/srMarsTerrain.h>
-#include <srTerrain/srRoom.h>
-#include <srTerrain/srBoxObstacle.h>
+#include <ControlSystem/Valkyrie/Valkyrie_Controller/interface.hpp>
+#include <ControlSystem/Valkyrie/Valkyrie_Controller/StateProvider.hpp>
 #include <srTerrain/Ground.h>
-#include <srTerrain/sr3DImportSystem.h>
-
-#include "valkyrie.h"
 
 #ifdef Measure_Time
 #include <chrono>
@@ -25,87 +15,33 @@ using namespace std::chrono;
 #endif
 
 #include <srConfiguration.h>
-#include <srTerrain/Config_Space_Definition.h>
 
 // #define SENSOR_NOISE
 #define SENSOR_DELAY 0 // Sensor_delay* SERVO_RATE (sec) = time delay
 #define ENVIRONMENT_SETUP 0
 
 Valkyrie_Dyn_environment::Valkyrie_Dyn_environment():
-    curr_conf_(SIM_NUM_RJOINT),
-    curr_jvel_(SIM_NUM_RJOINT),
-    torque_   (SIM_NUM_RJOINT),
     indicated_contact_pt_list_(8),
     commanded_contact_force_list_(8),
     ang_vel_(3)
 {
-
     /********** Space Setup **********/
     m_Space = new srSpace();
     m_ground = new Ground();
     m_Space->AddSystem(m_ground->BuildGround());
 
-
-    /******** Terrain set ********/
-    loc_x_ = 0.5;  slope_ = 0.05;
-    Vec3 location(loc_x_, 0.0, 0.0);
-    terrain_ = new srPlane(slope_, location);
-    // terrain_ = new srUpstairTerrain(12, location );
-    // terrain_ = new srMarsTerrain(location);
-    // m_Space->AddSystem((srSystem*)terrain_);
-
-#if ENVIRONMENT_SETUP
-    /******** Room set ********/
-    room_ = new srRoom(Vec3(0., 0., 0.));
-    m_Space->AddSystem((srSystem*)room_);
-
-    /******** Obstacle set ********/
-    obstacle_builder = new ObstacleBuilder();
-    std::vector<Obstacle> obstacle_list;
-    int num_dyn_obs(0);
-    int num_stat_obs(0);
-    obstacle_list = obstacle_builder->get_obstacle_list();
-    for(int i(0); i < obstacle_list.size(); ++i){
-        if(obstacle_list[i].IsStatic)
-            ++num_stat_obs;
-        else{
-            obs_dyn_list_.push_back(obstacle_list[i]);
-            ++num_dyn_obs;
-        }
-    }
-
-    srObstacle_dyn_list_.resize(num_dyn_obs);
-    srObstacle_stat_list_.resize(num_stat_obs);
-    int s_idx(0);
-    int d_idx(0);
-    for(int i(0); i < obstacle_list.size(); ++i){
-        sejong::Vect3 obs_com;
-        obstacle_list[i].get_centroid(obs_com);
-
-        if(obstacle_list[i].IsStatic){
-            srObstacle_stat_list_[s_idx] = new srBoxObstacle(obs_com, obstacle_list[i].lwh_);
-            m_Space->AddSystem((srSystem*)srObstacle_stat_list_[s_idx]);
-            ++s_idx;
-        } else{
-            srObstacle_dyn_list_[d_idx] = new sr3DImportSystem("pioneer2dx/meshes/chassis.3ds", Vec3(0,0,0), Vec3(0,0,0), srJoint::VELOCITY);
-            m_Space->AddSystem((srSystem*)srObstacle_dyn_list_[d_idx]);
-            ++d_idx;
-        }
-    }
-#endif
     /********** Robot Set  **********/
     new_robot_ = new New_Valkyrie();
     new_robot_->BuildRobot(Vec3 (0., 0., 0.), srSystem::FIXED, srJoint::TORQUE, "urdf/r5_urdf_rbdl.urdf");
-    // new_robot_->BuildRobot(Vec3 (0., -0.13, 0.), srSystem::FIXED, srJoint::TORQUE, "urdf/r5_urdf_rbdl.urdf");
     m_Space->AddSystem((srSystem*)new_robot_);
 
     /******** Interface set ********/
-    interface_ = new Interface();
+    interface_ = new interface();
     contact_pt_list_.clear();
     contact_force_list_.clear();
 
     m_Space->DYN_MODE_PRESTEP();
-    m_Space->SET_USER_CONTROL_FUNCTION_2(ContolFunction);
+    m_Space->SET_USER_CONTROL_FUNCTION_2(ControlFunction);
     m_Space->SetTimestep(SERVO_RATE);
     m_Space->SetGravity(0.0,0.0,-9.81);
 
@@ -114,7 +50,7 @@ Valkyrie_Dyn_environment::Valkyrie_Dyn_environment():
     printf("[Valkyrie Dynamic Environment] Build Dynamic Environment\n");
 }
 
-void Valkyrie_Dyn_environment::ContolFunction( void* _data ) {
+void Valkyrie_Dyn_environment::ControlFunction( void* _data ) {
   static int count(0);
   ++count;
 
@@ -158,8 +94,6 @@ void Valkyrie_Dyn_environment::ContolFunction( void* _data ) {
   // pDyn_env->_ExternalDisturbance(count);
   pDyn_env->_ListReactionForce();
   pDyn_env->_ListCommandedReactionForce(StateProvider::GetStateProvider()->Fr_);
-  //Dynamic Obstacle control
-  // _ObstacleControl(_data);
   pDyn_env->_SaveStanceFoot();
 }
 
@@ -193,27 +127,6 @@ void Valkyrie_Dyn_environment::_SaveStanceFoot(){
     StateProvider::GetStateProvider()->global_stance_foot_pos_<<foot_pos[0], foot_pos[1], foot_pos[2];
 }
 
-void Valkyrie_Dyn_environment::_ObstacleControl(void* _data){
-    Valkyrie_Dyn_environment* pDyn_env = (Valkyrie_Dyn_environment*)_data;
-    static int count(0);
-    ++count;
-    double time_offset(1.52);
-    double alternate_time = SIM_SERVO_RATE * count - time_offset;
-    if(alternate_time < 0.){
-        alternate_time = 0.;
-    }
-    sejong::Vector pos(6);
-    for(int i(0); i < pDyn_env->srObstacle_dyn_list_.size(); ++i){
-        pDyn_env->obs_dyn_list_[i].get_position(alternate_time, pos);
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VPjoint[0]->m_State).m_rValue[0] = pos[0];
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VPjoint[1]->m_State).m_rValue[0] = pos[1];
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VPjoint[2]->m_State).m_rValue[0] = pos[2];
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VRjoint[0]->m_State).m_rValue[0] = pos[3];
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VRjoint[1]->m_State).m_rValue[0] = pos[4];
-        (pDyn_env->srObstacle_dyn_list_[i]->m_VRjoint[2]->m_State).m_rValue[0] = pos[5];
-    }
-
-}
 
 void Valkyrie_Dyn_environment::_ListCommandedReactionForce(const sejong::Vector & Fr){
     sejong::Vect3 vec3_fr;

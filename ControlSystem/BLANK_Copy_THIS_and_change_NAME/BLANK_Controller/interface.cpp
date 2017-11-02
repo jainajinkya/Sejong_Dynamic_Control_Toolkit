@@ -3,12 +3,12 @@
 
 #include <math.h>
 
-#include <Utils/utilities.hpp>
-#include <Utils/DataManager.hpp>
+#include <Utils/utilities.h>
+#include <Utils/DataManager.h>
 #include <Utils/wrap_eigen.hpp>
 
 #include <TestSet/BodyCtrlTest.hpp>
-#include "StateProvider.hpp"
+#include "StateProvider.h"
 #include <stdio.h>
 
 #if MEASURE_TIME

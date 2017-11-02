@@ -1,0 +1,2 @@
+add_subdirectory(Valkyrie_Controller)
+add_subdirectory(Valkyrie_Model)

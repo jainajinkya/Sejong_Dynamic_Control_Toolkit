@@ -1,4 +1,4 @@
-#include "Valkyrie_Left_Leg.h"
+#include "Valkyrie_Left_Leg.hpp"
 #include <rbdl/urdfreader.h>
 #include <Configuration.h>
 #include <stdio.h>
@@ -9,7 +9,7 @@ using namespace RigidBodyDynamics;
 Valkyrie_Left_Leg::Valkyrie_Left_Leg(){
   model_ = new Model();
 
-  if (!Addons::URDFReadFromFile (ModelPath"urdf/r5_urdf_left_leg.urdf", model_, false)) {
+  if (!Addons::URDFReadFromFile (THIS_COM"ControlSystem/Valkyrie/Valkyrie_urdf/r5_urdf_left_leg.urdf", model_, false)) {
     std::cerr << "Error loading model ./r5_urdf_left_leg.urdf" << std::endl;
     abort();
   }

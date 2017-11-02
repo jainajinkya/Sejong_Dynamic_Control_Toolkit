@@ -18,6 +18,7 @@ public:
   virtual void TestInitialization();
 
 protected:
+  int phase_;
   virtual int _NextPhase(const int & phase);
 
   MercuryController* body_ini_tran_;

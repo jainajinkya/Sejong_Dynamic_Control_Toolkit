@@ -1,4 +1,4 @@
-#include "Valkyrie_Right_Leg.h"
+#include "Valkyrie_Right_Leg.hpp"
 #include <rbdl/urdfreader.h>
 #include <Configuration.h>
 
@@ -8,7 +8,7 @@ using namespace RigidBodyDynamics;
 Valkyrie_Right_Leg::Valkyrie_Right_Leg(){
   model_ = new Model();
 
-  if (!Addons::URDFReadFromFile (ModelPath"/urdf/r5_urdf_right_leg.urdf", model_, false)) {
+  if (!Addons::URDFReadFromFile (THIS_COM"ControlSystem/Valkyrie/Valkyrie_urdf/r5_urdf_right_leg.urdf", model_, false)) {
     std::cerr << "Error loading model ./r5_urdf_right_leg.urdf" << std::endl;
     abort();
   }

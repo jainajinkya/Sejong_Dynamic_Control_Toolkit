@@ -23,7 +23,7 @@ add_definitions(-O3)
 #------------------------------------------------------------------------
 #     System Selection
 #------------------------------------------------------------------------
-# SET (CTRL_SYS "Valkyrie")
+SET (CTRL_SYS "Valkyrie")
 # SET (CTRL_SYS "Hume")
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
@@ -31,15 +31,19 @@ add_definitions(-O3)
 # SET (CTRL_SYS "Mercury")
 # SET (CTRL_SYS "Openchain3DoF")
 # SET (CTRL_SYS "Openchain2DoF")
-SET (CTRL_SYS "Walker2D")
+# SET (CTRL_SYS "Walker2D")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 
 #------------------------------------------------------------------------
+#     Simulator Selection
+#------------------------------------------------------------------------
+add_subdirectory (Simulator/srSimulator)
+# add_subdirectory (Simulator/RBDL_simulator)
+
+#------------------------------------------------------------------------
 #    Directory Selection
 #------------------------------------------------------------------------
-# add_subdirectory (Simulator/srSimulator)
-add_subdirectory (Simulator/RBDL_simulator)
 add_subdirectory (Utils)
 add_subdirectory (Filter)
 add_subdirectory (ExternalSource)

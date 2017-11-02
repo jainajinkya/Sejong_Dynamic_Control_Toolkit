@@ -17,7 +17,7 @@ ValkyrieModel* ValkyrieModel::GetValkyrieModel(){
 ValkyrieModel::ValkyrieModel(){
     model_ = new Model();
 
-    if (!Addons::URDFReadFromFile (ModelPath"/urdf/r5_urdf_rbdl.urdf", model_, false)) {
+    if (!Addons::URDFReadFromFile (THIS_COM"ControlSystem/Valkyrie/Valkyrie_urdf/r5_urdf_rbdl.urdf", model_, false)) {
         std::cerr << "Error loading model ./r5_urdf_rbdl.urdf" << std::endl;
         abort();
     }
