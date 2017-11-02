@@ -43,7 +43,7 @@ protected:
   int STATE_SIZE =  NUM_QDOT + NUM_QDOT;
   int DIM_u_SIZE =  4;
   const double NEAR_ZERO = std::sqrt(std::numeric_limits<double>::epsilon());
-  double ddp_time_step = 1.0/1000.0;//1.0/10000.0;//1.0/10000.0; //1.0/100.0; //
+  double ddp_time_step = 1.0/100.0;//1.0/10000.0;//1.0/10000.0; //1.0/100.0; //
 
   // Functions
   void _DDP_ctrl(sejong::Vector & gamma);  

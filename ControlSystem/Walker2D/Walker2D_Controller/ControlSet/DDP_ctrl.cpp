@@ -61,20 +61,25 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   // Prepare Quadratic Cost Matrices
   // x = [x_virt, z_virt, ry_virt, lf_j1, lf_j2, rf_j1, rf_j2]
   x_des_final = sejong::Matrix::Zero(STATE_SIZE, 1);
-  x_des_final[0] = 0.65; // Walk to this value from x = -0.65
+  x_des_final[0] = 0.0;//-0.65; // Walk to this value from x = -0.65
   x_des_final[1] = 0.5; //  Hip at this height from the ground   
+  x_des_final[2] = 0.0; //  Body Orientation from the ground     
   Q_run = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
   Q_final = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
 
   // Running Cost on Pose of Body. ie: We want the body to be upright
-  Q_run(2,2) = 1.0; 
+  Q_run(2,2) = 1.0;
+  Q_run.block(NUM_QDOT+NUM_VIRTUAL, NUM_QDOT+NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);
+  Q_run = Q_run * 0.00001;
   // Running Cost on Foot Accelerations
-  N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  //sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
+  N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE)*0.00001;  //sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
 
   // Final cost on final pose of the body
   Q_final.block(0, 0, NUM_VIRTUAL, NUM_VIRTUAL) = sejong::Matrix::Identity(NUM_VIRTUAL, NUM_VIRTUAL);    
   // States should have zero velocity at the end
   Q_final.block(NUM_QDOT, NUM_QDOT, NUM_QDOT, NUM_QDOT) = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT);      
+  Q_final *= 1000;
+  Q_final(1, 1) *= 20;
 
   //ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
@@ -102,7 +107,7 @@ double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
 
 // Computes the final cost
 double DDP_ctrl::l_cost_final(const sejong::Vector &x_F){
-  sejong::Vector cost = x_F.transpose()*Q_final*x_F;
+  sejong::Vector cost = (x_des_final - x_F).transpose()*Q_final*(x_des_final - x_F);
   return cost[0];
 }
 
@@ -172,6 +177,11 @@ sejong::Vector DDP_ctrl::f(const sejong::Vector & x, const sejong::Vector & u){
   // Compute WBC given (x,u). This also updates the model
   sejong::Vector gamma_int;
   _get_WBC_command(x, u, gamma_int);
+  
+/*  sejong::pretty_print(x, std::cout, "x");
+  sejong::pretty_print(u, std::cout, "u");
+  sejong::pretty_print(gamma_int, std::cout, "gamma_int");*/
+
   return f_given_tact(x, gamma_int);
 }
 // ---------------------------------------------------------------------
@@ -205,13 +215,26 @@ void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, 
   internal_model->getFullJacobianDot(q_int, qdot_int, SJLinkID::LK_RIGHT_FOOT, J_rf_dot);
 
   // Stack the Jacobians
-  sejong::Matrix J_feet(4, NUM_QDOT);
+  sejong::Matrix J_feet(DIM_u_SIZE, NUM_QDOT);
   J_feet.block(0,0, 2, NUM_QDOT) = J_lf.block(0, 0, 2, NUM_QDOT);
   J_feet.block(2,0, 2, NUM_QDOT) = J_rf.block(0, 0, 2, NUM_QDOT);  
-  sejong::Matrix J_feet_dot(4, NUM_QDOT);
+  sejong::Matrix J_feet_dot(DIM_u_SIZE, NUM_QDOT);
   J_feet_dot.block(0,0, 2, NUM_QDOT) = J_lf_dot.block(0, 0, 2, NUM_QDOT);
   J_feet_dot.block(2,0, 2, NUM_QDOT) = J_rf_dot.block(0, 0, 2, NUM_QDOT);  
 
+  sejong::Matrix B(NUM_QDOT, DIM_u_SIZE);
+  sejong::Vector c(NUM_QDOT);
+
+  sejong::Matrix J1 = J_feet;
+  sejong::Matrix J1_dot = J_feet_dot;
+  sejong::Matrix J1_bar;
+  _DynConsistent_Inverse(J1, J1_bar);
+
+  B.block(0, 0, NUM_QDOT, DIM_u_SIZE) = J1_bar;
+  c = (-J1_bar*J1_dot)*qdot_int;
+
+
+  /*
   // Joint Position Task----------------------------------------------------------
   sejong::Matrix J_pos(NUM_ACT_JOINT, NUM_QDOT);
   sejong::Matrix J_pos_dot(NUM_ACT_JOINT, NUM_QDOT);
@@ -240,13 +263,18 @@ void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, 
   B.block(0, 0, NUM_QDOT, 4) = J1_bar - J2_1_bar*J2*J1_bar;
   B.block(0, 4, NUM_QDOT, NUM_ACT_JOINT) = J2_1_bar;  
   c = (-J1_bar*J1_dot - J2_1_bar*J2_dot + J2_1_bar*J2*J1_bar*J1_dot)*qdot_int;
+  */
 
   if (isnan(B(0,0))){      
     std::cout << "B became nan" << std::endl;
+    sejong::pretty_print(sp_->Q_, std::cout, "sp_->Q_,");    
+    sejong::pretty_print(sp_->Qdot_, std::cout, "sp_->Qdot_");  
+    sejong::pretty_print(q_int, std::cout, "q_int");    
+    sejong::pretty_print(qdot_int, std::cout, "qdot_int");            
     sejong::pretty_print(J1, std::cout, "J_feet");
     sejong::pretty_print(J1_bar, std::cout, "J1_bar");
-    sejong::pretty_print(J2_1_bar, std::cout, "J2_1_bar");
-    sejong::pretty_print(J2, std::cout, "J2"); 
+/*    sejong::pretty_print(J2_1_bar, std::cout, "J2_1_bar");
+    sejong::pretty_print(J2, std::cout, "J2"); */
     exit(1);
   }
 
@@ -268,7 +296,10 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   // Set Desired Accelerations
   // Feet Tasks
   sejong::Vector xddot_feet_des = u_input;
-
+  
+  
+  sejong::Vector xddot_des = xddot_feet_des;
+/*
   // Joint Position Posture Task
   sejong::Vector xddot_des_pos(NUM_ACT_JOINT);
   xddot_des_pos.setZero();
@@ -282,13 +313,13 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
   xddot_des.head(4) = xddot_feet_des;
   xddot_des.tail(NUM_ACT_JOINT) = xddot_des_pos;  
 
-  // Get B, c WBC Matrices
+*/  // Get B, c WBC Matrices
   sejong::Matrix B;
   sejong::Vector c;
   _get_B_c(x_state, B, c);
 
   // Calculate qddot task
-  sejong::Vector qddot_des = (B*xddot_des); //(B*xddot_des + c);
+  sejong::Vector qddot_des = (B*xddot_des + c);
 
   // Whole Body Dynamics
   sejong::Vector tau = A_int * qddot_des + coriolis_int + grav_int;
@@ -313,7 +344,6 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   sejong::Vector x_state(STATE_SIZE);
   x_state.head(NUM_QDOT) = sp_->Q_;
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
-  sejong::pretty_print(x_state, std::cout, "x_state");
 
   sejong::Vector u_vec(DIM_u_SIZE); 
   u_vec.setZero();
@@ -321,6 +351,7 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   ilqr_->compute_ilqr(x_state, u_vec);
   _get_WBC_command(x_state, u_vec, gamma);
 
+  //_jpos_ctrl(gamma);
 
 
 /*  sejong::Vector l_x, l_xF, l_u;
@@ -333,9 +364,6 @@ void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   l_uu_analytical(x_state, u_vec, l_uu);
   l_ux_analytical(x_state, u_vec, l_ux);
   f_u_analytical(x_state, u_vec, f_u);*/
-
-  sejong::pretty_print(gamma, std::cout, "gamma");
-
 
 
 
@@ -412,7 +440,7 @@ sejong::Vector DDP_ctrl::f_given_tact(const sejong::Vector & x, const sejong::Ve
   const int p = 2; // Number of Contacts
   const int d = 2; // Number of Friction Basis Vectors
 
-  double mu_static = 1.0;//0.1; // Friction Coefficient
+  double mu_static = 100.0;//0.1; // Friction Coefficient
   sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
   sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
   sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
@@ -483,8 +511,8 @@ sejong::Vector DDP_ctrl::f_given_tact(const sejong::Vector & x, const sejong::Ve
 
   // Solve LCP Problem
   MobyLCPSolver l_mu;  
-//  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
-  bool result_mu = l_mu.lcp_fast(alpha_mu, beta_mu, &fn_fd_lambda);  
+  bool result_mu = l_mu.lcp_lemke_regularized(alpha_mu, beta_mu, &fn_fd_lambda);
+//  bool result_mu = l_mu.lcp_fast(alpha_mu, beta_mu, &fn_fd_lambda);  
   
 
   // Extract Normal and Tangential Forces

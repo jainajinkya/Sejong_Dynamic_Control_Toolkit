@@ -203,11 +203,15 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         sejong::Matrix Q_uu = l_uu[i] + f_u[i].transpose()* V_xx *f_u[i];
 
 
-        sejong::Matrix Q_ux_reg = l_ux[i] + 
+/*        sejong::Matrix Q_ux_reg = l_ux[i] + 
                                   f_u[i].transpose()* (V_xx + lambda *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_x[i];
         sejong::Matrix Q_uu_reg = l_uu[i] + 
-                                  f_u[i].transpose()* (V_xx + lambda *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_u[i];
-                                  //mu_2 * sejong::Matrix::Identity(DIM_u, DIM_u);
+                                  f_u[i].transpose()* (V_xx + lambda *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_u[i] +
+                                  lambda*sejong::Matrix::Identity(DIM_u, DIM_u);*/
+        
+        sejong::Matrix Q_ux_reg = Q_ux; //l_ux[i] + f_u[i].transpose()* (V_xx + lambda *sejong::Matrix::Identity(STATE_SIZE, STATE_SIZE) ) *f_x[i];
+        sejong::Matrix Q_uu_reg = Q_uu + lambda*sejong::Matrix::Identity(DIM_u, DIM_u);
+
 
         // Compute Cholesky Decomposition
         Eigen::LLT<sejong::Matrix> lltOfQuu(Q_uu_reg);
@@ -218,10 +222,10 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         if (isnan(Q_uu_reg_inv(0,0))){
           dlambda = std::max(dlambda * lambda_factor, lambda_factor);
           lambda  = std::max(lambda_min, dlambda * lambda_factor);
-          std::cout << "  Cholesky decomposition failed. Increasing Lambda" << std::endl;
+          //std::cout << "  Cholesky decomposition failed. Increasing Lambda" << std::endl;
           if (lambda > lambda_max){
 
-            std::cout << " ii" << ii << " Lambda cannot be increased anymore. iLQR cannot find a better solution" << std::endl;
+            //std::cout << " ii" << ii << " Lambda cannot be increased anymore. iLQR cannot find a better solution" << std::endl;
             cholesky_failure = true;
             break;
           }
@@ -261,7 +265,7 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       }else{
         lambda = 0.0;
       }
-      std::cout << "Success! Gradient Norm < tolGrad" << std::endl;
+      //std::cout << "Success! Gradient Norm < tolGrad" << std::endl;
       break; // Exit iLQR loop
     }
 
@@ -281,8 +285,31 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         sejong::Vector x_i = X_seq[0]; // Starting Condition
         X_seq_tmp[0] = x_i;
         for (size_t i = 0; i < N_horizon-1; i++){ 
+          //sejong::pretty_print(x_i, std::cout, "x_i");  
           sejong::Vector u_i = U_seq[i] + alpha*k_vec[i] + K_vec[i]*(x_i - X_seq[i]);
+
+          // Box u
+          double max_task_acceleration = 100;
+          for(size_t k = 0; k < DIM_u; k++){
+            if (u_i[k] >= max_task_acceleration){
+              u_i[k] = max_task_acceleration;
+            }else if (u_i[k] <= -max_task_acceleration){
+              u_i[k] = -max_task_acceleration;
+            }
+          }
+
+          //sejong::pretty_print(u_i, std::cout, "u_i");              
           x_i = f(x_i, u_i); // x_{i+1}  
+
+          if(isnan(x_i[0])){
+            std::cout << "x_i became nan at forward pass" << std::endl;
+            sejong::pretty_print(k_vec[i], std::cout, "k_vec[i]");  
+            sejong::pretty_print(X_seq[i], std::cout, "X_seq[i]");                 
+            sejong::pretty_print(K_vec[i], std::cout, "K_vec[i]");              
+            sejong::pretty_print(U_seq[i], std::cout, "U_seq[i]");
+            exit(1);
+          }
+
           // Store to temporary X_seq_tmp and U_seq_tmp;
           X_seq_tmp[i+1] = x_i;
           U_seq_tmp[i] = u_i;
@@ -303,7 +330,7 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
         if (expected > 0){
           z = dcost / expected;        
         }else{
-          std::cout << "Non-Positive Expected Reduction. Should not occur" << std::endl;
+          //std::cout << "Non-Positive Expected Reduction. Should not occur" << std::endl;
         }
         if (z > z_min){
           forward_pass_done = true;
@@ -325,10 +352,10 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
     } // Line Search Done  
 
     // Step 4: Accept or Discard Changes      
-    std::cout << "iteration, cost, reduction, expected, gradient, log10(lambda)" << std::endl;
+//    std::cout << "iteration, cost, reduction, expected, gradient, log10(lambda)" << std::endl;
     if (forward_pass_done){
-      std::cout << " " << ii << "  " << old_Jcost << " " << dcost << " " << expected << " " << g_norm << " " << log10(lambda) << std::endl;  
-
+      std::cout << "iteration: " << ii << "  cost:" << old_Jcost << "  reduction:" << dcost << "  expected" << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;     
+    
       // Decrease Lambda
       dlambda = std::min(dlambda/lambda_factor, 1.0/lambda_factor );
       if (lambda > lambda_min){
@@ -342,8 +369,12 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       X_seq = X_seq_tmp;      
       flag_change = 1.0;
 
+      sejong::pretty_print(U_seq[0], std::cout, " U_seq[0]");
+      sejong::pretty_print(X_seq.back(), std::cout, " xF");
+
+
       if (dcost < tolFun){
-        std::cout << "Success! cost change < tolFun" << std::endl;
+        //std::cout << "Success! cost change < tolFun" << std::endl;
         break;
       }
 
@@ -352,10 +383,12 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       dlambda = std::max(dlambda * lambda_factor, lambda_factor);
       lambda  = std::max(lambda_min, dlambda * lambda_factor);
 
-      std::cout << " " << ii << "  " << "NO STEP" << " " << dcost << " " << expected << " " << g_norm << " " << log10(lambda) << std::endl;  
+      std::cout << "iteration: " << ii << "  NO_STEP " << "  reduction: " << dcost << "  expected: " << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;  
+      sejong::pretty_print(U_seq[0], std::cout, "U_seq[0]");
+      sejong::pretty_print(X_seq.back(), std::cout, " xF");
 
       if (lambda > lambda_max){
-        std::cout << "EXIT: lambda > lambda_max" << std::endl;
+        //std::cout << "EXIT: lambda > lambda_max" << std::endl;
         break;
       }
     } // Accept or Discard Changes
@@ -368,7 +401,9 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
 
 
   u_out = U_seq[0];
-  sejong::pretty_print(u_out, std::cout, "u_out");
+
+
+
 }
 
 
