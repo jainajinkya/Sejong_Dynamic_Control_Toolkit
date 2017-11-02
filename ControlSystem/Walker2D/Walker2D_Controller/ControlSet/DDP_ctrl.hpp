@@ -66,12 +66,16 @@ protected:
 
   std::vector<sejong::Vector> gamma_sequence;  
   // Prepare running and final costs
+  sejong::Matrix P_run;   // EE Running State Cost  
   sejong::Matrix Q_run;   // Running State Cost
   sejong::Matrix Q_final; // Final State Cost  
+  sejong::Matrix P_final;   // EE Final State Cost  
   sejong::Matrix N_run; // Acceleration Cost
   sejong::Matrix T_run; // Torque Cost. Will not be used as it's too expensive.
 
-  sejong::Vector x_des_final; // desired final x_state  
+  sejong::Vector x_des_final; // desired final x_state
+
+  sejong::Vector ee_des; // desired final x_state    
 
   // Data Save
   sejong::Vector des_pos_;

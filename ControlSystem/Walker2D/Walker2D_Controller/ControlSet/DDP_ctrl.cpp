@@ -25,19 +25,19 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
 
 
   // Assign Analytical Gradients
-  ilqr_->custom_l_xF = true;
+  ilqr_->custom_l_xF = false;
   ilqr_->l_x_final_analytical = std::bind( &DDP_ctrl::l_x_final_analytical, this, std::placeholders::_1, 
                                                                                   std::placeholders::_2);
-  ilqr_->custom_l_xxF = true;
+  ilqr_->custom_l_xxF = false;
   ilqr_->l_xx_final_analytical = std::bind( &DDP_ctrl::l_xx_final_analytical, this, std::placeholders::_1, 
                                                                                     std::placeholders::_2);
 
-  ilqr_->custom_l_x = true;
+  ilqr_->custom_l_x = false;
   ilqr_->l_x_analytical = std::bind( &DDP_ctrl::l_x_analytical, this, std::placeholders::_1, 
                                                                       std::placeholders::_2,
                                                                       std::placeholders::_3);
 
-  ilqr_->custom_l_xx = true;
+  ilqr_->custom_l_xx = false;
   ilqr_->l_xx_analytical = std::bind( &DDP_ctrl::l_xx_analytical, this, std::placeholders::_1, 
                                                                       std::placeholders::_2,
                                                                       std::placeholders::_3);
@@ -67,19 +67,24 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   Q_run = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
   Q_final = sejong::Matrix::Zero(STATE_SIZE, STATE_SIZE);
 
+  ee_des = sejong::Matrix::Zero(2, 1);
+
   // Running Cost on Pose of Body. ie: We want the body to be upright
   Q_run(2,2) = 1.0;
   Q_run.block(NUM_QDOT+NUM_VIRTUAL, NUM_QDOT+NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);
   Q_run = Q_run * 0.00001;
   // Running Cost on Foot Accelerations
   N_run = sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE)*0.00001;  //sejong::Matrix::Identity(DIM_u_SIZE, DIM_u_SIZE);  
+  P_run = sejong::Matrix::Identity(2,2)*0.00001;   // EE Running State Cost  
 
   // Final cost on final pose of the body
   Q_final.block(0, 0, NUM_VIRTUAL, NUM_VIRTUAL) = sejong::Matrix::Identity(NUM_VIRTUAL, NUM_VIRTUAL);    
+  P_final = sejong::Matrix::Identity(2,2);   // EE Running State Cost  
   // States should have zero velocity at the end
   Q_final.block(NUM_QDOT, NUM_QDOT, NUM_QDOT, NUM_QDOT) = sejong::Matrix::Identity(NUM_QDOT, NUM_QDOT);      
-  Q_final *= 1000;
-  Q_final(1, 1) *= 20;
+
+  Q_final *= 100;
+  P_final *= 100;
 
   //ilqr_->compute_ilqr();
   printf("[DDP Controller] Start\n");
@@ -101,13 +106,29 @@ void DDP_ctrl::Initialization(){
 // iLQR functions ---------------------------------------------------------------
 // Computes the running cost
 double DDP_ctrl::l_cost(const sejong::Vector &x, const sejong::Vector &u){
-  sejong::Vector cost = x.transpose()*Q_run*x + u.transpose()*N_run*u; 
+  sejong::Vect3 rf_pos;
+  internal_model->UpdateKinematics(x.head(NUM_QDOT), x.tail(NUM_QDOT));
+  internal_model->getPosition(x.head(NUM_QDOT), SJLinkID::LK_RIGHT_FOOT, rf_pos);  
+
+  sejong::Vector rf_ee(2);
+  rf_ee[0] = rf_pos[0]; // X;
+  rf_ee[1] = rf_pos[1]; // Z;  
+
+  sejong::Vector cost = x.transpose()*Q_run*x + u.transpose()*N_run*u + (ee_des - rf_ee).transpose()*P_run*(ee_des - rf_ee); 
   return cost[0];
 }
 
 // Computes the final cost
 double DDP_ctrl::l_cost_final(const sejong::Vector &x_F){
-  sejong::Vector cost = (x_des_final - x_F).transpose()*Q_final*(x_des_final - x_F);
+  sejong::Vect3 rf_pos;  
+  internal_model->UpdateKinematics(x_F.head(NUM_QDOT), x_F.tail(NUM_QDOT));
+  internal_model->getPosition(x_F.head(NUM_QDOT), SJLinkID::LK_RIGHT_FOOT, rf_pos);  
+
+  sejong::Vector rf_ee(2);
+  rf_ee[0] = rf_pos[0]; // X;
+  rf_ee[1] = rf_pos[1]; // Z;  
+
+  sejong::Vector cost = (x_des_final - x_F).transpose()*Q_final*(x_des_final - x_F) + (ee_des - rf_ee).transpose()*P_final*(ee_des - rf_ee);
   return cost[0];
 }
 

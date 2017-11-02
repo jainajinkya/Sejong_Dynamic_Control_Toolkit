@@ -440,7 +440,7 @@ void iLQR::_compute_finite_differences(const std::vector<sejong::Vector> & X_seq
     if (!custom_l_xF){
       // l_xF
       l_x[N_horizon-1](i) = (l_cost_final(x + h_step) - l_cost_final(x - h_step) ) / (2.0*h_step[i]); 
-      std::cout << "Calculating l_xF" << std::endl;
+      //std::cout << "Calculating l_xF" << std::endl;
     }
 
     if(!custom_l_xxF){
@@ -451,7 +451,7 @@ void iLQR::_compute_finite_differences(const std::vector<sejong::Vector> & X_seq
                        l_cost_final(x + h_step - h2_step) - 
                        l_cost_final(x - h_step + h2_step) + 
                        l_cost_final(x - h_step - h2_step))/(4*h_step[i]*h2_step[j]);
-      std::cout << "Calculating l_xxF" << std::endl;
+      //std::cout << "Calculating l_xxF" << std::endl;
         h2_step.setZero();        
       }
     }else{
