@@ -23,7 +23,6 @@ add_definitions(-O3)
 #------------------------------------------------------------------------
 #     System Selection
 #------------------------------------------------------------------------
-# SET (CTRL_SYS "Valkyrie")
 # SET (CTRL_SYS "Hume")
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
