@@ -56,7 +56,7 @@ protected:
                         sejong::Matrix & Jinv){
     sejong::Matrix lambda(J* Winv * J.transpose());
     sejong::Matrix lambda_inv;
-    sejong::pseudoInverse(lambda, 0.01, lambda_inv);
+    sejong::pseudoInverse(lambda, 0.0001, lambda_inv);
     Jinv = Winv * J.transpose() * lambda_inv;
   }
 

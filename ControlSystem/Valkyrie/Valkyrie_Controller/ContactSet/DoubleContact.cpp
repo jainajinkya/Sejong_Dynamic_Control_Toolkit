@@ -39,7 +39,7 @@ bool DoubleContact::_UpdateJcDotQdot(){
 }
 
 bool DoubleContact::_UpdateUf(){
-  double mu(0.3);
+  double mu(0.8);
   double X(0.1);
   double Y(0.05);
 
