@@ -9,9 +9,9 @@
 
 // #define WBDC_COMPUTATION_TIME
 
-BodyCtrl::BodyCtrl(): end_time_(1000000.){
+BodyCtrl::BodyCtrl(): Controller(), end_time_(1000000.){
   body_task_ = new BodyTask(3);
-  foot_contact_ = new FootContact(3);
+  foot_contact_ = new FootContact(6);
   wbdc_ = new WBDC(act_list_);
   wbdc_data_ = new WBDC_ExtraData();
   wbdc_data_->tau_min = sejong::Vector(NUM_ACT_JOINT);
@@ -40,12 +40,12 @@ void BodyCtrl::OneStep(sejong::Vector & gamma){
 }
 
 void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
-  sejong::Matrix Icm, Jcm;
-  robot_model_->getCentroidInertia(Icm);
-  robot_model_->getCentroidJacobian(Jcm);
-  wbdc_data_->Icam = Icm.block(2, 2, 1, 1);
-  wbdc_data_->Jcam = Jcm.block(2,0, 1, NUM_QDOT);
-  wbdc_data_->JcamDotQdot = (Jcm * Ainv_ * coriolis_).tail(1);
+  // sejong::Matrix Icm, Jcm;
+  // robot_model_->getCentroidInertia(Icm);
+  // robot_model_->getCentroidJacobian(Jcm);
+  // wbdc_data_->Icam = Icm.block(2, 2, 1, 1);
+  // wbdc_data_->Jcam = Jcm.block(2,0, 1, NUM_QDOT);
+  // wbdc_data_->JcamDotQdot = (Jcm * Ainv_ * coriolis_).tail(1);
 
   // sejong::pretty_print(Icm, std::cout, "Icm");
   // sejong::pretty_print(Jcm, std::cout, "Jcm");

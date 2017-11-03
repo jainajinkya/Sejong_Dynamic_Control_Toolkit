@@ -134,19 +134,6 @@
     <child link="right_camera_optical_frame"/>
   </joint>
   <link name="right_camera_optical_frame"/>
-  <joint name="center_top_led_frame_joint" type="fixed">
-    <origin xyz="0.01125 0.0 0.0105"/>
-    <parent link="head"/>
-    <child link="center_top_led_frame"/>
-  </joint>
-  <link name="center_top_led_frame">
-    <inertial>
-      <mass value="1e-5"/>
-      <!-- collocate with parent link and remove mass from it -->
-      <origin rpy="0 0 0" xyz="-0.064243 0.000033383 0.03824"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
-    </inertial>
-  </link>
   <joint name="center_bottom_led_frame_joint" type="fixed">
     <origin xyz="0.01125 0.0 -0.0155"/>
     <parent link="head"/>
@@ -2350,24 +2337,4 @@
     <parent link="torso"/>
     <child link="rightHazardCamera_Frame"/>
   </joint>
-  <gazebo reference="rightHazardCamera_Offset">
-    <implicitSpringDamper>1</implicitSpringDamper>
-  </gazebo>
-  <link name="leftHazardCamera_Frame">
-    <!-- Virtual Link -->
-    <inertial>
-      <mass value="1e-07"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <inertia ixx="3.33333333333e-22" ixy="0.0" ixz="0.0" iyy="3.33333333333e-22" iyz="0.0" izz="5e-22"/>
-    </inertial>
-  </link>
-  <joint name="leftHazardCamera_Offset" type="fixed">
-    <origin rpy="1.57 0.0 1.57" xyz="0.0345 0.0406 0.1135"/>
-    <axis xyz="0 0 1"/>
-    <parent link="torso"/>
-    <child link="leftHazardCamera_Frame"/>
-  </joint>
-  <gazebo reference="leftHazardCamera_Offset">
-    <implicitSpringDamper>1</implicitSpringDamper>
-  </gazebo>
 </robot>

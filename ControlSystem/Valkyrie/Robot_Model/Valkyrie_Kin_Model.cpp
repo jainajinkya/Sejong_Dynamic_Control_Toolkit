@@ -244,7 +244,6 @@ void Valkyrie_Kin_Model::getJacobian(const Vector & q, int link_id, Matrix &J){
     // Matrix3d R;
     // R = CalcBodyWorldOrientation(*model_, q, bodyid, false);
     // J.block(0,0, 3, model_->qdot_size) = R.transpose() * J.block(0,0, 3, model_->qdot_size);
-
 }
 
 void Valkyrie_Kin_Model::getJacobianDot6D_Numeric(const Vector & q, const Vector & qdot, int link_id, Matrix & Jdot){

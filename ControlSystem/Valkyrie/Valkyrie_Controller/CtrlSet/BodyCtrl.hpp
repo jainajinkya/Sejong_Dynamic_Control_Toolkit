@@ -25,7 +25,7 @@ protected:
   WBDC_ExtraData* wbdc_data_;
   WBDC_Task* body_task_;
   WBDC_ContactSpec* foot_contact_;
-  
+
   sejong::Vect3 body_pos_ini_;
 
   sejong::Vect2 body_lin_amp_;

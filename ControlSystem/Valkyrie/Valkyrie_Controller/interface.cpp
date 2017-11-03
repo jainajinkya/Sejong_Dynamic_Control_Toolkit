@@ -8,6 +8,8 @@
 #include <Utils/wrap_eigen.hpp>
 
 #include <TestSet/BodyCtrlTest.hpp>
+#include <TestSet/JointCtrlTest.hpp>
+
 #include "StateProvider.hpp"
 #include <stdio.h>
 
@@ -25,7 +27,9 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&sensed_torque_, SJ_VEC, "torque", NUM_ACT_JOINT);
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
-  test_ = new BodyCtrlTest();
+  // test_ = new BodyCtrlTest();
+  test_ = new JointCtrlTest();
+
   printf("[interface] Contruct\n");
   }
 

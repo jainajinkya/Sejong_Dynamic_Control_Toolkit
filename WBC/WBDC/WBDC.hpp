@@ -10,9 +10,6 @@
 
 class WBDC_ExtraData{
  public:
-  sejong::Matrix Icam;
-  sejong::Matrix Jcam;
-  sejong::Vector JcamDotQdot;
   sejong::Vector cost_weight;
   sejong::Vector tau_min;
   sejong::Vector tau_max;

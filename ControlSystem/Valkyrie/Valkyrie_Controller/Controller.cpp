@@ -8,10 +8,15 @@
 #include <Utils/pseudo_inverse.hpp>
 #include "StateProvider.hpp"
 
-Controller::Controller()
-{
+Controller::Controller(){
+
   robot_model_ = RobotModel::GetRobotModel();
   sp_ = StateProvider::GetStateProvider();
+
+  act_list_.resize(NUM_QDOT, true);
+  for(int i(0); i<NUM_VIRTUAL; ++i){
+    act_list_[i] = false;
+  }
 }
 
 Controller::~Controller(){
@@ -22,6 +27,11 @@ void Controller::_PreProcessing_Command(){
   robot_model_->getInverseMassInertia(Ainv_);
   robot_model_->getGravity(grav_);
   robot_model_->getCoriolis(coriolis_);
+
+  state_machine_time_ = sp_->curr_time_ - ctrl_start_time_;
+
+  task_list_.clear();
+  contact_list_.clear();
 }
 
 void Controller::_PostProcessing_Command(sejong::Vector & gamma){

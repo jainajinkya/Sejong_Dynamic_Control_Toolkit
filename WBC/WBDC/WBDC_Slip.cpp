@@ -32,6 +32,4 @@ void WBDC_Slip::MakeTorque(std::vector<Task*> task_list,
     for(int i(0); i<dim_relaxed_task_; ++i){
       dim_relaxed_task_ += static_cast<WBDC_Task*>(task_list[i])->getRelaxed_Dim();
     }
-
-    dim_cam_ = (data->Icam).rows();
 }
