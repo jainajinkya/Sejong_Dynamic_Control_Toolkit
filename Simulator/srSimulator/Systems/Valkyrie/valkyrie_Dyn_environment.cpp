@@ -45,7 +45,7 @@ Valkyrie_Dyn_environment::Valkyrie_Dyn_environment():
     m_Space->SetTimestep(SERVO_RATE);
     m_Space->SetGravity(0.0,0.0,-9.81);
 
-    m_Space->SetNumberofSubstepForRendering(1);
+    m_Space->SetNumberofSubstepForRendering(20);
 
     printf("[Valkyrie Dynamic Environment] Build Dynamic Environment\n");
 }

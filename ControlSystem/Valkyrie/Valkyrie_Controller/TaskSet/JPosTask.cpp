@@ -6,8 +6,8 @@
 #include <Utils/utilities.hpp>
 
 JPosTask::JPosTask(int dim):WBDC_Task(dim),
-                            Kp_(10.0),
-                            Kd_(2.0)
+                            Kp_(150.0),
+                            Kd_(5.0)
 {
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();

@@ -28,7 +28,7 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // Dimension Setting
   dim_opt_ = dim_rf_ + dim_relaxed_task_;
   dim_eq_cstr_ = num_passive_;
-  dim_ieq_cstr_ = dim_rf_cstr_;// + 2*num_act_joint_;
+  dim_ieq_cstr_ = dim_rf_cstr_ + 2*num_act_joint_;
 
   // Matrix Setting
   _MatrixInitialization();
@@ -39,10 +39,10 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // Inequality Constraint Setting
   _SetInEqualityConstraint();
 
-  printf("G:\n");
-  std::cout<<G<<std::endl;
-  printf("g0:\n");
-  std::cout<<g0<<std::endl;
+  // printf("G:\n");
+  // std::cout<<G<<std::endl;
+  // printf("g0:\n");
+  // std::cout<<g0<<std::endl;
 
   // printf("CE:\n");
   // std::cout<<CE<<std::endl;
@@ -71,9 +71,6 @@ void WBDC::_SetEqualityConstraint(){
 
   sj_ce0.head(num_passive_) = Sv_ * tot_tau_Vect_;
 
-  sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
-  sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
-
   for(int i(0); i< dim_eq_cstr_; ++i){
     for(int j(0); j<dim_opt_; ++j){
       CE[j][i] = sj_CE(i,j);
@@ -94,14 +91,14 @@ void WBDC::_SetInEqualityConstraint(){
   sj_CI.block(0,0, dim_rf_cstr_, dim_rf_) = Uf_;
   (sj_ci0.head(dim_rf_cstr_)).setZero();
 
-  // // Torque min & max
-  // // min
-  // sj_CI.block(dim_rf_cstr_, 0, num_act_joint_, dim_opt_) = Sa_ * tot_tau_Mtx_;
-  // sj_ci0.segment(dim_rf_cstr_, num_act_joint_) = Sa_ * tot_tau_Vect_ - data_->tau_min;
+  // Torque min & max
+  // min
+  sj_CI.block(dim_rf_cstr_, 0, num_act_joint_, dim_opt_) = Sa_ * tot_tau_Mtx_;
+  sj_ci0.segment(dim_rf_cstr_, num_act_joint_) = Sa_ * tot_tau_Vect_ - data_->tau_min;
 
-  // // max
-  // sj_CI.block(dim_rf_cstr_ + num_act_joint_, 0, num_act_joint_, dim_opt_) = -Sa_ * tot_tau_Mtx_;
-  // sj_ci0.tail(num_act_joint_) = -Sa_ * tot_tau_Vect_ + data_->tau_max;
+  // max
+  sj_CI.block(dim_rf_cstr_ + num_act_joint_, 0, num_act_joint_, dim_opt_) = -Sa_ * tot_tau_Mtx_;
+  sj_ci0.tail(num_act_joint_) = -Sa_ * tot_tau_Vect_ + data_->tau_max;
 
   for(int i(0); i< dim_ieq_cstr_; ++i){
     for(int j(0); j<dim_opt_; ++j){
@@ -109,8 +106,8 @@ void WBDC::_SetInEqualityConstraint(){
     }
     ci0[i] = sj_ci0[i];
   }
-  sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
-  sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
+  // sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
+  // sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
 }
 
 void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
@@ -179,6 +176,7 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
   _WeightedInverse(Jt, Ainv_, Jt_inv);
   B_ = Jt_inv;
   c_ = Jt_inv * JtDotQdot;
+
   task_cmd_ = sejong::Vector::Zero(dim_rf_);
   Npre = sejong::Matrix::Identity(num_qdot_, num_qdot_) - Jt_inv * Jt;
   tot_task_size += dim_rf_;
@@ -229,11 +227,10 @@ void WBDC::_TaskHierarchyBuilding(const std::vector<Task*> & task_list){
       dim_relaxed_task_ += dim_relax;
     }
   }
-  c_.setZero();
-  sejong::pretty_print(B_, std::cout, "WBDC: B");
-  sejong::pretty_print(c_, std::cout, "WBDC: c");
-  sejong::pretty_print(task_cmd_, std::cout, "WBDC: task cmd");
-  sejong::pretty_print(S_delta_, std::cout, "tot S delta");
+  // sejong::pretty_print(B_, std::cout, "WBDC: B");
+  // sejong::pretty_print(c_, std::cout, "WBDC: c");
+  // sejong::pretty_print(task_cmd_, std::cout, "WBDC: task cmd");
+  // sejong::pretty_print(S_delta_, std::cout, "tot S delta");
 }
 
 void WBDC::_GetSolution(sejong::Vector & cmd){
@@ -242,8 +239,8 @@ void WBDC::_GetSolution(sejong::Vector & cmd){
   sejong::Vector tot_tau = tot_tau_Mtx_*result + tot_tau_Vect_;
   cmd = tot_tau.tail(num_act_joint_);
 
-  sejong::pretty_print(result, std::cout, "opt result");
-  sejong::pretty_print(tot_tau, std::cout, "tot tau result");
+  // sejong::pretty_print(result, std::cout, "opt result");
+  // sejong::pretty_print(tot_tau, std::cout, "tot tau result");
 }
 
 void WBDC::_MatrixInitialization(){
@@ -255,8 +252,7 @@ void WBDC::_MatrixInitialization(){
   } else {
     tot_tau_Mtx_ =  -Jc_.transpose();
   }
-  // tot_tau_Vect_ = A_*B_*task_cmd_ + A_*c_ + cori_ + grav_;
-  tot_tau_Vect_ =  cori_ + grav_;
+  tot_tau_Vect_ = A_*B_*task_cmd_ + A_*c_ + cori_ + grav_;
 
   G.resize(dim_opt_, dim_opt_);
   g0.resize(dim_opt_);

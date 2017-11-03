@@ -42,7 +42,7 @@ void New_Valkyrie::_SetCollision(){
   link_[link_idx_map_.find("rightFoot")->second]->AddCollision(collision_[0]);
   link_[link_idx_map_.find("leftFoot")->second]->AddCollision(collision_[1]);
 
-  double fric(0.1);
+  double fric(0.8);
   link_[link_idx_map_.find("rightFoot")->second]->SetFriction(fric);
   link_[link_idx_map_.find("leftFoot")->second]->SetFriction(fric);
 

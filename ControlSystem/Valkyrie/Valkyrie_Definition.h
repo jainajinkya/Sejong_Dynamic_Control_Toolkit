@@ -60,18 +60,12 @@ enum SJLinkID{
 };
 
 enum SJJointID{
-    VIRTUAL_X = 0,
-    VIRTUAL_Y = 1,
-    VIRTUAL_Z = 2,
-    VIRTUAL_Rx = 3,
-    VIRTUAL_Ry = 4,
-    VIRTUAL_Rz = 5,
-    leftHipYaw = 6,
-    leftHipRoll = 7  ,
-    leftHipPitch = 8 ,
-    leftKneePitch = 9 ,
-    leftAnklePitch = 10,
-    leftAnkleRoll = 11,
+    leftHipYaw = 0,
+    leftHipRoll = 1  ,
+    leftHipPitch = 2 ,
+    leftKneePitch,
+    leftAnklePitch,
+    leftAnkleRoll,
     rightHipYaw   ,
     rightHipRoll  ,
     rightHipPitch ,
@@ -81,21 +75,21 @@ enum SJJointID{
     torsoYaw             ,
     torsoPitch           ,
     torsoRoll            ,
-    leftShoulderPitch = 21,
+    leftShoulderPitch,
     leftShoulderRoll     ,
     leftShoulderYaw      ,
     leftElbowPitch       ,
-    leftForearmYaw = 25  ,
+    leftForearmYaw  ,
     /* leftWristRoll        , */
     /* leftWristPitch       , */
     lowerNeckPitch  , 
     neckYaw         , 
     upperNeckPitch  , 
-    rightShoulderPitch = 29, 
+    rightShoulderPitch, 
     rightShoulderRoll , 
     rightShoulderYaw  , 
     rightElbowPitch   , 
-    rightForearmYaw = 33 , 
+    rightForearmYaw 
     /* rightWristRoll    ,  */
     /* rightWristPitch    */
 };

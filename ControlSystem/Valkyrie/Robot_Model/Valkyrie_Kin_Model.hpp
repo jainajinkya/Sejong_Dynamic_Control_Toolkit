@@ -22,7 +22,6 @@ public:
 
   void getJacobian(const Vector & q, int link_id, Matrix & J);
 
-  void getJacobianDot6D_Numeric(const Vector & q, const  Vector & qdot, int link_id, Matrix & J);
   void getJacobianDot6D_Analytic(const Vector & q, const Vector & qdot, int link_id, Matrix & J);
 
     void getCoMJacobian  (const Vector & q, Matrix & J) const;

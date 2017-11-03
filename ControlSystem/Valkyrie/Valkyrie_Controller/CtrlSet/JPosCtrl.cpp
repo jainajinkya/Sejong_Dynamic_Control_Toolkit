@@ -45,18 +45,30 @@ void JPosCtrl::_jpos_task_setup(){
   sejong::Vector jvel_des(NUM_ACT_JOINT); jvel_des.setZero();
   sejong::Vector jacc_des(NUM_ACT_JOINT); jacc_des.setZero();
 
-  jpos_task_->UpdateTask(&(jpos_ini_), jvel_des, jacc_des);
+  double amp (0.2);
+  double omega (2. * M_PI * 2.0);
+  int jidx = SJJointID::leftShoulderPitch;
+  jpos_des[jidx] += amp * sin(omega * state_machine_time_);
+  jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
+  jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);
+  jidx = SJJointID::torsoYaw;
+  jpos_des[jidx] += amp * sin(omega * state_machine_time_);
+  jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
+  jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);
+  jpos_task_->UpdateTask(&(jpos_des), jvel_des, jacc_des);
 
   // set relaxed op direction
   // cost weight setup
   // bool b_height_relax(false);
   std::vector<bool> relaxed_op(jpos_task_->getDim(), false);
-  jpos_task_->setRelaxedOpCtrl(relaxed_op);
+  relaxed_op[SJJointID::torsoYaw] = true;
+  
+  int prev_size(wbdc_data_->cost_weight.rows());
+  wbdc_data_->cost_weight.conservativeResize( prev_size + 1);
+  wbdc_data_->cost_weight[prev_size] = 50.;
 
-  // int prev_size(wbdc_data_->cost_weight.rows());
-  // wbdc_data_->cost_weight.conservativeResize( prev_size + 2);
-  // wbdc_data_->cost_weight[prev_size] = 500.;
   // wbdc_data_->cost_weight[prev_size+1] = 500.;
+  jpos_task_->setRelaxedOpCtrl(relaxed_op);
 
   // Push back to task list
   task_list_.push_back(jpos_task_);
