@@ -99,9 +99,7 @@ void Walker2D_Kin_Model::getCoMJacobian(const sejong::Vector & Q, sejong::Matrix
     mass = model_->mBodies[i].mMass;
     // CoM Jacobian Update
     J.setZero();
-    CalcPointJacobian(*model_, Q, i, model_->mBodies[i].mCenterOfMass, J, false);// TODO: Check whether CoM or Zero vector is correct
-    // CalcPointJacobian(*model_, Q, i, zero_vector, J, false);
-    // CalcBodySpatialJacobian(*model_, Q, i, J, false);
+    CalcPointJacobian(*model_, Q, i, model_->mBodies[i].mCenterOfMass, J, false);
     Jcom +=  mass * J;
     tot_mass += mass;
   }

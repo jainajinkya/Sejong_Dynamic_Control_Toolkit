@@ -3,7 +3,6 @@
 
 #include <rbdl/rbdl.h>
 #include <Utils/wrap_eigen.hpp>
-#include <WBLC/WBLC_Model.h>
 
 class Valkyrie_Dyn_Model;
 class Valkyrie_Kin_Model;

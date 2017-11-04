@@ -5,12 +5,15 @@
 
 #include <Utils/utilities.hpp>
 
-JPosTask::JPosTask(int dim):WBDC_Task(dim),
-                            Kp_(500.0),
-                            Kd_(50.0)
+JPosTask::JPosTask():WBDC_Task(NUM_ACT_JOINT),
+                     Kp_(100.0),
+                     Kd_(10.0)
 {
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();
+  Jt_ = sejong::Matrix(NUM_ACT_JOINT, NUM_QDOT);
+  JtDotQdot_ = sejong::Vector(NUM_ACT_JOINT);
+  // printf("[JPos Task] Constructed\n");
 }
 
 JPosTask::~JPosTask(){}
@@ -30,14 +33,13 @@ bool JPosTask::_UpdateCommand(void* pos_des,
 }
 
 bool JPosTask::_UpdateTaskJacobian(){
-  Jt_ = sejong::Matrix(NUM_ACT_JOINT, NUM_QDOT);
   Jt_.setZero();
   (Jt_.block(0, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT)).setIdentity();
-  // sejong::pretty_print(Jt_, std::cout, "Jt");
+
   return true;
 }
 
 bool JPosTask::_UpdateTaskJDotQdot(){
-  JtDotQdot_ = sejong::Vector::Zero(NUM_ACT_JOINT);
+  JtDotQdot_.setZero();
   return true;
 }

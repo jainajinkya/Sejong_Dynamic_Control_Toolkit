@@ -12,8 +12,10 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   static StateProvider* GetStateProvider();
-
   ~StateProvider(){}
+
+  // Important!!!!!!!!
+  int stance_foot_;
 
   bool initialized_;
   double curr_time_;

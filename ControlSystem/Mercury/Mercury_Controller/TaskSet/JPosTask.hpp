@@ -6,10 +6,10 @@
 class StateProvider;
 class RobotModel;
 
-class BodyTask: public WBDC_Task{
+class JPosTask: public WBDC_Task{
 public:
-  BodyTask(); // 4 dim: Rx, Ry, Rz, Z
-  virtual ~BodyTask();
+  JPosTask();
+  virtual ~JPosTask();
 
 protected:
   // Update op_cmd_

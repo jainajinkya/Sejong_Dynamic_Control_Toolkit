@@ -1,18 +1,17 @@
-#ifndef MERCURY_CONTROLLER
-#define MERCURY_CONTROLLER
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
 #include <Utils/wrap_eigen.hpp>
-#include <string>
 
-class MercuryModel;
+class RobotModel;
 class StateProvider;
 class Task;
 class ContactSpec;
 
-class MercuryController{
+class Controller{
 public:
-  MercuryController();
-  virtual ~MercuryController();
+  Controller();
+  virtual ~Controller();
 
   virtual void OneStep(sejong::Vector & gamma) = 0;
   virtual void FirstVisit() = 0;
@@ -27,7 +26,7 @@ protected:
   void _DynConsistent_Inverse(const sejong::Matrix & J, sejong::Matrix & Jinv);
 
   StateProvider* sp_;
-  MercuryModel* robot_model_;
+  RobotModel* robot_model_;
 
   sejong::Matrix A_;
   sejong::Matrix Ainv_;

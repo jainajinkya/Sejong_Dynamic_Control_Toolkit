@@ -69,6 +69,9 @@ void User_SimulationSetting()
 	gViewer.SetKeyFunc(User_CBFunc_Run_DYN, 'P');
 	gViewer.SetKeyFunc(User_CBFunc_Run_DYN, 'p');
 
+  gViewer.SetKeyFunc(User_Simulation_Go_One_Step, 'F');
+  gViewer.SetKeyFunc(User_Simulation_Go_One_Step, 'f');
+
 	gViewer.SetKeyFunc(User_CBFunc_Pause_DYN, 'O');
 	gViewer.SetKeyFunc(User_CBFunc_Pause_DYN, 'o');
   gViewer.SetKeyFunc(User_CBFunc_Forward, 'w');

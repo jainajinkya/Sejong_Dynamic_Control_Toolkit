@@ -1,14 +1,11 @@
-#ifndef INTERFACE_MERCURY
-#define INTERFACE_MERCURY
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #include <Utils/wrap_eigen.hpp>
 #include <Configuration.h>
 #include "StateEstimator.hpp"
 
-#include <map>
-#include <string>
-
-class MercuryTest;
+class Test;
 
 class interface{
 public:
@@ -21,9 +18,10 @@ public:
   void GetReactionForce(std::vector<sejong::Vect3> & reaction_force );
 
 private:
-  bool _Initialization(_DEF_SENSOR_DATA_, std::vector<double> & command);
-  MercuryTest* mercury_test_;
+  bool _Initialization(_DEF_SENSOR_DATA_);
+  Test* test_;
 
+  sejong::Vector virtual_sensor_;
   sejong::Vector torque_command_;
   sejong::Vector sensed_torque_;
   int count_;

@@ -1,17 +1,15 @@
 #include "interface.hpp"
 #include <stdio.h>
-
 #include <math.h>
 
 #include <Utils/utilities.hpp>
 #include <Utils/DataManager.hpp>
 #include <Utils/wrap_eigen.hpp>
+#include "StateProvider.hpp"
 
+// TEST SET LIST
 #include <TestSet/BodyCtrlTest.hpp>
 #include <TestSet/JointCtrlTest.hpp>
-
-#include "StateProvider.hpp"
-#include <stdio.h>
 
 #if MEASURE_TIME
 #include <chrono>
@@ -19,14 +17,16 @@
 
 interface::interface():
   count_(0), running_time_(0.0),
-  initial_jpos_(NUM_ACT_JOINT),
   torque_command_(NUM_ACT_JOINT),
   sensed_torque_(NUM_ACT_JOINT) {
+
   sensed_torque_.setZero();
   torque_command_.setZero();
+  DataManager::GetDataManager()->RegisterData(&running_time_, DOUBLE, "running_time");
   DataManager::GetDataManager()->RegisterData(&sensed_torque_, SJ_VEC, "torque", NUM_ACT_JOINT);
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
+  // TEST SETUP
   // test_ = new BodyCtrlTest();
   test_ = new JointCtrlTest();
 
@@ -34,10 +34,11 @@ interface::interface():
   }
 
 interface::~interface(){
+  delete test_;
 }
 
 void interface::GetCommand(_DEF_SENSOR_DATA_,
-                              std::vector<double> & command){
+                           std::vector<double> & command){
   if(!_Initialization(_VAR_SENSOR_DATA_)){
 #if MEASURE_TIME
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -59,6 +60,7 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
   }
   running_time_ = (double)(count_) * SERVO_RATE;
   ++count_;
+  // When there is sensed time
   StateProvider::GetStateProvider()->curr_time_ = time;
 }
 void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
@@ -71,9 +73,6 @@ bool interface::_Initialization(_DEF_SENSOR_DATA_){
     state_estimator_.Initialization(_VAR_SENSOR_DATA_);
     test_->TestInitialization();
 
-    for (int i(0); i<NUM_ACT_JOINT; ++i){
-      initial_jpos_[i] = jpos[i];
-    }
     return true;
   }
   DataManager::GetDataManager()->start();

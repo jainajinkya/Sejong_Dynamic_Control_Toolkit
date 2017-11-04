@@ -1,13 +1,13 @@
-#include "MercuryTest.hpp"
-#include "MercuryController.hpp"
+#include "Test.hpp"
+#include "Controller.hpp"
 
-MercuryTest::MercuryTest():b_first_visit_(true){
+Test::Test():b_first_visit_(true){
 }
 
-MercuryTest::~MercuryTest(){
+Test::~Test(){
 }
 
-void MercuryTest::getTorqueInput(sejong::Vector & gamma){
+void Test::getTorqueInput(sejong::Vector & gamma){
   if(b_first_visit_){
     state_list_[phase_]->FirstVisit();
     b_first_visit_ = false;

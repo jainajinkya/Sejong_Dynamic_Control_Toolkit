@@ -1,21 +1,21 @@
-#ifndef FOOT_CONTACT
-#define FOOT_CONTACT
+#ifndef FIXED_BODY_CONTACT
+#define FIXED_BODY_CONTACT
 
 #include <WBDC/WBDC_ContactSpec.hpp>
-class MercuryModel;
+class RobotModel;
 class StateProvider;
 
-class FootContact: public WBDC_ContactSpec{
+class FixedBodyContact: public WBDC_ContactSpec{
 public:
-  FootContact(int dim);
-  virtual ~FootContact();
+  FixedBodyContact();
+  virtual ~FixedBodyContact();
 
 protected:
   virtual bool _UpdateJc();
   virtual bool _UpdateJcDotQdot();
   virtual bool _UpdateUf();
 
-  MercuryModel* model_;
+  RobotModel* model_;
   StateProvider* sp_;
 };
 

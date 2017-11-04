@@ -18,6 +18,7 @@ Mercury_Kin_Model::Mercury_Kin_Model( RigidBodyDynamics::Model* model){
 
 Mercury_Kin_Model::~Mercury_Kin_Model(){
 }
+
 void Mercury_Kin_Model::UpdateKinematics(const sejong::Vector & q, const sejong::Vector & qdot){
   _UpdateCentroidFrame(q, qdot);
 }
@@ -84,7 +85,6 @@ void Mercury_Kin_Model::_UpdateCentroidFrame(const sejong::Vector & q, const sej
   centroid_vel_ = Jg_ * qdot;
 }
 
-
 void Mercury_Kin_Model::getCoMJacobian(const sejong::Vector & Q, sejong::Matrix & Jcom) const {
   Vector3d zero_vector = Vector3d::Zero();
 
@@ -99,9 +99,7 @@ void Mercury_Kin_Model::getCoMJacobian(const sejong::Vector & Q, sejong::Matrix 
     mass = model_->mBodies[i].mMass;
     // CoM Jacobian Update
     J.setZero();
-    CalcPointJacobian(*model_, Q, i, model_->mBodies[i].mCenterOfMass, J, false);// TODO: Check whether CoM or Zero vector is correct
-    // CalcPointJacobian(*model_, Q, i, zero_vector, J, false);
-    // CalcBodySpatialJacobian(*model_, Q, i, J, false);
+    CalcPointJacobian(*model_, Q, i, model_->mBodies[i].mCenterOfMass, J, false);
     Jcom +=  mass * J;
     tot_mass += mass;
   }
@@ -227,9 +225,6 @@ void Mercury_Kin_Model::getJacobian(const Vector & q, int link_id, Matrix &J){
                         model_->mBodies[bodyid].mCenterOfMass,
                         J, false);
   }
-  Matrix3d R;
-  // R = CalcBodyWorldOrientation(*model_, q, bodyid, false);
-  // J.block(0,0, 3, model_->qdot_size) = R.transpose() * J.block(0,0, 3, model_->qdot_size);
 }
 
 void Mercury_Kin_Model::getJacobianDot6D_Analytic(const Vector & q, const Vector & qdot, int link_id, Matrix & J){
@@ -254,6 +249,10 @@ unsigned int Mercury_Kin_Model::_find_body_idx(int id) const {
   switch(id){
   case LK_Body:
     return model_->GetBodyId("body");
+  case LK_LFOOT:
+    return model_->GetBodyId("lfoot");
+  case LK_RFOOT:
+    return model_->GetBodyId("rfoot");
   }
   return (unsigned int)(id + 2);
 }

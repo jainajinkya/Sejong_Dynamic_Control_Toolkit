@@ -1,15 +1,15 @@
-#ifndef MERCURY_TEST
-#define MERCURY_TEST
+#ifndef TEST_H
+#define TEST_H
 
 #include <Utils/wrap_eigen.hpp>
 #include <Configuration.h>
 
-class MercuryController;
+class Controller;
 
-class MercuryTest{
+class Test{
 public:
-  MercuryTest();
-  virtual ~MercuryTest();
+  Test();
+  virtual ~Test();
 
   virtual void TestInitialization() = 0;
   void getTorqueInput(sejong::Vector & gamma);
@@ -19,7 +19,7 @@ protected:
 
   bool b_first_visit_;
   int phase_;
-  std::vector<MercuryController*> state_list_;
+  std::vector<Controller*> state_list_;
 };
 
 

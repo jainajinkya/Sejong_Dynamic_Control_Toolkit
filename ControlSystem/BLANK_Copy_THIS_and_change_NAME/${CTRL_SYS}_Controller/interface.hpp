@@ -5,9 +5,6 @@
 #include <Configuration.h>
 #include "StateEstimator.hpp"
 
-#include <map>
-#include <string>
-
 class Test;
 
 class interface{

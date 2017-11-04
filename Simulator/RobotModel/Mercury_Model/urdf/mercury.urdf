@@ -11,7 +11,7 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/Updated_torso.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="1.57 0 1.57" xyz="-.415 -0.21 -0.07"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-.415 -0.21 -0.07"/>
     </visual>
   </link>
   <!-- IMU -->
@@ -102,7 +102,7 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/abduction.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.167 -0.083 -0.043"/>
     </visual>
   </link>
 
@@ -120,9 +120,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh_R.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.106 -0.062 -0.495"/>
     </visual>
   </link>
 
@@ -142,13 +142,13 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/Updated_shin.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.0756 0" xyz="-0.246 0.0565 -0.093"/>
     </visual>
   </link>
 
-  <joint name="fixed_rfoot" type="fixed">
+  <joint name="ankle_r" type="continuous">
     <axis xyz="0 1 0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.440"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.476"/>
     <parent link="shank_r"/>
     <child link="rfoot" />
   </joint>
@@ -160,9 +160,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/foot.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_foot.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.3808 0" xyz="-0.184 0.0558 0.398"/>
     </visual>
   </link>
 
@@ -183,7 +183,7 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/abduction.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.167 -0.083 -0.043"/>
     </visual>
   </link>
 
@@ -201,9 +201,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/thigh.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.106 -0.062 -0.495"/>
     </visual>
   </link>
 
@@ -222,15 +222,15 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/shank.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_shin.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.0756 0" xyz="-0.246 0.0565 -0.093"/>
     </visual>
   </link>
 
-  <joint name="fixed_lfoot" type="fixed">
+  <joint name="ankle_l" type="continuous">
     <axis xyz="0 1 0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.44"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.476"/>
     <parent link="shank_l"/>
     <child link="lfoot" />
   </joint>
@@ -242,9 +242,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/foot.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_foot.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.3808 0" xyz="-0.184 0.0558 0.398"/>
     </visual>
   </link>
 

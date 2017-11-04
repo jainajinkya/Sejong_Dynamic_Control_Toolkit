@@ -1,13 +1,13 @@
-#include "ValkyrieTest.hpp"
-#include "ValkyrieController.hpp"
+#include "Test.hpp"
+#include "Controller.hpp"
 
-ValkyrieTest::ValkyrieTest():b_first_visit_(true){
+Test::Test():b_first_visit_(true){
 }
 
-ValkyrieTest::~ValkyrieTest(){
+Test::~Test(){
 }
 
-void ValkyrieTest::getTorqueInput(sejong::Vector & gamma){
+void Test::getTorqueInput(sejong::Vector & gamma){
   if(b_first_visit_){
     state_list_[phase_]->FirstVisit();
     b_first_visit_ = false;

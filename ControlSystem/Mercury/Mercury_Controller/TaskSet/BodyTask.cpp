@@ -1,26 +1,27 @@
 #include "BodyTask.hpp"
 #include <Configuration.h>
 #include <StateProvider.hpp>
-#include <Mercury_Model/MercuryModel.hpp>
+#include <Robot_Model/RobotModel.hpp>
 
 #include <Utils/utilities.hpp>
 
-BodyTask::BodyTask(int dim):WBDC_Task(dim),
-                            Kp_(100.0),
-                            Kd_(10.0)
+BodyTask::BodyTask():WBDC_Task(4),
+                     Kp_(100.0),
+                     Kd_(10.0)
 {
   sp_ = StateProvider::GetStateProvider();
-  model_ = MercuryModel::GetMercuryModel();
-
+  model_ = RobotModel::GetRobotModel();
+  Jt_ = sejong::Matrix(dim_task_, NUM_QDOT);
   // printf("[Body Task] Constructed\n");
 }
 
 BodyTask::~BodyTask(){}
 
+// TODO
 bool BodyTask::_UpdateCommand(void* pos_des,
                               const sejong::Vector & vel_des,
                               const sejong::Vector & acc_des){
-  sejong::Vect3* pos_cmd = (sejong::Vect3*)pos_des;
+  sejong::Vector* pos_cmd = (sejong::Vector*)pos_des;
   op_cmd_ = acc_des + Kp_ * (*pos_cmd - sp_->Body_pos_) + Kd_ * (vel_des - sp_->Body_vel_);
 
   // sejong::pretty_print(op_cmd_, std::cout, "op cmd");

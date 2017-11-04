@@ -1,2 +1,2 @@
 add_subdirectory(${CTRL_SYS}_Controller)
-add_subdirectory(${CTRL_SYS}_Model)
+add_subdirectory(Robot_Model)

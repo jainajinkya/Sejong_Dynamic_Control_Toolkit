@@ -5,7 +5,7 @@
 #include <Utils/wrap_eigen.hpp>
 
 class StateProvider;
-class MercuryModel;
+class RobotModel;
 class filter;
 
 class StateEstimator{
@@ -21,7 +21,7 @@ protected:
     SJLinkID fixed_foot_;
     sejong::Vect3 foot_pos_;
     StateProvider* sp_;
-    MercuryModel* robot_model_;
+    RobotModel* robot_model_;
 
     std::vector<filter*> jvel_filter_;
 };

@@ -1,16 +1,17 @@
-#ifndef BODY_CONTROL
-#define BODY_CONTROL
+#ifndef JOINT_POSITION_CTRL
+#define JOINT_POSITION_CTRL
 
 #include <Controller.hpp>
+
 class WBDC;
 class WBDC_ExtraData;
 class WBDC_Task;
 class WBDC_ContactSpec;
 
-class BodyCtrl: public Controller{
+class JPosCtrl: public Controller{
 public:
-  BodyCtrl();
-  virtual ~BodyCtrl();
+  JPosCtrl();
+  virtual ~JPosCtrl();
 
   virtual void OneStep(sejong::Vector & gamma);
   virtual void FirstVisit();
@@ -22,18 +23,13 @@ public:
 protected:
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
-  WBDC_Task* body_task_;
-  WBDC_ContactSpec* double_contact_;
+  WBDC_Task* jpos_task_;
+  WBDC_ContactSpec* fixed_body_contact_;
 
-  sejong::Vect3 body_pos_ini_;
+  sejong::Vector jpos_ini_;
 
-  sejong::Vect2 body_lin_amp_;
-  sejong::Vect2 body_lin_omega_;
-
-  double end_time_;
-  void _body_task_setup();
-  void _double_contact_setup();
-  void _body_ctrl(sejong::Vector & gamma);
+  void _jpos_task_setup();
+  void _fixed_body_contact_setup();
   void _jpos_ctrl(sejong::Vector & gamma);
 };
 
