@@ -1,5 +1,4 @@
 SET (ModelPath ${PROJECT_SOURCE_DIR}/Simulator/RobotModel/${CTRL_SYS}_Model/)
-SET (RECORD_SIMULATION 0)
 
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
@@ -29,6 +28,7 @@ endif()
 
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Simulator/srSimulator/srconfig.h.cmake ${PROJECT_SOURCE_DIR}/Simulator/srSimulator/srConfiguration.h)
 
+
 include_directories ("${PROJECT_SOURCE_DIR}/Simulator/srSimulator")
 add_subdirectory(Renderer)
 add_subdirectory(srDyn)
@@ -40,5 +40,6 @@ add_subdirectory(libpng)
 add_subdirectory(srSysGenerator)
 add_subdirectory(Systems/${CTRL_SYS})
 if(RECORD_SIMULATION)
+MESSAGE("RECORDING_SIMULATION")
   add_subdirectory(OpenGLRecorder)
 endif()

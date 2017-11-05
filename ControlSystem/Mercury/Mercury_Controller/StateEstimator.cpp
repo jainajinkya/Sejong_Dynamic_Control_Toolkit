@@ -17,7 +17,6 @@ StateEstimator::~StateEstimator(){
 }
 
 void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
-
   for (int i(0); i<NUM_ACT_JOINT; ++i){
     sp_->Q_[NUM_VIRTUAL + i] = jpos[i];
     jvel_filter_[i]->input(jpos[i]);
@@ -39,7 +38,6 @@ void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
   robot_model_->getPosition(sp_->Q_, SJLinkID::LK_Body, sp_->Body_pos_);
   robot_model_->getVelocity(sp_->Q_, sp_->Qdot_, SJLinkID::LK_Body, sp_->Body_vel_);
-
 }
 
 void StateEstimator::Update(_DEF_SENSOR_DATA_){

@@ -42,7 +42,7 @@ void Mercury::_SetInitialConf()
     r_joint_[3]->m_State.m_rValue[0] = 0.;
 
     //left abduction
-    r_joint_[4]->m_State.m_rValue[0] = 0.0;
+    r_joint_[4]->m_State.m_rValue[0] = 0.05;
     //left hip
     r_joint_[5]->m_State.m_rValue[0] = 0.3;
     //left knee

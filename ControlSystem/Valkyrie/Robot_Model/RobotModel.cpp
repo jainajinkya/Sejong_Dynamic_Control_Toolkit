@@ -77,7 +77,7 @@ void RobotModel::getFullJacobianDot(const Vector & q, const Vector & qdot, int l
 }
 
 void RobotModel::getPosition(const Vector & q,
-                            int link_id, Vect3 & pos) {
+                             int link_id, Vect3 & pos) {
     kin_model_->getPosition(q, link_id, pos);
 }
 void RobotModel::getOrientation(const Vector & q,

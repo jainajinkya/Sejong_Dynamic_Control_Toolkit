@@ -32,7 +32,7 @@ void JPosCtrl::OneStep(sejong::Vector & gamma){
   _fixed_body_contact_setup();
   _jpos_task_setup();
   _jpos_ctrl(gamma);
-
+  
   _PostProcessing_Command(gamma);
 }
 
@@ -46,13 +46,23 @@ void JPosCtrl::_jpos_task_setup(){
   sejong::Vector jvel_des(NUM_ACT_JOINT); jvel_des.setZero();
   sejong::Vector jacc_des(NUM_ACT_JOINT); jacc_des.setZero();
 
-  double amp (0.0);
+  double amp (0.4);
   double omega (2. * M_PI * 1.0);
   int jidx = SJJointID::RKnee;
   jpos_des[jidx] += amp * sin(omega * state_machine_time_);
   jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
   jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);
   jidx = SJJointID::LKnee;
+  jpos_des[jidx] += amp * sin(omega * state_machine_time_);
+  jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
+  jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);
+
+  jidx = SJJointID::RHip;
+  jpos_des[jidx] += amp * sin(omega * state_machine_time_);
+  jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
+  jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);
+  jidx = SJJointID::LHip;
+  amp *= -1.;
   jpos_des[jidx] += amp * sin(omega * state_machine_time_);
   jvel_des[jidx] = amp * omega * cos(omega * state_machine_time_);
   jacc_des[jidx] = -amp * omega * omega * sin(omega * state_machine_time_);

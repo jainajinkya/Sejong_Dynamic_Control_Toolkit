@@ -6,8 +6,8 @@
 #include <Utils/utilities.hpp>
 
 JPosTask::JPosTask():WBDC_Task(NUM_ACT_JOINT),
-                     Kp_(100.0),
-                     Kd_(10.0)
+                     Kp_(200.0),
+                     Kd_(15.0)
 {
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();

@@ -38,6 +38,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 #------------------------------------------------------------------------
 #     Simulator Selection
 #------------------------------------------------------------------------
+SET (RECORD_SIMULATION 0)
 add_subdirectory (Simulator/srSimulator)
 # add_subdirectory (Simulator/RBDL_simulator)
 
@@ -59,7 +60,6 @@ add_subdirectory(Tests) # For unit testing with googletest
 #------------------------------------------------------------------------
 SET (THIS_COM "${PROJECT_SOURCE_DIR}/" )
 SET (DEFINITION_FILE "ControlSystem/${CTRL_SYS}/${CTRL_SYS}_Definition.h")
-SET (RECORD_SIMULATION 0)
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/config.h.cmake ${PROJECT_SOURCE_DIR}/Configuration.h)
 
 

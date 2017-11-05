@@ -54,8 +54,8 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // printf("ci0:\n");
   // std::cout<<ci0<<std::endl;
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
-  std::cout << "f: " << f << std::endl;
-  std::cout << "x: " << z << std::endl;
+  // std::cout << "f: " << f << std::endl;
+  // std::cout << "x: " << z << std::endl;
 
   _GetSolution(cmd);
 }
@@ -77,8 +77,8 @@ void WBDC::_SetEqualityConstraint(){
     }
     ce0[i] = sj_ce0[i];
   }
-  sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
-  sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
+  // sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
+  // sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
 }
 
 void WBDC::_SetInEqualityConstraint(){
@@ -253,6 +253,7 @@ void WBDC::_MatrixInitialization(){
     tot_tau_Mtx_ =  -Jc_.transpose();
   }
   tot_tau_Vect_ = A_*B_*task_cmd_ + A_*c_ + cori_ + grav_;
+  // tot_tau_Vect_ =  cori_ + grav_;
 
   G.resize(dim_opt_, dim_opt_);
   g0.resize(dim_opt_);

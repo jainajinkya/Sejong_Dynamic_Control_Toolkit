@@ -37,6 +37,7 @@ void srRecorder::CaptureCurrentScreen(int fps){
 }
 
 void srRecorder::_InitiateSetup(int fps){
+  printf("Initializing Recording\n");
   remove(THIS_COM"experiment_data/video_output.avi");
   writer_ = cvCreateVideoWriter(THIS_COM"experiment_data/video_output.avi", CV_FOURCC('X', '2', '6', '4'), fps, cvSize(img_width_, img_height_), 1);
 

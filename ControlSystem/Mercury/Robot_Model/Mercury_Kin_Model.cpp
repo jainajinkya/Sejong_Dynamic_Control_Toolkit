@@ -158,6 +158,7 @@ void Mercury_Kin_Model::getPosition(const Vector & q, int link_id, Vect3 & pos){
   }
 
   pos = CalcBodyToBaseCoordinates(*model_, q, _find_body_idx(link_id), zero, false);
+
 }
 
 void Mercury_Kin_Model::getOrientation(const Vector & q, int link_id, sejong::Quaternion & ori){
