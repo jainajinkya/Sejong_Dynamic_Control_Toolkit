@@ -21,13 +21,10 @@
 ////////////////////////////////////////////////
 
 
-class ObstacleBuilder;
-class Obstacle;
-class Interface;
+class interface;
 class srSpace;
 class Ground;
 class SR_Valkyrie;
-class srBlockTerrain;
 class sr3DImportSystem;
 
 
@@ -47,31 +44,17 @@ public:
   Valkyrie_Dyn_environment();
   ~Valkyrie_Dyn_environment();
 
-  static void ContolFunction(void* _data);
-  static void ContolFunction1(void* _data);
-  static void _ObstacleControl(void* _data);
-
+  static void ControlFunction(void* _data);
   void Rendering_Fnc();
 
   void SetCurrentState_All();
   void saveLandingLocation();
 public:
-  Interface* interface_;
+  interface* interface_;
   New_Valkyrie* new_robot_;
-  //
-  srBlockTerrain* terrain_;
-  srBlockTerrain* room_;
-  std::vector<sr3DImportSystem*> srObstacle_dyn_list_;
-  std::vector<srBlockTerrain*> srObstacle_stat_list_;
-  std::vector<Obstacle> obs_dyn_list_;
-  ObstacleBuilder* obstacle_builder;
 
   srSpace*	m_Space;
   Ground*	m_ground;
-
-  std::vector<double> curr_conf_;
-  std::vector<double> curr_jvel_;
-  std::vector<double> torque_   ;
 
   double ori_mtx_[9];
   std::vector<double> ang_vel_  ;

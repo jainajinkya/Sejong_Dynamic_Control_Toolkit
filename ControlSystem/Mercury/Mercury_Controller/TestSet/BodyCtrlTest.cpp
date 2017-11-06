@@ -2,7 +2,7 @@
 
 #include <CtrlSet/BodyCtrl.hpp>
 
-BodyCtrlTest::BodyCtrlTest():MercuryTest(){
+BodyCtrlTest::BodyCtrlTest():Test(){
   phase_ = BCPhase::initial_transition;
   state_list_.clear();
 

@@ -18,6 +18,7 @@ public:
   virtual void TestInitialization();
 
 protected:
+  int phase_;
   virtual int _NextPhase(const int & phase);
 
   DracoController* body_ini_tran_;

@@ -1,2 +1,2 @@
-add_subdirectory(Valkyrie_Controller)
-add_subdirectory(Valkyrie_Model)
+add_subdirectory(${CTRL_SYS}_Controller)
+add_subdirectory(Robot_Model)

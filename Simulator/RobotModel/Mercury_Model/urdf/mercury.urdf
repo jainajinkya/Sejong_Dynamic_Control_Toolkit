@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <robot name="mercury" xmlns:xacro="http://ros.org/wiki/xacro">
   <!-- ===== DUMMY 'BASE' LINK ==== -->
-  <link name="torso">
+  <link name="body">
     <inertial>
       <mass value="12.61"/>
       <origin xyz="0.00347 0.0 0.22524"/>
@@ -11,14 +11,14 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/Updated_torso.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-.415 -0.21 -0.07"/>
     </visual>
   </link>
   <!-- IMU -->
   <joint name="fixed_imu" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0.0 0.07 0.22"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="imu" />
   </joint>
   <link name="imu">
@@ -32,7 +32,7 @@
   <joint name="fixed_body_led3" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0.07 0.14 0.38"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="body_led3" />
   </joint>
   <link name="body_led3">
@@ -46,7 +46,7 @@
   <joint name="fixed_body_led4" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="-0.07 0.14 0.38"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="body_led4" />
   </joint>
   <link name="body_led4">
@@ -60,7 +60,7 @@
   <joint name="fixed_body_led5" type="fixed">
     <axis xyz="0 1 0"/>
     ppp<origin rpy="0 0 0" xyz="-0.07 -0.14 0.38"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="body_led5" />
   </joint>
   <link name="body_led5">
@@ -74,7 +74,7 @@
   <joint name="fixed_body_led6" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0.07 -0.14 0.38"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="body_led6" />
   </joint>
   <link name="body_led6">
@@ -89,7 +89,7 @@
   <joint name="1_torso_to_abduct_r_j" type="continuous">
     <axis xyz="1 0 0"/>
     <origin rpy="0 0 0" xyz="0.0 -0.1397 0.0"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="abduct_r"/>
   </joint>
   <link name="abduct_r">
@@ -102,7 +102,7 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/abduction.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.167 -0.083 -0.043"/>
     </visual>
   </link>
 
@@ -120,9 +120,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh_R.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.106 -0.062 -0.495"/>
     </visual>
   </link>
 
@@ -142,27 +142,27 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/Updated_shin.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.0756 0" xyz="-0.246 0.0565 -0.093"/>
     </visual>
   </link>
 
-  <joint name="fixed_rfoot" type="fixed">
+  <joint name="ankle_r" type="continuous">
     <axis xyz="0 1 0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.440"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.476"/>
     <parent link="shank_r"/>
     <child link="rfoot" />
   </joint>
   <link name="rfoot">
     <inertial>
-      <mass value="0.000000000001"/>
+      <mass value="0.123"/>
       <origin xyz="0.0 0.0 0.0"/>
-      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0.0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/foot.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_foot.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.3808 0" xyz="-0.184 0.0558 0.398"/>
     </visual>
   </link>
 
@@ -170,7 +170,7 @@
   <joint name="2_torso_to_abduct_l_j" type="continuous">
     <axis xyz="1 0 0"/>
     <origin rpy="0 0 0" xyz="0.0 0.1397 0.0"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="abduct_l"/>
   </joint>
   <link name="abduct_l">
@@ -183,7 +183,7 @@
       <geometry>
         <mesh filename="package://nao/meshes/meshes/V40/abduction.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.167 -0.083 -0.043"/>
     </visual>
   </link>
 
@@ -201,9 +201,9 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/thigh.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_thigh.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 0 1.5708" xyz="-0.106 -0.062 -0.495"/>
     </visual>
   </link>
 
@@ -222,29 +222,29 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/shank.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_shin.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.0756 0" xyz="-0.246 0.0565 -0.093"/>
     </visual>
   </link>
 
-  <joint name="fixed_lfoot" type="fixed">
+  <joint name="ankle_l" type="continuous">
     <axis xyz="0 1 0"/>
-    <origin rpy="0 0 0" xyz="0.0 0.0 -0.44"/>
+    <origin rpy="0 0 0" xyz="0.0 0.0 -0.476"/>
     <parent link="shank_l"/>
     <child link="lfoot" />
   </joint>
   <link name="lfoot">
     <inertial>
-      <mass value="0.000000000001"/>
+      <mass value="0.123"/>
       <origin xyz="0.0 0.0 0.0"/>
-      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0.0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://nao/meshes/meshes/V40/foot.dae" scale="0.1 0.1 0.1"/>
+        <mesh filename="package://nao/meshes/meshes/V40/Updated_foot.dae" scale="0.1 0.1 0.1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.5708 1.3808 0" xyz="-0.184 0.0558 0.398"/>
     </visual>
   </link>
 
@@ -253,7 +253,7 @@
   <joint name="fixed_led0" type="fixed">
     <axis xyz="0 1 0"/>
     <origin rpy="0 0 0" xyz="0.07 0.0 -0.02"/>
-    <parent link="torso"/>
+    <parent link="body"/>
     <child link="led0" />
   </joint>
   <link name="led0">

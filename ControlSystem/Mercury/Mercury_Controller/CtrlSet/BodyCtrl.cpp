@@ -2,29 +2,32 @@
 #include <Configuration.h>
 #include <StateProvider.hpp>
 #include <TaskSet/BodyTask.hpp>
-#include <ContactSet/FootContact.hpp>
+#include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
-#include <Mercury_Model/MercuryModel.hpp>
+#include <Robot_Model/RobotModel.hpp>
 #include <chrono>
 
 // #define WBDC_COMPUTATION_TIME
 
 BodyCtrl::BodyCtrl(): end_time_(1000000.){
-  body_task_ = new BodyTask(3);
-  foot_contact_ = new FootContact(3);
+  body_task_ = new BodyTask();
+  double_contact_ = new DoubleContact();
   wbdc_ = new WBDC(act_list_);
+
   wbdc_data_ = new WBDC_ExtraData();
   wbdc_data_->tau_min = sejong::Vector(NUM_ACT_JOINT);
   wbdc_data_->tau_max = sejong::Vector(NUM_ACT_JOINT);
+
   for(int i(0); i<NUM_ACT_JOINT; ++i){
     wbdc_data_->tau_max[i] = 180.0;
     wbdc_data_->tau_min[i] = -180.0;
   }
   // printf("[Body Controller] Constructed\n");
 }
+
 BodyCtrl::~BodyCtrl(){
   delete body_task_;
-  delete foot_contact_;
+  delete double_contact_;
 }
 
 
@@ -32,7 +35,7 @@ void BodyCtrl::OneStep(sejong::Vector & gamma){
   _PreProcessing_Command();
 
   gamma.setZero();
-  _foot_contact_setup();
+  _double_contact_setup();
   _body_task_setup();
   _body_ctrl(gamma);
 
@@ -40,19 +43,6 @@ void BodyCtrl::OneStep(sejong::Vector & gamma){
 }
 
 void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
-  sejong::Matrix Icm, Jcm;
-  robot_model_->getCentroidInertia(Icm);
-  robot_model_->getCentroidJacobian(Jcm);
-  wbdc_data_->Icam = Icm.block(2, 2, 1, 1);
-  wbdc_data_->Jcam = Jcm.block(2,0, 1, NUM_QDOT);
-  wbdc_data_->JcamDotQdot = (Jcm * Ainv_ * coriolis_).tail(1);
-
-  // sejong::pretty_print(Icm, std::cout, "Icm");
-  // sejong::pretty_print(Jcm, std::cout, "Jcm");
-  // sejong::pretty_print(wbdc_data_->Icam, std::cout, "Icam");
-  // sejong::pretty_print(wbdc_data_->Jcam, std::cout, "Jcam");
-  // sejong::pretty_print(wbdc_data_->JcamDotQdot, std::cout, "JcamDot qdot");
-
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
 
 #ifdef WBDC_COMPUTATION_TIME
@@ -105,9 +95,9 @@ void BodyCtrl::_body_task_setup(){
   task_list_.push_back(body_task_);
   // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
-void BodyCtrl::_foot_contact_setup(){
-  foot_contact_->UpdateContactSpec();
-  contact_list_.push_back(foot_contact_);
+void BodyCtrl::_double_contact_setup(){
+  double_contact_->UpdateContactSpec();
+  contact_list_.push_back(double_contact_);
   wbdc_data_->cost_weight = sejong::Vector::Zero(3);
 
   wbdc_data_->cost_weight[0] = 1.;

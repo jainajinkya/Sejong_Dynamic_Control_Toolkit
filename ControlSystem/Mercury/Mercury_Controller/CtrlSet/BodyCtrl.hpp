@@ -1,13 +1,13 @@
-#ifndef BODY_CONTRL
-#define BODY_CONTRL
+#ifndef BODY_CONTROL
+#define BODY_CONTROL
 
-#include <MercuryController.hpp>
+#include <Controller.hpp>
 class WBDC;
 class WBDC_ExtraData;
 class WBDC_Task;
 class WBDC_ContactSpec;
 
-class BodyCtrl: public MercuryController{
+class BodyCtrl: public Controller{
 public:
   BodyCtrl();
   virtual ~BodyCtrl();
@@ -23,8 +23,8 @@ protected:
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
   WBDC_Task* body_task_;
-  WBDC_ContactSpec* foot_contact_;
-  
+  WBDC_ContactSpec* double_contact_;
+
   sejong::Vect3 body_pos_ini_;
 
   sejong::Vect2 body_lin_amp_;
@@ -32,7 +32,7 @@ protected:
 
   double end_time_;
   void _body_task_setup();
-  void _foot_contact_setup();
+  void _double_contact_setup();
   void _body_ctrl(sejong::Vector & gamma);
   void _jpos_ctrl(sejong::Vector & gamma);
 };

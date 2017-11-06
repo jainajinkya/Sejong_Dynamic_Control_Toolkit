@@ -3,7 +3,7 @@
 
 #include <Utils/wrap_eigen.hpp>
 #include <Utils/utilities.hpp>
-
+#include <Utils/pseudo_inverse.hpp>
 #include "Task.hpp"
 #include "ContactSpec.hpp"
 
@@ -55,7 +55,9 @@ protected:
                         const sejong::Matrix & Winv,
                         sejong::Matrix & Jinv){
     sejong::Matrix lambda(J* Winv * J.transpose());
-    Jinv = Winv * J.transpose() * lambda.inverse();
+    sejong::Matrix lambda_inv;
+    sejong::pseudoInverse(lambda, 0.0001, lambda_inv);
+    Jinv = Winv * J.transpose() * lambda_inv;
   }
 
   int num_qdot_;

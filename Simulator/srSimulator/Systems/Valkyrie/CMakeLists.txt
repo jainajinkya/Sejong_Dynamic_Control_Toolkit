@@ -14,7 +14,6 @@ target_link_libraries (simulation_valkyrie
   SJurdf
   Valkyrie_Controller
   SR_Terrain
-  SJplanner
 )
 
 if (APPLE)

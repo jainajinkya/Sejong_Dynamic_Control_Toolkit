@@ -4,11 +4,11 @@
 #include <WBDC/WBDC_Task.hpp>
 
 class StateProvider;
-class MercuryModel;
+class RobotModel;
 
 class BodyTask: public WBDC_Task{
 public:
-  BodyTask(int dim);
+  BodyTask(); // 4 dim: Rx, Ry, Rz, Z
   virtual ~BodyTask();
 
 protected:
@@ -24,7 +24,7 @@ protected:
   double Kp_, Kd_;
 
   StateProvider* sp_;
-  MercuryModel* model_;
+  RobotModel* model_;
 };
 
 #endif

@@ -8,7 +8,7 @@ StateProvider* StateProvider::GetStateProvider(){
 
 StateProvider::StateProvider(): initialized_(false),
                                 system_count_(0),
-                                // Arbitrary Large number
+                                stance_foot_(SJLinkID::LK_RFOOT),
                                 Q_(NUM_Q),
                                 Qdot_(NUM_QDOT)
 {

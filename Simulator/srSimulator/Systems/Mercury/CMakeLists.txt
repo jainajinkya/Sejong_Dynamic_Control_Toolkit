@@ -12,7 +12,7 @@ target_link_libraries (simulation_mercury
   util
   ${OPENGL_LIBRARIES}
   SJurdf
-  # Mercury_Controller
+  ${CTRL_SYS}_Controller
  SR_Terrain
  SJutils
 )

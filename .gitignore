@@ -2,3 +2,5 @@ build
 ./experiment_data
 Configuration.h
 .DS_Store
+*~
+experiment_data

@@ -8,6 +8,8 @@
 #include <vector>
 #include "Configuration.h"
 
+class interface;
+
 class Mercury_Dyn_environment
 {
 public:
@@ -18,6 +20,7 @@ public:
 
   void Rendering_Fnc();
 
+  interface* interface_;
   Mercury*	m_Mercury;
   srSpace*	m_Space;
   Ground*	m_ground;

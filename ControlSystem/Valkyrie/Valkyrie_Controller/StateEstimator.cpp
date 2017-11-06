@@ -1,11 +1,11 @@
-#include "StateEstimator.h"
-#include "StateProvider.h"
-#include <Utils/utilities.h>
-#include <Valkyrie_Model/Valkyrie_Model.h>
-#include <Valkyrie_Model/Valkyrie_Left_Leg.h>
-#include <Valkyrie_Model/Valkyrie_Right_Leg.h>
+#include "StateEstimator.hpp"
+#include "StateProvider.hpp"
+#include <Utils/utilities.hpp>
+#include <Robot_Model/RobotModel.hpp>
+#include <Robot_Model/Valkyrie_Left_Leg.hpp>
+#include <Robot_Model/Valkyrie_Right_Leg.hpp>
 
-#include <Filter/filters.h>
+#include <Filter/filters.hpp>
 
 #define LOCAL_FRAME_USE 1
 
@@ -15,7 +15,7 @@ StateEstimator::StateEstimator():
   leg_qdot_(NUM_VIRTUAL + 6)
 {
     sp_ = StateProvider::GetStateProvider();
-    robot_model_ = ValkyrieModel::GetValkyrieModel();
+    robot_model_ = RobotModel::GetRobotModel();
 
     for(int i(0); i<NUM_ACT_JOINT; ++i){
       jvel_filter_[i] = new digital_lp_filter(2*M_PI*550, SERVO_RATE);

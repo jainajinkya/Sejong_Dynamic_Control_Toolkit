@@ -28,18 +28,23 @@ add_definitions(-O3)
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
 # SET (CTRL_SYS "DracoP1Rot")
-# SET (CTRL_SYS "Mercury")
+SET (CTRL_SYS "Mercury")
 # SET (CTRL_SYS "Openchain3DoF")
 # SET (CTRL_SYS "Openchain2DoF")
-SET (CTRL_SYS "Walker2D")
+# SET (CTRL_SYS "Walker2D")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 
 #------------------------------------------------------------------------
+#     Simulator Selection
+#------------------------------------------------------------------------
+SET (RECORD_SIMULATION 0)
+add_subdirectory (Simulator/srSimulator)
+# add_subdirectory (Simulator/RBDL_simulator)
+
+#------------------------------------------------------------------------
 #    Directory Selection
 #------------------------------------------------------------------------
-# add_subdirectory (Simulator/srSimulator)
-add_subdirectory (Simulator/RBDL_simulator)
 add_subdirectory (Utils)
 add_subdirectory (Filter)
 add_subdirectory (ExternalSource)
@@ -55,7 +60,6 @@ add_subdirectory(Tests) # For unit testing with googletest
 #------------------------------------------------------------------------
 SET (THIS_COM "${PROJECT_SOURCE_DIR}/" )
 SET (DEFINITION_FILE "ControlSystem/${CTRL_SYS}/${CTRL_SYS}_Definition.h")
-SET (RECORD_SIMULATION 0)
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/config.h.cmake ${PROJECT_SOURCE_DIR}/Configuration.h)
 
 

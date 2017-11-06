@@ -1,4 +1,4 @@
-FILE(GLOB_RECURSE headers *.h)
+FILE(GLOB_RECURSE headers *.hpp)
 FILE(GLOB_RECURSE sources *.cpp)
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}/${CTRL_SYS}_Controller")
 

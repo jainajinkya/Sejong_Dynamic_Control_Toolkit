@@ -1,7 +1,7 @@
 #ifndef BODY_CONTROL_TEST
 #define BODY_CONTROL_TEST
 
-#include <MercuryTest.hpp>
+#include <Test.hpp>
 
 enum BCPhase{
   initial_transition = 0,
@@ -11,19 +11,20 @@ enum BCPhase{
   NUM_PHASE
 };
 
-class BodyCtrlTest: public MercuryTest{
+class BodyCtrlTest: public Test{
 public:
   BodyCtrlTest();
   virtual ~BodyCtrlTest();
   virtual void TestInitialization();
 
 protected:
+  int phase_;
   virtual int _NextPhase(const int & phase);
 
-  MercuryController* body_ini_tran_;
-  MercuryController* body_shake_ctrl_;
-  MercuryController* body_up_ctrl_;
-  MercuryController* body_stay_;
+  Controller* body_ini_tran_;
+  Controller* body_shake_ctrl_;
+  Controller* body_up_ctrl_;
+  Controller* body_stay_;
 };
 
 #endif

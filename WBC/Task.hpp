@@ -5,7 +5,7 @@
 
 class Task{
 public:
-  Task(int dim):b_set_task_(false), dim_task_(dim){}
+  Task(int dim):b_set_task_(false), dim_task_(dim), op_cmd_(dim){}
   virtual ~Task(){}
 
   void getCommand(sejong::Vector & op_cmd){  op_cmd = op_cmd_; }
