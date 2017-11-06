@@ -29,9 +29,9 @@ public:
   double l_cost_final(const sejong::Vector &x_F);
 
   void l_x_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x);
-  void l_x_final_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_x);  
+  void l_x_final_analytical(const sejong::Vector &x, sejong::Vector & l_xF);  
   void l_xx_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx);  
-  void l_xx_final_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_xx);  
+  void l_xx_final_analytical(const sejong::Vector &x, sejong::Matrix & l_xxF);  
   void l_u_analytical(const sejong::Vector &x, const sejong::Vector &u,  sejong::Vector & l_u);
   void l_uu_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_uu);  
   void l_ux_analytical(const sejong::Vector &x, const sejong::Vector &u, sejong::Matrix & l_ux);
@@ -43,7 +43,7 @@ protected:
   int STATE_SIZE =  NUM_QDOT + NUM_QDOT;
   int DIM_u_SIZE =  4;
   const double NEAR_ZERO = std::sqrt(std::numeric_limits<double>::epsilon());
-  double ddp_time_step = 1.0/10000.0; //1.0/100.0; //
+  double ddp_time_step = 1.0/100.0;//1.0/10000.0;//1.0/10000.0; //1.0/100.0; //
 
   // Functions
   void _DDP_ctrl(sejong::Vector & gamma);  
@@ -66,12 +66,16 @@ protected:
 
   std::vector<sejong::Vector> gamma_sequence;  
   // Prepare running and final costs
+  sejong::Matrix P_run;   // EE Running State Cost  
   sejong::Matrix Q_run;   // Running State Cost
   sejong::Matrix Q_final; // Final State Cost  
+  sejong::Matrix P_final;   // EE Final State Cost  
   sejong::Matrix N_run; // Acceleration Cost
   sejong::Matrix T_run; // Torque Cost. Will not be used as it's too expensive.
 
-  sejong::Vector x_des_final; // desired final x_state  
+  sejong::Vector x_des_final; // desired final x_state
+
+  sejong::Vector ee_des; // desired final x_state    
 
   // Data Save
   sejong::Vector des_pos_;

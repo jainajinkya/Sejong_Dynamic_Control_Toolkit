@@ -1,8 +1,8 @@
 #include "DynControlTester.hpp"
 
 DynControlTester::DynControlTester():m_usleep_time(100), m_count(0),
-                                     m_frequency_data_send(100),
-                                     m_ratio_SERVO_sim_rate(10),
+                                     m_frequency_data_send(5), // 100
+                                     m_ratio_SERVO_sim_rate(1), //10,
                                      m_cmd(NUM_QDOT),
                                      m_q(NUM_Q), m_qdot(NUM_QDOT),
                                      m_tau(NUM_QDOT), cori_(NUM_QDOT),

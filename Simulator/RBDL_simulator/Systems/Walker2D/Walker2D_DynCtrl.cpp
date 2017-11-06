@@ -121,7 +121,7 @@ void Walker2D_DynCtrl::_MakeOneStepUpdate(){ // model advance one step
   const int d = 2; // Number of Friction Basis Vectors
 
 
-  double mu_static = 1.0;//0.1; // Friction Coefficient
+  double mu_static = 100.0;//0.1; // Friction Coefficient
   sejong::Vector n1(2); n1[1] = 1.0; // Normal Vector for contact 1
   sejong::Vector n2(2); n2[1] = 1.0; // Normal Vector for contact 2  
   sejong::Matrix J_c1 = J_lf.block(0, 0, 2, NUM_QDOT); // Jacobian (x,z) at contact point 1
