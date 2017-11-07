@@ -2,13 +2,14 @@
 #include <StateProvider.hpp>
 #include <TaskSet/JPosTask.hpp>
 #include <ContactSet/FixedBodyContact.hpp>
+#include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
 
 
 JPosCtrl::JPosCtrl():Controller(){
   jpos_task_ = new JPosTask();
-  // double_contact_ = new DoubleContact();
-  fixed_body_contact_ = new FixedBodyContact();
+  fixed_body_contact_ = new DoubleContact();
+  // fixed_body_contact_ = new FixedBodyContact();
   wbdc_ = new WBDC(act_list_);
   wbdc_data_ = new WBDC_ExtraData();
 
@@ -32,7 +33,7 @@ void JPosCtrl::OneStep(sejong::Vector & gamma){
   _fixed_body_contact_setup();
   _jpos_task_setup();
   _jpos_ctrl(gamma);
-  
+
   _PostProcessing_Command(gamma);
 }
 
@@ -46,7 +47,7 @@ void JPosCtrl::_jpos_task_setup(){
   sejong::Vector jvel_des(NUM_ACT_JOINT); jvel_des.setZero();
   sejong::Vector jacc_des(NUM_ACT_JOINT); jacc_des.setZero();
 
-  double amp (0.4);
+  double amp (0.0);
   double omega (2. * M_PI * 1.0);
   int jidx = SJJointID::RKnee;
   jpos_des[jidx] += amp * sin(omega * state_machine_time_);
@@ -71,15 +72,15 @@ void JPosCtrl::_jpos_task_setup(){
   // set relaxed op direction
   // cost weight setupn
   // bool b_height_relax(false);
-  // std::vector<bool> relaxed_op(jpos_task_->getDim(), true);
-  std::vector<bool> relaxed_op(jpos_task_->getDim(), false);
+  std::vector<bool> relaxed_op(jpos_task_->getDim(), true);
+  // std::vector<bool> relaxed_op(jpos_task_->getDim(), false);
   // relaxed_op[SJJointID::torsoYaw] = true;
 
-  // int prev_size(wbdc_data_->cost_weight.rows());
-  // wbdc_data_->cost_weight.conservativeResize( prev_size + NUM_ACT_JOINT);
-  // for(int i(0); i<NUM_ACT_JOINT; ++i){
-  //   wbdc_data_->cost_weight[prev_size + i] = 500.;
-  // }
+  int prev_size(wbdc_data_->cost_weight.rows());
+  wbdc_data_->cost_weight.conservativeResize( prev_size + NUM_ACT_JOINT);
+  for(int i(0); i<NUM_ACT_JOINT; ++i){
+    wbdc_data_->cost_weight[prev_size + i] = 500.;
+  }
 
   // wbdc_data_->cost_weight[prev_size+1] = 500.;
   jpos_task_->setRelaxedOpCtrl(relaxed_op);
@@ -97,6 +98,10 @@ void JPosCtrl::_fixed_body_contact_setup(){
   for(int i(0); i<fixed_body_contact_->getDim(); ++i){
     wbdc_data_->cost_weight[i] = 1.;
   }
+  // TEST
+  wbdc_data_->cost_weight[2] = 0.0001;
+  wbdc_data_->cost_weight[5] = 0.0001;
+
 }
 
 void JPosCtrl::FirstVisit(){

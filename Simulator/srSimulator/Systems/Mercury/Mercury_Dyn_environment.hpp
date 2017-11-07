@@ -19,7 +19,8 @@ public:
   static void ContolFunction(void* _data);
 
   void Rendering_Fnc();
-
+  void _FixXY();
+  
   interface* interface_;
   Mercury*	m_Mercury;
   srSpace*	m_Space;

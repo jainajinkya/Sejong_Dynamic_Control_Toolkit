@@ -27,11 +27,11 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
   // TEST SETUP
-  // test_ = new BodyCtrlTest();
-  test_ = new JointCtrlTest();
+  test_ = new BodyCtrlTest();
+  // test_ = new JointCtrlTest();
 
   printf("[interface] Contruct\n");
-  }
+}
 
 interface::~interface(){
   delete test_;

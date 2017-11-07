@@ -7,7 +7,7 @@
 
 JPosTask::JPosTask():WBDC_Task(NUM_ACT_JOINT),
                      Kp_(200.0),
-                     Kd_(15.0)
+                     Kd_(25.0)
 {
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();

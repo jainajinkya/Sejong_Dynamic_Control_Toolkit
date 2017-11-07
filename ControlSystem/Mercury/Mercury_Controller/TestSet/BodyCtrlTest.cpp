@@ -1,5 +1,4 @@
 #include "BodyCtrlTest.hpp"
-
 #include <CtrlSet/BodyCtrl.hpp>
 
 BodyCtrlTest::BodyCtrlTest():Test(){
@@ -17,7 +16,11 @@ BodyCtrlTest::BodyCtrlTest():Test(){
   state_list_.push_back(body_stay_);
 }
 
-BodyCtrlTest::~BodyCtrlTest(){}
+BodyCtrlTest::~BodyCtrlTest(){
+  for(int i(0); i<state_list_.size(); ++i){
+    delete state_list_[i];
+  }
+}
 
 void BodyCtrlTest::TestInitialization(){
   // Yaml file name

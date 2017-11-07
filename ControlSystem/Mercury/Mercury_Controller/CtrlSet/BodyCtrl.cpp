@@ -9,7 +9,9 @@
 
 // #define WBDC_COMPUTATION_TIME
 
-BodyCtrl::BodyCtrl(): end_time_(1000000.){
+BodyCtrl::BodyCtrl(): end_time_(1000000.),
+                      body_pos_ini_(4)
+{
   body_task_ = new BodyTask();
   double_contact_ = new DoubleContact();
   wbdc_ = new WBDC(act_list_);
@@ -30,8 +32,8 @@ BodyCtrl::~BodyCtrl(){
   delete double_contact_;
 }
 
-
 void BodyCtrl::OneStep(sejong::Vector & gamma){
+  // printf("[Body Ctrl] Onestep\n");
   _PreProcessing_Command();
 
   gamma.setZero();
@@ -60,20 +62,16 @@ void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
 }
 
 void BodyCtrl::_body_task_setup(){
-  sp_->Body_pos_des_ = body_pos_ini_;
-  sp_->Body_vel_des_.setZero();
-  sp_->Body_acc_des_.setZero();
+  sejong::Vector pos_des(body_task_->getDim());
+  sejong::Vector vel_des(body_task_->getDim());
+  sejong::Vector acc_des(body_task_->getDim());
+  pos_des.setZero(); vel_des.setZero(); acc_des.setZero();
 
-  double amp(0.1);
-  double omega(2.*M_PI * 1.0);
-  int ctrl_idx(1);
-  sp_->Body_pos_des_[ctrl_idx] += amp * sin(omega * state_machine_time_);
-  sp_->Body_vel_des_[ctrl_idx] = amp * omega * cos(omega * state_machine_time_);
-  sp_->Body_acc_des_[ctrl_idx] = amp * omega * omega * sin(omega * state_machine_time_);
-
-  body_task_->UpdateTask(&(sp_->Body_pos_des_),
-                         (sejong::Vector)sp_->Body_vel_des_,
-                         (sejong::Vector)sp_->Body_acc_des_);
+  // CoM Height
+  pos_des[0] = ini_com_pos_[2];
+  body_task_->UpdateTask(&(pos_des),
+                         vel_des,
+                         acc_des);
 
   // set relaxed op direction
   // cost weight setup
@@ -81,14 +79,18 @@ void BodyCtrl::_body_task_setup(){
   bool b_height_relax(true);
   if(b_height_relax){
     std::vector<bool> relaxed_op(body_task_->getDim(), false);
-    relaxed_op[0] = true; // X
-    relaxed_op[1] = true; // Z
+    relaxed_op[0] = true; // Z
+    relaxed_op[1] = true; // Rx
+    relaxed_op[2] = true; // Ry
+    relaxed_op[3] = true; // Rz
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
-    wbdc_data_->cost_weight.conservativeResize( prev_size + 2);
+    wbdc_data_->cost_weight.conservativeResize( prev_size + 4);
     wbdc_data_->cost_weight[prev_size] = 500.;
     wbdc_data_->cost_weight[prev_size+1] = 500.;
+    wbdc_data_->cost_weight[prev_size+2] = 500.;
+    wbdc_data_->cost_weight[prev_size+3] = 500.;
   }
 
   // Push back to task list
@@ -98,16 +100,14 @@ void BodyCtrl::_body_task_setup(){
 void BodyCtrl::_double_contact_setup(){
   double_contact_->UpdateContactSpec();
   contact_list_.push_back(double_contact_);
-  wbdc_data_->cost_weight = sejong::Vector::Zero(3);
-
-  wbdc_data_->cost_weight[0] = 1.;
-  wbdc_data_->cost_weight[1] = 0.0001;
-  wbdc_data_->cost_weight[2] = 1.;
+  wbdc_data_->cost_weight = sejong::Vector::Zero(double_contact_->getDim());
+  for(int i(0); i<double_contact_->getDim(); ++i){
+    wbdc_data_->cost_weight[i] = 1.;
+  }
+  wbdc_data_->cost_weight[2] = 0.0001;
+  wbdc_data_->cost_weight[5] = 0.0001;
 }
 
-void BodyCtrl::_jpos_ctrl(sejong::Vector & gamma){
-  gamma = grav_.tail(NUM_ACT_JOINT);
-}
 void BodyCtrl::FirstVisit(){
   ctrl_start_time_ = sp_->curr_time_;
 }
@@ -122,5 +122,6 @@ bool BodyCtrl::EndOfPhase(){
   return false;
 }
 void BodyCtrl::CtrlInitialization(std::string setting_file_name){
-  body_pos_ini_ = sp_->Body_pos_;
+  robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
+  sejong::pretty_print(ini_com_pos_, std::cout, "ini com");
 }

@@ -18,7 +18,6 @@ public:
   virtual void TestInitialization();
 
 protected:
-  int phase_;
   virtual int _NextPhase(const int & phase);
 
   Controller* body_ini_tran_;

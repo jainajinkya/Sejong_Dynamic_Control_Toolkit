@@ -29,7 +29,7 @@ Mercury_Dyn_environment::Mercury_Dyn_environment(){
   m_Space->SET_USER_CONTROL_FUNCTION_2(ContolFunction);
   m_Space->SetTimestep(SERVO_RATE);
   m_Space->SetGravity(0.0,0.0,-9.8);
-  m_Space->SetNumberofSubstepForRendering(15);
+  m_Space->SetNumberofSubstepForRendering(1);
 }
 
 void Mercury_Dyn_environment::ContolFunction( void* _data ) {
@@ -47,6 +47,22 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   bool rfoot_contact(false);
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
+
+  Vec3 pos = robot->link_[robot->link_idx_map_.find("imu")->second]->GetMassCenter();
+  se3 vel = robot->link_[robot->link_idx_map_.find("imu")->second]->GetVel();
+  se3 acc = robot->link_[robot->link_idx_map_.find("imu")->second]->GetAcc();
+  SE3 frame = robot->link_[robot->link_idx_map_.find("imu")->second]->GetFrame();
+
+  printf("imu info: \n");
+  std::cout<<pos<<std::endl;
+  std::cout<<vel<<std::endl;
+  std::cout<<acc<<std::endl;
+  std::cout<<frame<<std::endl;
+
+  for(int i(0); i<3; ++i){
+    imu_ang_vel[i] = vel[i];
+  }
+
 
   // Right
   for(int i(0); i< 3; ++i){
@@ -76,7 +92,10 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   for(int i(0); i<3; ++i){
     robot->r_joint_[i+4]->m_State.m_rCommand = torque_command[i+3];
   }
+  robot->r_joint_[3]->m_State.m_rCommand = 0.;
+  robot->r_joint_[7]->m_State.m_rCommand = 0.;
 
+  pDyn_env->_FixXY();
   // std::map<std::string, int>::iterator iter = robot->r_joint_idx_map_.begin();
   // while(iter != robot->r_joint_idx_map_.end()){
   //   std::cout<<iter->first<<std::endl;
@@ -84,6 +103,23 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   // }
   ++count;
 }
+void Mercury_Dyn_environment::_FixXY(){
+  double pos,vel;
 
+  double kp(500.0);
+  double kd(50.0);
+
+  int idx(0);
+  pos = m_Mercury->vp_joint_[idx]->m_State.m_rValue[0];
+  vel = m_Mercury->vp_joint_[idx]->m_State.m_rValue[1];
+  m_Mercury->vp_joint_[idx]->m_State.m_rCommand = -kp * pos - kd * vel;
+
+  idx = 1;
+  pos = m_Mercury->vp_joint_[idx]->m_State.m_rValue[0];
+  vel = m_Mercury->vp_joint_[idx]->m_State.m_rValue[1];
+
+  m_Mercury->vp_joint_[idx]->m_State.m_rCommand = -kp * pos - kd * vel;
+
+}
 
 void Mercury_Dyn_environment::Rendering_Fnc(){}

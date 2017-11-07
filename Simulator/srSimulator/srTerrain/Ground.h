@@ -22,7 +22,7 @@ public:
         m_Ground->AddCollision(m_Plane);
 
         // m_Ground->SetFriction(0.15);
-        m_Ground->SetFriction(0.3);
+        m_Ground->SetFriction(0.8);
         m_Ground->SetDamping(0.01);
         m_Ground->SetRestitution(0.0);
         this->SetBaseLink(m_Ground);

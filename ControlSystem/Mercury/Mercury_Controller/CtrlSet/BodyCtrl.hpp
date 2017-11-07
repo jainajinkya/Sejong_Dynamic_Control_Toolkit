@@ -25,16 +25,13 @@ protected:
   WBDC_Task* body_task_;
   WBDC_ContactSpec* double_contact_;
 
-  sejong::Vect3 body_pos_ini_;
-
-  sejong::Vect2 body_lin_amp_;
-  sejong::Vect2 body_lin_omega_;
+  sejong::Vector body_pos_ini_;
+  sejong::Vect3 ini_com_pos_;
 
   double end_time_;
   void _body_task_setup();
   void _double_contact_setup();
   void _body_ctrl(sejong::Vector & gamma);
-  void _jpos_ctrl(sejong::Vector & gamma);
 };
 
 #endif

@@ -7,7 +7,8 @@ DoubleContact::DoubleContact():WBDC_ContactSpec(6)
 {
   model_ = RobotModel::GetRobotModel();
   sp_ = StateProvider::GetStateProvider();
-  Jc_ = sejong::Matrix(dim_contact_, NUM_QDOT);
+  Jc_ = sejong::Matrix(6, NUM_QDOT);
+  // printf("[Double Contact] Constructed\n");
 }
 
 DoubleContact::~DoubleContact(){}
