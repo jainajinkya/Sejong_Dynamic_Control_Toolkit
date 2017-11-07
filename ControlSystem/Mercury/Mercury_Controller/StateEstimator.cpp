@@ -77,20 +77,6 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
   delt_quat.y() = sin(theta/2.) * delta_th[1]/theta;
   delt_quat.z() = sin(theta/2.) * delta_th[2]/theta;
 
-  sejong::pretty_print(imu_ang_vel,  "imu ang vel");
-  sejong::pretty_print(delt_quat, std::cout, "delt quat");
-
-  // Eigen::Matrix3d w_skew;
-  // w_skew.setZero();
-  // w_skew(0, 1) = -imu_ang_vel[2]; w_skew(0, 2) = imu_ang_vel[1];
-  // w_skew(1, 0) = imu_ang_vel[2]; w_skew(1, 2) = -imu_ang_vel[0];
-  // w_skew(2, 0) = -imu_ang_vel[1]; w_skew(2,1) = imu_ang_vel[0];
-
-  // Eigen::Matrix3d R_delta;
-
-  // delt_quat = R_delta;
-
-  // sp_->body_ori_ = sejong::QuatMultiply(delt_quat, sp_->body_ori_);
   sp_->body_ori_ = sejong::QuatMultiply(sp_->body_ori_, delt_quat);
 
   sejong::pretty_print(sp_->body_ori_, std::cout, "body ori");
@@ -107,22 +93,22 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
   imu_ang_quat.y() = imu_ang_vel[1];
   imu_ang_quat.z() = imu_ang_vel[2];
 
-  sejong::Quaternion quat_dot = sejong::QuatMultiply(sp_->body_ori_, imu_ang_quat);
-  quat_dot = sejong::QuatMultiply(quat_dot, sp_->body_ori_.inverse());
+  sejong::Quaternion quat_dot = sejong::QuatMultiply(sp_->body_ori_, imu_ang_quat, false);
+  quat_dot = sejong::QuatMultiply(quat_dot, sp_->body_ori_.inverse(), false);
 
   // sejong::Quaternion quat_dot = sejong::QuatMultiply(imu_ang_quat, sp_->body_ori_);
   sejong::pretty_print(imu_ang_quat, std::cout, "imu ang vel");
   sejong::pretty_print(quat_dot, std::cout, "global quat dot");
 
-  // sp_->Qdot_[3] = quat_dot.x();
-  // sp_->Qdot_[4] = quat_dot.y();
-  // sp_->Qdot_[5] = quat_dot.z();
-  for(int i(0); i<3; ++i){
-    sp_->Qdot_[i + 3] = imu_ang_vel[i];
-  }
+  sp_->Qdot_[3] = quat_dot.x();
+  sp_->Qdot_[4] = quat_dot.y();
+  sp_->Qdot_[5] = quat_dot.z();
+  // for(int i(0); i<3; ++i){
+  //   sp_->Qdot_[i + 3] = imu_ang_vel[i];
+  // }
 
-  sejong::pretty_print(sp_->Q_, std::cout, "config");
-  sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");
+  // sejong::pretty_print(sp_->Q_, std::cout, "config");
+  // sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");
 
   // Foot position based offset
   sejong::Vect3 foot_pos, foot_vel;

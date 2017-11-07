@@ -72,14 +72,14 @@ namespace sejong {
             to.z() = 0.5 * from[2];
         }
     }
-    Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2){
+  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2, bool bound_pi){
         Quaternion ret_q(
             q1.w()*q2.w() - q1.x()*q2.x() - q1.y()*q2.y() - q1.z()*q2.z(),
             q1.w()*q2.x() + q1.x()*q2.w() + q1.y()*q2.z() - q1.z()*q2.y(),
             q1.w()*q2.y() - q1.x()*q2.z() + q1.y()*q2.w() + q1.z()*q2.x(),
             q1.w()*q2.z() + q1.x()*q2.y() - q1.y()*q2.x() + q1.z()*q2.w());
-
-        if(ret_q.w() < 0){
+        
+        if(ret_q.w() < 0 && bound_pi){
           ret_q.w() *= -1.;
           ret_q.x() *= -1.;
           ret_q.y() *= -1.;

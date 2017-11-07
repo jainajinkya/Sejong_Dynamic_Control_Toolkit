@@ -69,6 +69,10 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   std::cout<<quat.vec()<<std::endl;
 
   // std::cout<<Rot<<std::endl;
+  for(int i(0); i<3; ++i){
+    printf("rot %i joint: %f, %f \n", i, robot->vr_joint_[i]->m_State.m_rValue[0], robot->vr_joint_[i]->m_State.m_rValue[1]);
+  }
+
 
   se3 body_vel = robot->link_[robot->link_idx_map_.find("body")->second]->GetVel();
   printf("body vel: \n");

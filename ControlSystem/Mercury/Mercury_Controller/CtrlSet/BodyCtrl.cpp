@@ -79,8 +79,16 @@ void BodyCtrl::_body_task_setup(){
 
   double amp(0.2);
   double omega(2. * M_PI * 0.5);
-  int rot_idx(1);
+  int rot_idx(0);
+  // Roll
+  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
+  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
+  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
+
   // Pitch
+  rot_idx = 1;
+  amp = 0.4;
+  omega = 2. * M_PI * 0.1;
   rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
   vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
   acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
@@ -109,11 +117,11 @@ void BodyCtrl::_body_task_setup(){
 
     int prev_size(wbdc_data_->cost_weight.rows());
     wbdc_data_->cost_weight.conservativeResize( prev_size + 5);
-    wbdc_data_->cost_weight[prev_size] = 0.0001;
-    wbdc_data_->cost_weight[prev_size+1] = 0.0001;
-    wbdc_data_->cost_weight[prev_size+2] = 500.;
-    wbdc_data_->cost_weight[prev_size+3] = 500.;
-    wbdc_data_->cost_weight[prev_size+4] = 500.;
+    wbdc_data_->cost_weight[prev_size] = 1.;
+    wbdc_data_->cost_weight[prev_size+1] = 1.;
+    wbdc_data_->cost_weight[prev_size+2] = 100.;
+    wbdc_data_->cost_weight[prev_size+3] = 100.;
+    wbdc_data_->cost_weight[prev_size+4] = 100.;
 
   }
 
@@ -128,8 +136,8 @@ void BodyCtrl::_double_contact_setup(){
   for(int i(0); i<double_contact_->getDim(); ++i){
     wbdc_data_->cost_weight[i] = 1.;
   }
-  wbdc_data_->cost_weight[2] = 0.0001;
-  wbdc_data_->cost_weight[5] = 0.0001;
+  wbdc_data_->cost_weight[2] = 0.001;
+  wbdc_data_->cost_weight[5] = 0.001;
 }
 
 void BodyCtrl::FirstVisit(){

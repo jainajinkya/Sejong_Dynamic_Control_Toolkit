@@ -47,7 +47,7 @@ namespace sejong {
   // double array to sejong::Vector
   void convert(double const * from, size_t length, sejong::Vector & to);
 
-  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2);
+  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2, bool bound_pi = true);
 
   bool compare(sejong::Matrix const & lhs, sejong::Matrix const & rhs, double precision);
   bool compare(sejong::Quaternion const & lhs, sejong::Quaternion const & rhs, double precision);
