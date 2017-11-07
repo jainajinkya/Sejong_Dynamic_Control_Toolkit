@@ -114,7 +114,7 @@ void SystemGenerator::_SetJointType(){
       vr_joint_[i]->SetActType(srJoint::HYBRID);
     }
 #else
-    printf("Fixed in The Air\n");
+    printf("Floating\n");
     for(int i(0); i<3; ++i){
       vp_joint_[i]->SetActType(srJoint::TORQUE);
       vr_joint_[i]->SetActType(srJoint::TORQUE);

@@ -14,6 +14,7 @@ public:
   static StateProvider* GetStateProvider();
   ~StateProvider(){}
 
+  sejong::Quaternion body_ori_;
   // Important!!!!!!!!
   int stance_foot_;
 

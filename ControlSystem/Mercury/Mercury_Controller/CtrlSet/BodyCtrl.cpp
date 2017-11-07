@@ -2,6 +2,7 @@
 #include <Configuration.h>
 #include <StateProvider.hpp>
 #include <TaskSet/BodyTask.hpp>
+#include <TaskSet/HeightRxRyTask.hpp>
 #include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
@@ -12,7 +13,9 @@
 BodyCtrl::BodyCtrl(): end_time_(1000000.),
                       body_pos_ini_(4)
 {
-  body_task_ = new BodyTask();
+  // body_task_ = new BodyTask();
+  body_task_ = new HeightRxRyTask();
+  // body_task_ = new HeightRxRyRzTask();
   double_contact_ = new DoubleContact();
   wbdc_ = new WBDC(act_list_);
 
@@ -62,16 +65,33 @@ void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
 }
 
 void BodyCtrl::_body_task_setup(){
-  sejong::Vector pos_des(body_task_->getDim());
+  sejong::Vector pos_des(3 + 4);
   sejong::Vector vel_des(body_task_->getDim());
   sejong::Vector acc_des(body_task_->getDim());
   pos_des.setZero(); vel_des.setZero(); acc_des.setZero();
 
-  // CoM Height
-  pos_des[0] = ini_com_pos_[2];
-  body_task_->UpdateTask(&(pos_des),
-                         vel_des,
-                         acc_des);
+  // CoM Pos
+  pos_des.head(3) = ini_com_pos_;
+  // Orientation
+  sejong::Vect3 rpy_des;
+  sejong::Quaternion quat_des;
+  rpy_des.setZero();
+
+  double amp(0.2);
+  double omega(2. * M_PI * 0.5);
+  int rot_idx(1);
+  // Pitch
+  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
+  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
+  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
+
+  sejong::convert(rpy_des, quat_des);
+  pos_des[3] = quat_des.w();
+  pos_des[4] = quat_des.x();
+  pos_des[5] = quat_des.y();
+  pos_des[6] = quat_des.z();
+
+  body_task_->UpdateTask(&(pos_des), vel_des, acc_des);
 
   // set relaxed op direction
   // cost weight setup
@@ -79,18 +99,22 @@ void BodyCtrl::_body_task_setup(){
   bool b_height_relax(true);
   if(b_height_relax){
     std::vector<bool> relaxed_op(body_task_->getDim(), false);
-    relaxed_op[0] = true; // Z
-    relaxed_op[1] = true; // Rx
-    relaxed_op[2] = true; // Ry
-    relaxed_op[3] = true; // Rz
+    relaxed_op[0] = true; // X
+    relaxed_op[1] = true; // Y
+    relaxed_op[2] = true; // Z
+    relaxed_op[3] = true; // Rx
+    relaxed_op[4] = true; // Ry
+
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
-    wbdc_data_->cost_weight.conservativeResize( prev_size + 4);
-    wbdc_data_->cost_weight[prev_size] = 500.;
-    wbdc_data_->cost_weight[prev_size+1] = 500.;
+    wbdc_data_->cost_weight.conservativeResize( prev_size + 5);
+    wbdc_data_->cost_weight[prev_size] = 0.0001;
+    wbdc_data_->cost_weight[prev_size+1] = 0.0001;
     wbdc_data_->cost_weight[prev_size+2] = 500.;
     wbdc_data_->cost_weight[prev_size+3] = 500.;
+    wbdc_data_->cost_weight[prev_size+4] = 500.;
+
   }
 
   // Push back to task list

@@ -40,7 +40,7 @@ bool DoubleContact::_UpdateJcDotQdot(){
 }
 
 bool DoubleContact::_UpdateUf(){
-  double mu(0.8);
+  double mu(1.8);
 
   int size_u(5);
   Uf_ = sejong::Matrix::Zero(size_u*2, dim_contact_);

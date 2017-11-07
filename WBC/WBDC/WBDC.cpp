@@ -64,57 +64,54 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
 
 void WBDC::_SetEqualityConstraint(){
   sejong::Matrix test_eq = Sv_ * tot_tau_Mtx_;
-  sejong::pretty_print(test_eq, std::cout, "Test EQ");
+  // sejong::pretty_print(test_eq, std::cout, "Test EQ");
 
-  Eigen::JacobiSVD<sejong::Matrix> svd(test_eq, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  // Eigen::JacobiSVD<sejong::Matrix> svd(test_eq, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-  sejong::pretty_print(svd.matrixV(), std::cout, "Matrix V");
-  sejong::pretty_print(svd.singularValues(), std::cout, "Matrix S");
-  sejong::pretty_print(svd.matrixU(), std::cout, "Matrix U");
-
-
-  // sejong::Matrix sj_CE(dim_eq_cstr_, dim_opt_);
-  // sejong::Vector sj_ce0(dim_eq_cstr_);
-  // sj_CE.setZero();
-  // sj_ce0.setZero();
-  // // Virtual Torque
+  // sejong::pretty_print(svd.matrixV(), std::cout, "Matrix V");
+  // sejong::pretty_print(svd.singularValues(), std::cout, "Matrix S");
+  // sejong::pretty_print(svd.matrixU(), std::cout, "Matrix U");
 
 
-  // // sj_CE = Sv_ * tot_tau_Mtx_;
-
-  // sj_ce0.head(num_passive_) = Sv_ * tot_tau_Vect_;
-
-  // for(int i(0); i< dim_eq_cstr_; ++i){
-  //   for(int j(0); j<dim_opt_; ++j){
-  //     CE[j][i] = sj_CE(i,j);
-  //   }
-  //   ce0[i] = sj_ce0[i];
-  // }
-  int eq_dim(6);
-  sejong::Matrix sj_CE(eq_dim, dim_opt_);
-  sejong::Vector sj_ce0(eq_dim);
+  sejong::Matrix sj_CE(dim_eq_cstr_, dim_opt_);
+  sejong::Vector sj_ce0(dim_eq_cstr_);
   sj_CE.setZero();
   sj_ce0.setZero();
   // Virtual Torque
-  // sj_CE.block(0,0, num_passive_-1, dim_opt_) = Sv_ * tot_tau_Mtx_;
+  sj_CE = Sv_ * tot_tau_Mtx_;
+  sj_ce0.head(num_passive_) = Sv_ * tot_tau_Vect_;
 
-  for(int i(0); i<eq_dim; ++i){
-    sj_CE.block(i, 0, 1, dim_opt_) =  tot_tau_Mtx_.block(i,0,1,dim_opt_);
-    sj_ce0[i] = tot_tau_Vect_[i];
-  }
-  // sj_CE = Sv_ * tot_tau_Mtx_;
-  CE.resize(dim_opt_, eq_dim);
-  ce0.resize(eq_dim);
-
-  for(int i(0); i< eq_dim; ++i){
+  for(int i(0); i< dim_eq_cstr_; ++i){
     for(int j(0); j<dim_opt_; ++j){
       CE[j][i] = sj_CE(i,j);
     }
     ce0[i] = sj_ce0[i];
   }
+  // int eq_dim(6);
+  // sejong::Matrix sj_CE(eq_dim, dim_opt_);
+  // sejong::Vector sj_ce0(eq_dim);
+  // sj_CE.setZero();
+  // sj_ce0.setZero();
+  // // Virtual Torque
+  // // sj_CE.block(0,0, num_passive_-1, dim_opt_) = Sv_ * tot_tau_Mtx_;
 
-  sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
-  sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
+  // for(int i(0); i<eq_dim; ++i){
+  //   sj_CE.block(i, 0, 1, dim_opt_) =  tot_tau_Mtx_.block(i,0,1,dim_opt_);
+  //   sj_ce0[i] = tot_tau_Vect_[i];
+  // }
+  // // sj_CE = Sv_ * tot_tau_Mtx_;
+  // CE.resize(dim_opt_, eq_dim);
+  // ce0.resize(eq_dim);
+
+  // for(int i(0); i< eq_dim; ++i){
+  //   for(int j(0); j<dim_opt_; ++j){
+  //     CE[j][i] = sj_CE(i,j);
+  //   }
+  //   ce0[i] = sj_ce0[i];
+  // }
+
+  // sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
+  // sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
 }
 
 void WBDC::_SetInEqualityConstraint(){
@@ -142,8 +139,8 @@ void WBDC::_SetInEqualityConstraint(){
     }
     ci0[i] = sj_ci0[i];
   }
-  sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
-  sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
+  // sejong::pretty_print(sj_CI, std::cout, "WBDC: CI");
+  // sejong::pretty_print(sj_ci0, std::cout, "WBDC: ci0");
 }
 
 void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
@@ -275,8 +272,8 @@ void WBDC::_GetSolution(sejong::Vector & cmd){
   sejong::Vector tot_tau = tot_tau_Mtx_*result + tot_tau_Vect_;
   cmd = tot_tau.tail(num_act_joint_);
 
-  sejong::pretty_print(result, std::cout, "opt result");
-  sejong::pretty_print(tot_tau, std::cout, "tot tau result");
+  // sejong::pretty_print(result, std::cout, "opt result");
+  // sejong::pretty_print(tot_tau, std::cout, "tot tau result");
 }
 
 void WBDC::_MatrixInitialization(){

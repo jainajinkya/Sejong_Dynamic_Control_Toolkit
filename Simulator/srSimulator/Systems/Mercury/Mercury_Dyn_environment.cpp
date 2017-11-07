@@ -29,7 +29,7 @@ Mercury_Dyn_environment::Mercury_Dyn_environment(){
   m_Space->SET_USER_CONTROL_FUNCTION_2(ContolFunction);
   m_Space->SetTimestep(SERVO_RATE);
   m_Space->SetGravity(0.0,0.0,-9.8);
-  m_Space->SetNumberofSubstepForRendering(1);
+  m_Space->SetNumberofSubstepForRendering(15);
 }
 
 void Mercury_Dyn_environment::ContolFunction( void* _data ) {
@@ -47,20 +47,35 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   bool rfoot_contact(false);
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
+  
+  Vec3 pos = robot->link_[robot->link_idx_map_.find("body")->second]->GetMassCenter();
+  se3 vel = robot->link_[robot->link_idx_map_.find("body")->second]->GetVel();
+  se3 acc = robot->link_[robot->link_idx_map_.find("body")->second]->GetAcc();
+  SE3 frame = robot->link_[robot->link_idx_map_.find("body")->second]->GetFrame();
 
-  Vec3 pos = robot->link_[robot->link_idx_map_.find("imu")->second]->GetMassCenter();
-  se3 vel = robot->link_[robot->link_idx_map_.find("imu")->second]->GetVel();
-  se3 acc = robot->link_[robot->link_idx_map_.find("imu")->second]->GetAcc();
-  SE3 frame = robot->link_[robot->link_idx_map_.find("imu")->second]->GetFrame();
-
-  printf("imu info: \n");
+  printf("body info: \n");
   std::cout<<pos<<std::endl;
   std::cout<<vel<<std::endl;
   std::cout<<acc<<std::endl;
   std::cout<<frame<<std::endl;
 
+  Eigen::Matrix3d Rot;
+  Rot<< frame(0,0), frame(0,1), frame(0,2),
+    frame(1,0), frame(1,1), frame(1,2),
+    frame(2,0), frame(2,1), frame(2,2);
+
+  Eigen::Quaterniond quat(Rot);
+  std::cout<<quat.w()<<std::endl;
+  std::cout<<quat.vec()<<std::endl;
+
+  // std::cout<<Rot<<std::endl;
+
+  se3 body_vel = robot->link_[robot->link_idx_map_.find("body")->second]->GetVel();
+  printf("body vel: \n");
+  std::cout<<body_vel<<std::endl;
+
   for(int i(0); i<3; ++i){
-    imu_ang_vel[i] = vel[i];
+    imu_ang_vel[i] = body_vel[i];
   }
 
 

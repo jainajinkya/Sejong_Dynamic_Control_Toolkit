@@ -69,7 +69,7 @@ void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
 }
 
 bool interface::_Initialization(_DEF_SENSOR_DATA_){
-  if(count_ < 2){
+  if(count_ < 1){
     torque_command_.setZero();
     state_estimator_.Initialization(_VAR_SENSOR_DATA_);
     test_->TestInitialization();

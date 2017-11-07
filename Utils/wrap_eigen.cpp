@@ -28,9 +28,9 @@
 using namespace std;
 
 namespace sejong {
-    void convert(sejong::Quaternion const & from, sejong::Vector & to){
+    void convert(sejong::Quaternion const & from, sejong::Vect3 & to){
         double w = from.w();
-        Vector img_vec(3);
+        Vect3 img_vec;
         img_vec[0] = from.x();
         img_vec[1] = from.y();
         img_vec[2] = from.z();
@@ -55,7 +55,7 @@ namespace sejong {
         to = to * theta;
     }
 
-    void convert(sejong::Vector const & from, sejong::Quaternion & to){
+    void convert(sejong::Vect3 const & from, sejong::Quaternion & to){
         double theta = from[0]*from[0] + from[1]*from[1] + from[2]*from[2];
         theta = sqrt(theta);
 

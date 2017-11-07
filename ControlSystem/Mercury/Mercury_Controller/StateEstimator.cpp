@@ -30,6 +30,10 @@ void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
   for(int i(0);i<3; ++i){
     sp_->Qdot_[i + 3] = imu_ang_vel[i];
   }
+  sp_->body_ori_.w() = 1.;
+  sp_->body_ori_.x() = 0.;
+  sp_->body_ori_.y() = 0.;
+  sp_->body_ori_.z() = 0.;
 
 
   sejong::Vect3 foot_pos, foot_vel;
@@ -59,7 +63,68 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
     sp_->Qdot_[NUM_VIRTUAL + i] = jvel[i];
     // sp_->Qdot_[NUM_VIRTUAL + i] = jvel_filter_[i]->output();
   }
+  // Orientation
+  sejong::Quaternion delt_quat;
+  sejong::Vect3 delta_th;
+  double theta(0.);
+  for(int i(0); i<3; ++i){
+    delta_th[i] = imu_ang_vel[i] * SERVO_RATE;
+    theta += delta_th[i] * delta_th[i];
+  }
 
+  delt_quat.w() = cos(theta/2.);
+  delt_quat.x() = sin(theta/2.) * delta_th[0]/theta;
+  delt_quat.y() = sin(theta/2.) * delta_th[1]/theta;
+  delt_quat.z() = sin(theta/2.) * delta_th[2]/theta;
+
+  sejong::pretty_print(imu_ang_vel,  "imu ang vel");
+  sejong::pretty_print(delt_quat, std::cout, "delt quat");
+
+  // Eigen::Matrix3d w_skew;
+  // w_skew.setZero();
+  // w_skew(0, 1) = -imu_ang_vel[2]; w_skew(0, 2) = imu_ang_vel[1];
+  // w_skew(1, 0) = imu_ang_vel[2]; w_skew(1, 2) = -imu_ang_vel[0];
+  // w_skew(2, 0) = -imu_ang_vel[1]; w_skew(2,1) = imu_ang_vel[0];
+
+  // Eigen::Matrix3d R_delta;
+
+  // delt_quat = R_delta;
+
+  // sp_->body_ori_ = sejong::QuatMultiply(delt_quat, sp_->body_ori_);
+  sp_->body_ori_ = sejong::QuatMultiply(sp_->body_ori_, delt_quat);
+
+  sejong::pretty_print(sp_->body_ori_, std::cout, "body ori");
+
+  sp_->Q_[3] = sp_->body_ori_.x();
+  sp_->Q_[4] = sp_->body_ori_.y();
+  sp_->Q_[5] = sp_->body_ori_.z();
+  sp_->Q_[NUM_QDOT] = sp_->body_ori_.w();
+
+
+  sejong::Quaternion imu_ang_quat;
+  imu_ang_quat.w() = 0.;
+  imu_ang_quat.x() = imu_ang_vel[0];
+  imu_ang_quat.y() = imu_ang_vel[1];
+  imu_ang_quat.z() = imu_ang_vel[2];
+
+  sejong::Quaternion quat_dot = sejong::QuatMultiply(sp_->body_ori_, imu_ang_quat);
+  quat_dot = sejong::QuatMultiply(quat_dot, sp_->body_ori_.inverse());
+
+  // sejong::Quaternion quat_dot = sejong::QuatMultiply(imu_ang_quat, sp_->body_ori_);
+  sejong::pretty_print(imu_ang_quat, std::cout, "imu ang vel");
+  sejong::pretty_print(quat_dot, std::cout, "global quat dot");
+
+  // sp_->Qdot_[3] = quat_dot.x();
+  // sp_->Qdot_[4] = quat_dot.y();
+  // sp_->Qdot_[5] = quat_dot.z();
+  for(int i(0); i<3; ++i){
+    sp_->Qdot_[i + 3] = imu_ang_vel[i];
+  }
+
+  sejong::pretty_print(sp_->Q_, std::cout, "config");
+  sejong::pretty_print(sp_->Qdot_, std::cout, "Qdot");
+
+  // Foot position based offset
   sejong::Vect3 foot_pos, foot_vel;
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
   robot_model_->getPosition(sp_->Q_, sp_->stance_foot_, foot_pos);

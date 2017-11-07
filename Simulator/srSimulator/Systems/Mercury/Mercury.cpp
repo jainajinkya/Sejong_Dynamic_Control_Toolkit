@@ -24,7 +24,7 @@ void Mercury::_SetCollision(){
   link_[link_idx_map_.find("rfoot")->second]->AddCollision(collision_[0]);
   link_[link_idx_map_.find("lfoot")->second]->AddCollision(collision_[1]);
 
-  double fric(0.8);
+  double fric(1.8);
   link_[link_idx_map_.find("rfoot")->second]->SetFriction(fric);
   link_[link_idx_map_.find("lfoot")->second]->SetFriction(fric);
 
