@@ -4,6 +4,7 @@
 #include <CtrlSet/JPosCtrl.hpp>
 #include <CtrlSet/BodyFootCtrl.hpp>
 #include <CtrlSet/TransitionCtrl.hpp>
+#include <ParamHandler/ParamHandler.hpp>
 
 StepTest::StepTest():Test(){
 
@@ -36,6 +37,25 @@ StepTest::StepTest():Test(){
   state_list_.push_back(left_swing_ctrl_);
   state_list_.push_back(left_swing_end_trans_ctrl_);
 
+
+  // Setting Parameters
+  param_handler_ = new ParamHandler(CONFIG_PAHT"step_test.yaml");
+
+  // TEST
+  double tmp;
+  std::vector<double> tmp_vec;
+  std::string tmp_str;
+  param_handler_->getValue("swing_time", tmp);
+  printf("tmp: %f\n", tmp);
+
+  param_handler_->getString("planner_name", tmp_str);
+  printf("tmp str: %s \n", tmp_str.c_str());
+
+  param_handler_->getVector("initial_jpos", tmp_vec);
+  printf("tmp vec: ");
+  for(int i(0); i<6; ++i) printf(" %f,", tmp_vec[i]);
+  printf("\n");
+ 
   printf("[Step Test] Constructed\n");
 }
 

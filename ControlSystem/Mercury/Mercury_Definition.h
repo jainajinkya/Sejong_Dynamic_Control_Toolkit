@@ -11,6 +11,7 @@
 
 #define _VAR_SENSOR_DATA_ time, jpos, jvel, torque, imu_acc, imu_ang_vel, rfoot_contact, lfoot_contact
 
+#define CONFIG_PAHT THIS_COM"ControlSystem/Mercury/MercuryTestConfig/"
 
 enum SJLinkID{
   LK_Body,
