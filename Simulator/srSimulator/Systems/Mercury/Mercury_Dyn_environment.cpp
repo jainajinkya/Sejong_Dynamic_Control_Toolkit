@@ -5,12 +5,6 @@
 #include <ControlSystem/Mercury/Mercury_Controller/interface.hpp>
 #include <ControlSystem/Mercury/Mercury_Controller/StateProvider.hpp>
 
-// #define Measure_Time
-#ifdef Measure_Time
-#include <chrono>
-using namespace std::chrono;
-#endif
-
 // #define SENSOR_NOISE
 #define SENSOR_DELAY 0 // Sensor_delay* SERVO_RATE (sec) = time delay 
 
@@ -47,39 +41,40 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   bool rfoot_contact(false);
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
-  
-  Vec3 pos = robot->link_[robot->link_idx_map_.find("body")->second]->GetMassCenter();
-  se3 vel = robot->link_[robot->link_idx_map_.find("body")->second]->GetVel();
-  se3 acc = robot->link_[robot->link_idx_map_.find("body")->second]->GetAcc();
-  SE3 frame = robot->link_[robot->link_idx_map_.find("body")->second]->GetFrame();
 
-  printf("body info: \n");
-  std::cout<<pos<<std::endl;
-  std::cout<<vel<<std::endl;
-  std::cout<<acc<<std::endl;
-  std::cout<<frame<<std::endl;
+  // IMU data
+  se3 imu_se3_vel = robot->link_[robot->link_idx_map_.find("imu")->second]->GetVel();
+  se3 imu_se3_acc = robot->link_[robot->link_idx_map_.find("imu")->second]->GetAcc();
+  SE3 imu_frame = robot->link_[robot->link_idx_map_.find("imu")->second]->GetFrame();
+  SO3 imu_ori = robot->link_[robot->link_idx_map_.find("imu")->second]->GetOrientation();
 
-  Eigen::Matrix3d Rot;
-  Rot<< frame(0,0), frame(0,1), frame(0,2),
-    frame(1,0), frame(1,1), frame(1,2),
-    frame(2,0), frame(2,1), frame(2,2);
-
-  Eigen::Quaterniond quat(Rot);
-  std::cout<<quat.w()<<std::endl;
-  std::cout<<quat.vec()<<std::endl;
-
-  // std::cout<<Rot<<std::endl;
   for(int i(0); i<3; ++i){
-    printf("rot %i joint: %f, %f \n", i, robot->vr_joint_[i]->m_State.m_rValue[0], robot->vr_joint_[i]->m_State.m_rValue[1]);
+    imu_ang_vel[i] = imu_se3_vel[i];
   }
 
+  Eigen::Matrix3d Rot;
+  Rot<<
+    imu_frame(0,0), imu_frame(0,1), imu_frame(0,2),
+    imu_frame(1,0), imu_frame(1,1), imu_frame(1,2),
+    imu_frame(2,0), imu_frame(2,1), imu_frame(2,2);
+  Eigen::Matrix<double, 3, 1> ang_vel;
+  ang_vel<<imu_se3_vel[0], imu_se3_vel[1], imu_se3_vel[2];
+  sejong::Vect3 global_ang_vel = Rot * ang_vel;
 
-  se3 body_vel = robot->link_[robot->link_idx_map_.find("body")->second]->GetVel();
-  printf("body vel: \n");
-  std::cout<<body_vel<<std::endl;
+  bool b_printout(false);
+  if(b_printout){
+    printf("imu info: \n");
+    std::cout<<imu_se3_vel<<std::endl;
+    std::cout<<imu_se3_acc<<std::endl;
+    std::cout<<imu_frame<<std::endl;
 
-  for(int i(0); i<3; ++i){
-    imu_ang_vel[i] = body_vel[i];
+    printf("global ang vel\n");
+    std::cout<<global_ang_vel<<std::endl;
+
+    Eigen::Quaterniond quat(Rot);
+    printf("quat global:\n");
+    std::cout<<quat.w()<<std::endl;
+    std::cout<<quat.vec()<<std::endl;
   }
 
 

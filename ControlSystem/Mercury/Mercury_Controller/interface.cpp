@@ -51,7 +51,7 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
 #if MEASURE_TIME
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-    std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
+    std::cout << "[interface] All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
 #endif
 
     for (int i(0); i<NUM_ACT_JOINT; ++i){

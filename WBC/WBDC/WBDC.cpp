@@ -30,7 +30,7 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // Dimension Setting
   dim_opt_ = dim_rf_ + dim_relaxed_task_;
   dim_eq_cstr_ = num_passive_;
-  dim_ieq_cstr_ = dim_rf_cstr_;// + 2*num_act_joint_;
+  dim_ieq_cstr_ = dim_rf_cstr_ + 2*num_act_joint_;
 
   // Matrix Setting
   _MatrixInitialization();
@@ -56,8 +56,8 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // printf("ci0:\n");
   // std::cout<<ci0<<std::endl;
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
-  std::cout << "f: " << f << std::endl;
-  std::cout << "x: " << z << std::endl;
+  // std::cout << "f: " << f << std::endl;
+  // std::cout << "x: " << z << std::endl;
 
   _GetSolution(cmd);
 }
@@ -124,14 +124,14 @@ void WBDC::_SetInEqualityConstraint(){
   sj_CI.block(0,0, dim_rf_cstr_, dim_rf_) = Uf_;
   (sj_ci0.head(dim_rf_cstr_)).setZero();
 
-  // // Torque min & max
-  // // min
-  // sj_CI.block(dim_rf_cstr_, 0, num_act_joint_, dim_opt_) = Sa_ * tot_tau_Mtx_;
-  // sj_ci0.segment(dim_rf_cstr_, num_act_joint_) = Sa_ * tot_tau_Vect_ - data_->tau_min;
+  // Torque min & max
+  // min
+  sj_CI.block(dim_rf_cstr_, 0, num_act_joint_, dim_opt_) = Sa_ * tot_tau_Mtx_;
+  sj_ci0.segment(dim_rf_cstr_, num_act_joint_) = Sa_ * tot_tau_Vect_ - data_->tau_min;
 
-  // // max
-  // sj_CI.block(dim_rf_cstr_ + num_act_joint_, 0, num_act_joint_, dim_opt_) = -Sa_ * tot_tau_Mtx_;
-  // sj_ci0.tail(num_act_joint_) = -Sa_ * tot_tau_Vect_ + data_->tau_max;
+  // max
+  sj_CI.block(dim_rf_cstr_ + num_act_joint_, 0, num_act_joint_, dim_opt_) = -Sa_ * tot_tau_Mtx_;
+  sj_ci0.tail(num_act_joint_) = -Sa_ * tot_tau_Vect_ + data_->tau_max;
 
   for(int i(0); i< dim_ieq_cstr_; ++i){
     for(int j(0); j<dim_opt_; ++j){

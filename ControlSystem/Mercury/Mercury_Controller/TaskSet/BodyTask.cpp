@@ -60,9 +60,9 @@ bool BodyTask::_UpdateCommand(void* pos_des,
 
   }
 
-  sejong::pretty_print(op_cmd_, std::cout, "op cmd");
-  sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
-  sejong::pretty_print(com_pos, std::cout, "body pos");
+  // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
+  // sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
+  // sejong::pretty_print(com_pos, std::cout, "body pos");
   return true;
 }
 
@@ -77,7 +77,7 @@ bool BodyTask::_UpdateTaskJacobian(){
   Jt_(1, 3) = 1.;
   Jt_(2, 4) = 1.;
   Jt_(3, 5) = 1.;
-  sejong::pretty_print(Jt_, std::cout, "Jt Body");
+
   return true;
 }
 

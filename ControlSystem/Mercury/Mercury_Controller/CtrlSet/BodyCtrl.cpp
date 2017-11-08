@@ -24,8 +24,8 @@ BodyCtrl::BodyCtrl(): end_time_(1000000.),
   wbdc_data_->tau_max = sejong::Vector(NUM_ACT_JOINT);
 
   for(int i(0); i<NUM_ACT_JOINT; ++i){
-    wbdc_data_->tau_max[i] = 180.0;
-    wbdc_data_->tau_min[i] = -180.0;
+    wbdc_data_->tau_max[i] = 100.0;
+    wbdc_data_->tau_min[i] = -100.0;
   }
   // printf("[Body Controller] Constructed\n");
 }
@@ -61,7 +61,6 @@ void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
   std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
   std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
 #endif
-
 }
 
 void BodyCtrl::_body_task_setup(){
@@ -119,10 +118,9 @@ void BodyCtrl::_body_task_setup(){
     wbdc_data_->cost_weight.conservativeResize( prev_size + 5);
     wbdc_data_->cost_weight[prev_size] = 1.;
     wbdc_data_->cost_weight[prev_size+1] = 1.;
-    wbdc_data_->cost_weight[prev_size+2] = 100.;
-    wbdc_data_->cost_weight[prev_size+3] = 100.;
-    wbdc_data_->cost_weight[prev_size+4] = 100.;
-
+    wbdc_data_->cost_weight[prev_size+2] = 10.;
+    wbdc_data_->cost_weight[prev_size+3] = 10.;
+    wbdc_data_->cost_weight[prev_size+4] = 10.;
   }
 
   // Push back to task list
@@ -136,8 +134,8 @@ void BodyCtrl::_double_contact_setup(){
   for(int i(0); i<double_contact_->getDim(); ++i){
     wbdc_data_->cost_weight[i] = 1.;
   }
-  wbdc_data_->cost_weight[2] = 0.001;
-  wbdc_data_->cost_weight[5] = 0.001;
+  wbdc_data_->cost_weight[2] = 0.0001;
+  wbdc_data_->cost_weight[5] = 0.0001;
 }
 
 void BodyCtrl::FirstVisit(){
@@ -155,5 +153,4 @@ bool BodyCtrl::EndOfPhase(){
 }
 void BodyCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
-  sejong::pretty_print(ini_com_pos_, std::cout, "ini com");
 }

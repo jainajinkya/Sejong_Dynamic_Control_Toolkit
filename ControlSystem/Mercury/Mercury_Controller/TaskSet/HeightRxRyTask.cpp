@@ -48,8 +48,8 @@ bool HeightRxRyTask::_UpdateCommand(void* pos_des,
 
   sejong::Vect3 ori_err;
   sejong::convert(err_quat, ori_err);
-  sejong::pretty_print(err_quat, std::cout, "err quat");
-  sejong::pretty_print(ori_err, std::cout, "so3 err");
+  // sejong::pretty_print(err_quat, std::cout, "err quat");
+  // sejong::pretty_print(ori_err, std::cout, "so3 err");
 
   double Kp_ori(300.0);
   double Kd_ori(30.0);
@@ -60,9 +60,9 @@ bool HeightRxRyTask::_UpdateCommand(void* pos_des,
 
   }
 
-  sejong::pretty_print(op_cmd_, std::cout, "op cmd");
-  sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
-  sejong::pretty_print(com_pos, std::cout, "body pos");
+  // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
+  // sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
+  // sejong::pretty_print(com_pos, std::cout, "body pos");
   return true;
 }
 
@@ -76,7 +76,7 @@ bool HeightRxRyTask::_UpdateTaskJacobian(){
   Jt_.block(0,0, 3, NUM_QDOT) = Jcom - Jfoot.block(3, 0, 3, NUM_QDOT);
   Jt_(3, 3) = 1.;
   Jt_(4, 4) = 1.;
-  sejong::pretty_print(Jt_, std::cout, "Jt HeightRxRy");
+  // sejong::pretty_print(Jt_, std::cout, "Jt HeightRxRy");
   return true;
 }
 
