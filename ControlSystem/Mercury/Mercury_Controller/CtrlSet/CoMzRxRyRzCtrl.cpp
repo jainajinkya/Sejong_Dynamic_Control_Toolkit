@@ -58,7 +58,7 @@ void CoMzRxRyRzCtrl::_body_task_setup(){
   sejong::Quaternion quat_des;
   rpy_des.setZero();
 
-  double amp(0.2);
+  double amp(0.0);
   double omega(2. * M_PI * 0.5);
   int rot_idx(0);
   // Roll
