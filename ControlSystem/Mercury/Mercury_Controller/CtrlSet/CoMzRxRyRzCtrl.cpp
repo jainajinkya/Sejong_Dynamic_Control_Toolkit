@@ -1,22 +1,16 @@
-#include "BodyCtrl.hpp"
+#include "CoMzRxRyRzCtrl.hpp"
 #include <Configuration.h>
 #include <StateProvider.hpp>
-#include <TaskSet/BodyTask.hpp>
-#include <TaskSet/HeightRxRyTask.hpp>
+#include <TaskSet/CoMBodyOriTask.hpp>
 #include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
-#include <chrono>
 
-// #define WBDC_COMPUTATION_TIME
-
-BodyCtrl::BodyCtrl():Controller(),
-                     end_time_(1000000.),
-                     body_pos_ini_(4)
+CoMzRxRyRzCtrl::CoMzRxRyRzCtrl(): Controller(),
+                                  end_time_(100000000),
+                                  body_pos_ini_(4)
 {
-  // body_task_ = new BodyTask();
-  body_task_ = new HeightRxRyTask();
-  // body_task_ = new HeightRxRyRzTask();
+  body_task_ = new CoMBodyOriTask();
   double_contact_ = new DoubleContact();
   wbdc_ = new WBDC(act_list_);
 
@@ -28,16 +22,14 @@ BodyCtrl::BodyCtrl():Controller(),
     wbdc_data_->tau_max[i] = 100.0;
     wbdc_data_->tau_min[i] = -100.0;
   }
-  // printf("[Body Controller] Constructed\n");
 }
 
-BodyCtrl::~BodyCtrl(){
+CoMzRxRyRzCtrl::~CoMzRxRyRzCtrl(){
   delete body_task_;
   delete double_contact_;
 }
 
-void BodyCtrl::OneStep(sejong::Vector & gamma){
-  // printf("[Body Ctrl] Onestep\n");
+void CoMzRxRyRzCtrl::OneStep(sejong::Vector & gamma){
   _PreProcessing_Command();
 
   gamma.setZero();
@@ -48,23 +40,12 @@ void BodyCtrl::OneStep(sejong::Vector & gamma){
   _PostProcessing_Command(gamma);
 }
 
-void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
+void CoMzRxRyRzCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
-
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
-
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
-
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
-#endif
 }
 
-void BodyCtrl::_body_task_setup(){
+void CoMzRxRyRzCtrl::_body_task_setup(){
   sejong::Vector pos_des(3 + 4);
   sejong::Vector vel_des(body_task_->getDim());
   sejong::Vector acc_des(body_task_->getDim());
@@ -87,7 +68,7 @@ void BodyCtrl::_body_task_setup(){
 
   // Pitch
   rot_idx = 1;
-  amp = 0.4;
+  amp = 0.0;
   omega = 2. * M_PI * 0.1;
   rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
   vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
@@ -106,29 +87,31 @@ void BodyCtrl::_body_task_setup(){
   // bool b_height_relax(false);
   bool b_height_relax(true);
   if(b_height_relax){
-    std::vector<bool> relaxed_op(body_task_->getDim(), false);
-    relaxed_op[0] = true; // X
-    relaxed_op[1] = true; // Y
-    relaxed_op[2] = true; // Z
-    relaxed_op[3] = true; // Rx
-    relaxed_op[4] = true; // Ry
+    std::vector<bool> relaxed_op(body_task_->getDim(), true);
+    // relaxed_op[0] = true; // X
+    // relaxed_op[1] = true; // Y
+    // relaxed_op[2] = true; // Z
+    // relaxed_op[3] = true; // Rx
+    // relaxed_op[4] = true; // Ry
+    // relaxed_op[5] = true; // Rz
 
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
-    wbdc_data_->cost_weight.conservativeResize( prev_size + 5);
+    wbdc_data_->cost_weight.conservativeResize( prev_size + 6);
     wbdc_data_->cost_weight[prev_size] = 1.;
     wbdc_data_->cost_weight[prev_size+1] = 1.;
     wbdc_data_->cost_weight[prev_size+2] = 10.;
     wbdc_data_->cost_weight[prev_size+3] = 10.;
     wbdc_data_->cost_weight[prev_size+4] = 10.;
+    wbdc_data_->cost_weight[prev_size+5] = 1.;
   }
 
   // Push back to task list
   task_list_.push_back(body_task_);
   // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
-void BodyCtrl::_double_contact_setup(){
+void CoMzRxRyRzCtrl::_double_contact_setup(){
   double_contact_->UpdateContactSpec();
   contact_list_.push_back(double_contact_);
   wbdc_data_->cost_weight = sejong::Vector::Zero(double_contact_->getDim());
@@ -139,19 +122,19 @@ void BodyCtrl::_double_contact_setup(){
   wbdc_data_->cost_weight[5] = 0.0001;
 }
 
-void BodyCtrl::FirstVisit(){
+void CoMzRxRyRzCtrl::FirstVisit(){
   ctrl_start_time_ = sp_->curr_time_;
 }
 
-void BodyCtrl::LastVisit(){
+void CoMzRxRyRzCtrl::LastVisit(){
 }
 
-bool BodyCtrl::EndOfPhase(){
+bool CoMzRxRyRzCtrl::EndOfPhase(){
   if(state_machine_time_ > end_time_){
     return true;
   }
   return false;
 }
-void BodyCtrl::CtrlInitialization(std::string setting_file_name){
+void CoMzRxRyRzCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
 }

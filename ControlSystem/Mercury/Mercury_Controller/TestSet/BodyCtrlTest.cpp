@@ -32,6 +32,7 @@ void BodyCtrlTest::TestInitialization(){
 
 int BodyCtrlTest::_NextPhase(const int & phase){
   // if (phase == NUM_PHASE) return BCPhase::initial_transition;
+  int next_phase = phase + 1;
   if (phase == NUM_PHASE) return BCPhase::stay_up;
-  else return (phase +1);
+  else return next_phase;
 }

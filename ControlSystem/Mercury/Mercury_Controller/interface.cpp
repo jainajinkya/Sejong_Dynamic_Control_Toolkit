@@ -10,6 +10,7 @@
 // TEST SET LIST
 #include <TestSet/BodyCtrlTest.hpp>
 #include <TestSet/JointCtrlTest.hpp>
+#include <TestSet/StepTest.hpp>
 
 #if MEASURE_TIME
 #include <chrono>
@@ -27,7 +28,8 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
   // TEST SETUP
-  test_ = new BodyCtrlTest();
+  test_ = new StepTest();
+  // test_ = new BodyCtrlTest();
   // test_ = new JointCtrlTest();
 
   printf("[interface] Contruct\n");

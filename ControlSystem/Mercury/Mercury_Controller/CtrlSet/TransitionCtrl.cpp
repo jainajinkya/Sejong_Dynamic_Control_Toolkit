@@ -1,8 +1,7 @@
-#include "BodyCtrl.hpp"
+#include "TransitionCtrl.hpp"
 #include <Configuration.h>
 #include <StateProvider.hpp>
-#include <TaskSet/BodyTask.hpp>
-#include <TaskSet/HeightRxRyTask.hpp>
+#include <TaskSet/CoMBodyOriTask.hpp>
 #include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
@@ -10,13 +9,10 @@
 
 // #define WBDC_COMPUTATION_TIME
 
-BodyCtrl::BodyCtrl():Controller(),
-                     end_time_(1000000.),
-                     body_pos_ini_(4)
+TransitionCtrl::TransitionCtrl(int moving_foot):Controller(),
+                                                moving_foot_(moving_foot)
 {
-  // body_task_ = new BodyTask();
-  body_task_ = new HeightRxRyTask();
-  // body_task_ = new HeightRxRyRzTask();
+  body_task_ = new CoMBodyOriTask();
   double_contact_ = new DoubleContact();
   wbdc_ = new WBDC(act_list_);
 
@@ -28,16 +24,16 @@ BodyCtrl::BodyCtrl():Controller(),
     wbdc_data_->tau_max[i] = 100.0;
     wbdc_data_->tau_min[i] = -100.0;
   }
-  // printf("[Body Controller] Constructed\n");
+  // printf("[Transition Controller] Constructed\n");
 }
 
-BodyCtrl::~BodyCtrl(){
+TransitionCtrl::~TransitionCtrl(){
   delete body_task_;
   delete double_contact_;
 }
 
-void BodyCtrl::OneStep(sejong::Vector & gamma){
-  // printf("[Body Ctrl] Onestep\n");
+void TransitionCtrl::OneStep(sejong::Vector & gamma){
+  // printf("[Transition Ctrl] Onestep\n");
   _PreProcessing_Command();
 
   gamma.setZero();
@@ -48,7 +44,7 @@ void BodyCtrl::OneStep(sejong::Vector & gamma){
   _PostProcessing_Command(gamma);
 }
 
-void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
+void TransitionCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
 
 #ifdef WBDC_COMPUTATION_TIME
@@ -64,7 +60,7 @@ void BodyCtrl::_body_ctrl(sejong::Vector & gamma){
 #endif
 }
 
-void BodyCtrl::_body_task_setup(){
+void TransitionCtrl::_body_task_setup(){
   sejong::Vector pos_des(3 + 4);
   sejong::Vector vel_des(body_task_->getDim());
   sejong::Vector acc_des(body_task_->getDim());
@@ -128,7 +124,7 @@ void BodyCtrl::_body_task_setup(){
   task_list_.push_back(body_task_);
   // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
-void BodyCtrl::_double_contact_setup(){
+void TransitionCtrl::_double_contact_setup(){
   double_contact_->UpdateContactSpec();
   contact_list_.push_back(double_contact_);
   wbdc_data_->cost_weight = sejong::Vector::Zero(double_contact_->getDim());
@@ -139,19 +135,19 @@ void BodyCtrl::_double_contact_setup(){
   wbdc_data_->cost_weight[5] = 0.0001;
 }
 
-void BodyCtrl::FirstVisit(){
+void TransitionCtrl::FirstVisit(){
   ctrl_start_time_ = sp_->curr_time_;
 }
 
-void BodyCtrl::LastVisit(){
+void TransitionCtrl::LastVisit(){
 }
 
-bool BodyCtrl::EndOfPhase(){
+bool TransitionCtrl::EndOfPhase(){
   if(state_machine_time_ > end_time_){
     return true;
   }
   return false;
 }
-void BodyCtrl::CtrlInitialization(std::string setting_file_name){
+void TransitionCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
 }

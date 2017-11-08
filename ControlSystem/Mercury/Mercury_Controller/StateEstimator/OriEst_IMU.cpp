@@ -13,7 +13,7 @@ void OriEst_IMU::EstimatorInitialization(const std::vector<double> & acc,
   ori_imu_.y() = 0.;
   ori_imu_.z() = 0.;
 
-  for(int i(0); i<3; ++i)  global_ang_vel[i] = ang_vel[i];
+  for(int i(0); i<3; ++i)  global_ang_vel_[i] = ang_vel[i];
   
 }
 void OriEst_IMU::setSensorData(const std::vector<double> & acc,

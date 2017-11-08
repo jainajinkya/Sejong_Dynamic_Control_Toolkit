@@ -3,6 +3,7 @@
 
 WBDC_Task::WBDC_Task(int dim): Task(dim),
                                dim_relaxed_(0){
+  printf("[WBDC Task]Constructed\n");
 }
 WBDC_Task::~WBDC_Task(){}
 

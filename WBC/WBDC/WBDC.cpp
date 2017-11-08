@@ -122,7 +122,7 @@ void WBDC::_SetInEqualityConstraint(){
 
   // RF constraint
   sj_CI.block(0,0, dim_rf_cstr_, dim_rf_) = Uf_;
-  (sj_ci0.head(dim_rf_cstr_)).setZero();
+  (sj_ci0.head(dim_rf_cstr_)) = uf_ieq_vec_;
 
   // Torque min & max
   // min
@@ -145,6 +145,7 @@ void WBDC::_SetInEqualityConstraint(){
 
 void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
   sejong::Matrix Uf;
+  sejong::Vector uf_ieq_vec;
   // Initial
   sejong::Matrix Jc;
   sejong::Vector JcDotQdot;
@@ -154,6 +155,7 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
 
   JcDotQdot_ = JcDotQdot;
   static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintMtx(Uf_);
+  static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintVec(uf_ieq_vec_);
   dim_rf_ = contact_list[0]->getDim();
   dim_rf_cstr_ = static_cast<WBDC_ContactSpec*>(contact_list[0])->getDimRFConstratint();
 
@@ -180,6 +182,12 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
     Uf_.block(dim_rf_cstr_, 0, dim_new_rf_cstr, dim_rf_).setZero();
     Uf_.block(dim_rf_cstr_, dim_rf_, dim_new_rf_cstr, dim_new_rf) = Uf;
 
+    // Uf inequality vector
+    static_cast<WBDC_ContactSpec*>(contact_list[i])->getRFConstraintVec(uf_ieq_vec);
+    uf_ieq_vec_.conservativeResize(1, dim_rf_cstr_ + dim_new_rf_cstr);
+    uf_ieq_vec_.tail(dim_new_rf_cstr) = uf_ieq_vec;
+
+    // Increase reaction force dimension
     dim_rf_ += dim_new_rf;
     dim_rf_cstr_ += dim_new_rf_cstr;
   }

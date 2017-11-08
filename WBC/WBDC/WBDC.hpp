@@ -74,6 +74,7 @@ private:
 
   sejong::Matrix S_delta_;
   sejong::Matrix Uf_;
+  sejong::Vector uf_ieq_vec_;
 
   sejong::Matrix Jc_;
   sejong::Vector JcDotQdot_;

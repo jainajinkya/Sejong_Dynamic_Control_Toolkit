@@ -8,7 +8,7 @@ StateProvider* StateProvider::GetStateProvider(){
 
 StateProvider::StateProvider(): initialized_(false),
                                 system_count_(0),
-                                stance_foot_(SJLinkID::LK_RFOOT),
+                                stance_foot_(SJLinkID::LK_LFOOT),
                                 Q_(NUM_Q),
                                 Qdot_(NUM_QDOT)
 {
