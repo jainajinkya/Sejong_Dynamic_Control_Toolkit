@@ -2,6 +2,8 @@
 torque_max: [100, 100, 100, 100, 100, 100]
 torque_min: [-100, -100, -100, -100, -100, -100]
 
+
+
 # Timing Parameters (sec)
 com_lifting_time: 1.0
 swing_time: 0.32

@@ -184,6 +184,7 @@ bool BodyFootCtrl::EndOfPhase(){
 void BodyFootCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
   robot_model_->getPosition(sp_->Q_, swing_foot_, ini_foot_pos_);
+  std::vector<double> tmp_vec;
 
   // Setting Parameters
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
@@ -194,10 +195,19 @@ void BodyFootCtrl::CtrlInitialization(std::string setting_file_name){
   handler.getBoolean("compute_target", b_compute_target_);
 
   if(!b_compute_target_){
-    std::vector<double> tmp_vec;
     handler.getVector("target_location", tmp_vec);
     for(int i(0);i<3; ++i){
       target_foot_pos_[i] = tmp_vec[i];
     }
+  }
+
+  // Feedback Gain
+  handler.getVector("Kp", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((BodyFootTask*)body_foot_task_)->Kp_vec_[i] = tmp_vec[i];
+  }
+  handler.getVector("Kd", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((BodyFootTask*)body_foot_task_)->Kd_vec_[i] = tmp_vec[i];
   }
 }

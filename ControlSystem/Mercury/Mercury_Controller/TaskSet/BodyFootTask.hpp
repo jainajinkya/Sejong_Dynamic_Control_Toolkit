@@ -12,9 +12,12 @@ public:
   BodyFootTask(int swing_foot); // 4 dim: Rx, Ry, Rz, Z
   virtual ~BodyFootTask();
 
+  sejong::Vector Kp_vec_;
+  sejong::Vector Kd_vec_;
+
 protected:
   int swing_foot_;
-  
+
   // Update op_cmd_
   virtual bool _UpdateCommand(void* pos_des,
                               const sejong::Vector & vel_des,

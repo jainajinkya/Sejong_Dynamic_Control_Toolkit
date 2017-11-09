@@ -10,6 +10,9 @@ BodyFootTask::BodyFootTask(int swing_foot):WBDC_Task(9),
                                            Kd_(25.0),
                                            swing_foot_(swing_foot)
 {
+  Kp_vec_ = sejong::Vector::Zero(9);
+  Kd_vec_ = sejong::Vector::Zero(9);
+
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();
   Jt_ = sejong::Matrix::Zero(dim_task_, NUM_QDOT);
@@ -29,7 +32,7 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   op_cmd_ = sejong::Vector::Zero(dim_task_);
 
   for(int i(0); i<3; ++i){
-    op_cmd_[i] = acc_des[i] + Kp_ * ((*pos_cmd)[i] - com_pos[i]) + Kd_ * (vel_des[i] - com_vel[i]);
+    op_cmd_[i] = acc_des[i] + Kp_vec_[i] * ((*pos_cmd)[i] - com_pos[i]) + Kd_ * (vel_des[i] - com_vel[i]);
   }
 
   // Orientation
@@ -56,8 +59,7 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   double Kd_ori(30.0);
 
   for(int i(0); i<3; ++i){
-    op_cmd_[i+3] = acc_des[i+3] + Kp_ori * ori_err[i] + Kd_ori * (vel_des[i+1] - sp_->Qdot_[i+3]);
-    // op_cmd_[i+1] = acc_des[i+1] + Kd_ * (vel_des[i+1] - sp_->Qdot_[i+3]);
+    op_cmd_[i+3] = acc_des[i+3] + Kp_vec_[i+3] * ori_err[i] + Kd_vec_[i+3] * (vel_des[i+1] - sp_->Qdot_[i+3]);
   }
 
   // Foot Position
@@ -67,7 +69,7 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   double Kp_foot(300.);
   double Kd_foot(30.);
   for(int i(0); i<3; ++i){
-    op_cmd_[i+6] = acc_des[i+6] + Kp_foot * ((*pos_cmd)[i+7] - foot_pos[i]) + Kd_foot * (vel_des[i+6] - foot_vel[i]);
+    op_cmd_[i+6] = acc_des[i+6] + Kp_vec_[i+6] * ((*pos_cmd)[i+7] - foot_pos[i]) + Kd_vec_[i+6] * (vel_des[i+6] - foot_vel[i]);
   }
 
   // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
