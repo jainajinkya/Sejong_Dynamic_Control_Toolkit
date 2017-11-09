@@ -2,6 +2,8 @@
 #define BODY_FOOT_CONTROL
 
 #include <Controller.hpp>
+#include <Utils/BSplineBasic.h>
+
 class WBDC;
 class WBDC_ExtraData;
 class WBDC_Task;
@@ -22,6 +24,7 @@ public:
 protected:
   int swing_foot_;
   bool b_compute_target_;
+  double swing_height_;
 
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
@@ -30,6 +33,10 @@ protected:
 
   sejong::Vector body_pos_ini_;
   sejong::Vect3 ini_com_pos_;
+  sejong::Vect3 ini_foot_pos_;
+  sejong::Vect3 target_foot_pos_;
+
+  BS_Basic<3, 3, 1, 2, 2> foot_traj_;
 
   double end_time_;
   void _task_setup();

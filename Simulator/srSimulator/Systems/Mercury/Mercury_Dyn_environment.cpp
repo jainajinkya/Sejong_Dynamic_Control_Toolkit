@@ -120,7 +120,7 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
 void Mercury_Dyn_environment::_FixXY(){
   double pos,vel;
 
-  double kp(500.0);
+  double kp(1500.0);
   double kd(50.0);
 
   int idx(0);

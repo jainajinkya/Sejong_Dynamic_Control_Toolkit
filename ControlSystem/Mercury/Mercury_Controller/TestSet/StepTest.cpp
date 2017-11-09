@@ -67,14 +67,22 @@ void StepTest::TestInitialization(){
 
 int StepTest::_NextPhase(const int & phase){
   int next_phase = phase + 1;
+  printf("next phase: %i\n", next_phase);
   if(phase == double_contact_1) {
     printf("One swing done: Next Right Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_LFOOT;
   }
-  if(phase == double_contact_2) sp_->stance_foot_ = SJLinkID::LK_RFOOT;
+  if(phase == double_contact_2){
+    printf("One swing done: Next Left Leg Swing\n");
+    sp_->stance_foot_ = SJLinkID::LK_RFOOT;
+  } 
 
-  if(phase == NUM_STPHASE) return STPhase::double_contact_1;
-  else return next_phase;
+  if(next_phase == NUM_STPHASE) {
+    
+    printf("one step is done\n");
+    return STPhase::double_contact_1; 
+  }
+  else{ return next_phase; }
 }
 
 void StepTest::_SettingParameter(){
