@@ -2,7 +2,7 @@
 #include <Configuration.h>
 #include <StateProvider.hpp>
 #include <TaskSet/CoMBodyOriTask.hpp>
-#include <ContactSet/DoubleContact.hpp>
+#include <ContactSet/DoubleContactBounding.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
 #include <chrono>
@@ -16,7 +16,7 @@ TransitionCtrl::TransitionCtrl(int moving_foot, bool b_increase):
   end_time_(100.)
 {
   body_task_ = new CoMBodyOriTask();
-  double_contact_ = new DoubleContact();
+  double_contact_ = new DoubleContactBounding(moving_foot);
   wbdc_ = new WBDC(act_list_);
 
   wbdc_data_ = new WBDC_ExtraData();
@@ -97,8 +97,15 @@ void TransitionCtrl::_body_task_setup(){
 }
 
 void TransitionCtrl::_double_contact_setup(){
+  if(b_increase_){
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(5.0 + state_machine_time_/end_time_ * 80.);
+  } else {
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(80. - state_machine_time_/end_time_ * 75.);
+  }
   double_contact_->UpdateContactSpec();
+
   contact_list_.push_back(double_contact_);
+
   wbdc_data_->cost_weight = sejong::Vector::Zero(double_contact_->getDim());
   for(int i(0); i<double_contact_->getDim(); ++i){
     wbdc_data_->cost_weight[i] = 1.;
