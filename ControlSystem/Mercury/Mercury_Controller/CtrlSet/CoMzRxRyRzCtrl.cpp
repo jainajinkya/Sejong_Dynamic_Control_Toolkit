@@ -7,7 +7,7 @@
 #include <Robot_Model/RobotModel.hpp>
 
 CoMzRxRyRzCtrl::CoMzRxRyRzCtrl(): Controller(),
-                                  end_time_(100000000),
+                                  end_time_(100.),
                                   body_pos_ini_(4)
 {
   body_task_ = new CoMBodyOriTask();
@@ -58,22 +58,6 @@ void CoMzRxRyRzCtrl::_body_task_setup(){
   sejong::Quaternion quat_des;
   rpy_des.setZero();
 
-  double amp(0.0);
-  double omega(2. * M_PI * 0.5);
-  int rot_idx(0);
-  // Roll
-  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
-  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
-  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
-
-  // Pitch
-  rot_idx = 1;
-  amp = 0.0;
-  omega = 2. * M_PI * 0.1;
-  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
-  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
-  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
-
   sejong::convert(rpy_des, quat_des);
   pos_des[3] = quat_des.w();
   pos_des[4] = quat_des.x();
@@ -88,23 +72,16 @@ void CoMzRxRyRzCtrl::_body_task_setup(){
   bool b_height_relax(true);
   if(b_height_relax){
     std::vector<bool> relaxed_op(body_task_->getDim(), true);
-    // relaxed_op[0] = true; // X
-    // relaxed_op[1] = true; // Y
-    // relaxed_op[2] = true; // Z
-    // relaxed_op[3] = true; // Rx
-    // relaxed_op[4] = true; // Ry
-    // relaxed_op[5] = true; // Rz
-
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
     wbdc_data_->cost_weight.conservativeResize( prev_size + 6);
-    wbdc_data_->cost_weight[prev_size] = 1.;
-    wbdc_data_->cost_weight[prev_size+1] = 1.;
+    wbdc_data_->cost_weight[prev_size] = 0.0001;
+    wbdc_data_->cost_weight[prev_size+1] = 0.0001;
     wbdc_data_->cost_weight[prev_size+2] = 10.;
     wbdc_data_->cost_weight[prev_size+3] = 10.;
     wbdc_data_->cost_weight[prev_size+4] = 10.;
-    wbdc_data_->cost_weight[prev_size+5] = 1.;
+    wbdc_data_->cost_weight[prev_size+5] = 0.001;
   }
 
   // Push back to task list
@@ -123,10 +100,13 @@ void CoMzRxRyRzCtrl::_double_contact_setup(){
 }
 
 void CoMzRxRyRzCtrl::FirstVisit(){
+  printf("[CoMzRxRyRz] Start\n");
   ctrl_start_time_ = sp_->curr_time_;
 }
 
 void CoMzRxRyRzCtrl::LastVisit(){
+  printf("[CoMzRxRyRz] End\n");
+
 }
 
 bool CoMzRxRyRzCtrl::EndOfPhase(){

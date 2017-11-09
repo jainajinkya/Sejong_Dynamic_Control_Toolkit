@@ -19,6 +19,8 @@ public:
 
   virtual void CtrlInitialization(std::string setting_file_name);
 
+  void setStanceTime(double stance_time){ end_time_ = stance_time; }
+  
 protected:
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;

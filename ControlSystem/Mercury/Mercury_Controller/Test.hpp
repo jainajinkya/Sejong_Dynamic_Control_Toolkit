@@ -4,7 +4,6 @@
 #include <Utils/wrap_eigen.hpp>
 #include <Configuration.h>
 
-class ParamHandler;
 class Controller;
 
 class Test{
@@ -16,8 +15,6 @@ public:
   void getTorqueInput(sejong::Vector & gamma);
 
 protected:
-  ParamHandler* param_handler_;
-  
   virtual int _NextPhase(const int & phase) = 0;
 
   bool b_first_visit_;

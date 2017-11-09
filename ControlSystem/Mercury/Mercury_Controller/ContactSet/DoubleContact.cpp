@@ -52,6 +52,11 @@ bool DoubleContact::_UpdateUf(){
   return true;
 }
 
+bool DoubleContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(5*2);
+  return true;
+}
+
 void DoubleContact::_setU(double mu, sejong::Matrix & U){
   U = sejong::Matrix::Zero(5, 3);
 

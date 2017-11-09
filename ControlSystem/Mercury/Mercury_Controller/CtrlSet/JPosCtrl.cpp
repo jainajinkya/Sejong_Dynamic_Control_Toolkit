@@ -4,9 +4,11 @@
 #include <ContactSet/FixedBodyContact.hpp>
 #include <ContactSet/DoubleContact.hpp>
 #include <WBDC/WBDC.hpp>
+#include <ParamHandler/ParamHandler.hpp>
 
-
-JPosCtrl::JPosCtrl():Controller(){
+JPosCtrl::JPosCtrl():Controller(),
+                     jpos_target_(NUM_ACT_JOINT)
+{
   jpos_task_ = new JPosTask();
   fixed_body_contact_ = new DoubleContact();
   // fixed_body_contact_ = new FixedBodyContact();
@@ -116,4 +118,10 @@ bool JPosCtrl::EndOfPhase(){
 }
 void JPosCtrl::CtrlInitialization(std::string setting_file_name){
   jpos_ini_ = sp_->Q_.segment(NUM_VIRTUAL, NUM_ACT_JOINT);
+
+  ParamHandler handle(CONFIG_PATH + setting_file_name + ".yaml");
+
+  std::vector<double> tmp_vec;
+  handle.getVector("target_jpos", tmp_vec);
+  for(int i(0); i<NUM_ACT_JOINT; ++i) jpos_target_[i] = tmp_vec[i];
 }

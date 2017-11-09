@@ -56,10 +56,30 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // printf("ci0:\n");
   // std::cout<<ci0<<std::endl;
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
-  // std::cout << "f: " << f << std::endl;
-  // std::cout << "x: " << z << std::endl;
 
   _GetSolution(cmd);
+  if(f > 1.e5){
+    std::cout << "f: " << f << std::endl;
+    std::cout << "x: " << z << std::endl;
+    std::cout << "cmd: "<<cmd<<std::endl;
+
+    printf("G:\n");
+    std::cout<<G<<std::endl;
+    printf("g0:\n");
+    std::cout<<g0<<std::endl;
+
+    printf("CE:\n");
+    std::cout<<CE<<std::endl;
+    printf("ce0:\n");
+    std::cout<<ce0<<std::endl;
+
+    printf("CI:\n");
+    std::cout<<CI<<std::endl;
+    printf("ci0:\n");
+    std::cout<<ci0<<std::endl;
+
+  }
+
 }
 
 void WBDC::_SetEqualityConstraint(){
@@ -156,6 +176,7 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
   JcDotQdot_ = JcDotQdot;
   static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintMtx(Uf_);
   static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintVec(uf_ieq_vec_);
+
   dim_rf_ = contact_list[0]->getDim();
   dim_rf_cstr_ = static_cast<WBDC_ContactSpec*>(contact_list[0])->getDimRFConstratint();
 
@@ -184,7 +205,7 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
 
     // Uf inequality vector
     static_cast<WBDC_ContactSpec*>(contact_list[i])->getRFConstraintVec(uf_ieq_vec);
-    uf_ieq_vec_.conservativeResize(1, dim_rf_cstr_ + dim_new_rf_cstr);
+    uf_ieq_vec_.conservativeResize(dim_rf_cstr_ + dim_new_rf_cstr);
     uf_ieq_vec_.tail(dim_new_rf_cstr) = uf_ieq_vec;
 
     // Increase reaction force dimension

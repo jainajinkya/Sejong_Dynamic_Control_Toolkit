@@ -27,7 +27,8 @@ protected:
   WBDC_ContactSpec* fixed_body_contact_;
 
   sejong::Vector jpos_ini_;
-
+  sejong::Vector jpos_target_;
+  
   void _jpos_task_setup();
   void _fixed_body_contact_setup();
   void _jpos_ctrl(sejong::Vector & gamma);

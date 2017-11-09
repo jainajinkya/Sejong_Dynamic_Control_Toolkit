@@ -5,6 +5,7 @@
 #include <ContactSet/SingleContact.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
+#include <ParamHandler/ParamHandler.hpp>
 
 BodyFootCtrl::BodyFootCtrl(int swing_foot):Controller(),
                                            swing_foot_(swing_foot)
@@ -146,4 +147,11 @@ bool BodyFootCtrl::EndOfPhase(){
 }
 void BodyFootCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
+  // Setting Parameters
+  ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
+
+  handler.getBoolean("compute_target", b_compute_target_);
+  if(!b_compute_target_){
+    
+  }
 }
