@@ -5,10 +5,7 @@
 
 class WBDC_ContactSpec:public ContactSpec{
 public:
-  WBDC_ContactSpec(int dim):ContactSpec(dim),
-                            ieq_vec_(dim)
-  {
-    ieq_vec_.setZero();
+  WBDC_ContactSpec(int dim):ContactSpec(dim) {
   }
   virtual ~WBDC_ContactSpec(){}
 
@@ -19,9 +16,11 @@ public:
 protected:
   virtual bool _AdditionalUpdate(){
     _UpdateUf();
+    _UpdateInequalityVector();
     return true;
   }
   virtual bool _UpdateUf() = 0;
+  virtual bool _UpdateInequalityVector() = 0;
 
   sejong::Matrix Uf_;
   sejong::Vector ieq_vec_;

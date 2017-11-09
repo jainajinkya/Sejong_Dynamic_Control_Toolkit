@@ -9,8 +9,11 @@
 
 // #define WBDC_COMPUTATION_TIME
 
-TransitionCtrl::TransitionCtrl(int moving_foot):Controller(),
-                                                moving_foot_(moving_foot)
+TransitionCtrl::TransitionCtrl(int moving_foot, bool b_increase):
+  Controller(),
+  moving_foot_(moving_foot),
+  b_increase_(b_increase),
+  end_time_(100.)
 {
   body_task_ = new CoMBodyOriTask();
   double_contact_ = new DoubleContact();
@@ -30,10 +33,10 @@ TransitionCtrl::TransitionCtrl(int moving_foot):Controller(),
 TransitionCtrl::~TransitionCtrl(){
   delete body_task_;
   delete double_contact_;
+  delete wbdc_;
 }
 
 void TransitionCtrl::OneStep(sejong::Vector & gamma){
-  // printf("[Transition Ctrl] Onestep\n");
   _PreProcessing_Command();
 
   gamma.setZero();
@@ -46,18 +49,7 @@ void TransitionCtrl::OneStep(sejong::Vector & gamma){
 
 void TransitionCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
-
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
-
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
-
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
-#endif
 }
 
 void TransitionCtrl::_body_task_setup(){
@@ -68,26 +60,11 @@ void TransitionCtrl::_body_task_setup(){
 
   // CoM Pos
   pos_des.head(3) = ini_com_pos_;
+
   // Orientation
   sejong::Vect3 rpy_des;
   sejong::Quaternion quat_des;
   rpy_des.setZero();
-
-  double amp(0.2);
-  double omega(2. * M_PI * 0.5);
-  int rot_idx(0);
-  // Roll
-  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
-  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
-  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
-
-  // Pitch
-  rot_idx = 1;
-  amp = 0.4;
-  omega = 2. * M_PI * 0.1;
-  rpy_des[rot_idx] += amp * sin(omega * state_machine_time_);
-  vel_des[rot_idx + 3] = amp * omega * cos(omega * state_machine_time_);
-  acc_des[rot_idx + 3] = -amp* omega * omega * sin(omega * state_machine_time_);
 
   sejong::convert(rpy_des, quat_des);
   pos_des[3] = quat_des.w();
@@ -102,28 +79,23 @@ void TransitionCtrl::_body_task_setup(){
   // bool b_height_relax(false);
   bool b_height_relax(true);
   if(b_height_relax){
-    std::vector<bool> relaxed_op(body_task_->getDim(), false);
-    relaxed_op[0] = true; // X
-    relaxed_op[1] = true; // Y
-    relaxed_op[2] = true; // Z
-    relaxed_op[3] = true; // Rx
-    relaxed_op[4] = true; // Ry
-
+    std::vector<bool> relaxed_op(body_task_->getDim(), true);
     body_task_->setRelaxedOpCtrl(relaxed_op);
 
     int prev_size(wbdc_data_->cost_weight.rows());
-    wbdc_data_->cost_weight.conservativeResize( prev_size + 5);
-    wbdc_data_->cost_weight[prev_size] = 1.;
-    wbdc_data_->cost_weight[prev_size+1] = 1.;
+    wbdc_data_->cost_weight.conservativeResize(prev_size + body_task_->getDim());
+    wbdc_data_->cost_weight[prev_size] = 0.0001;
+    wbdc_data_->cost_weight[prev_size+1] = 0.0001;
     wbdc_data_->cost_weight[prev_size+2] = 10.;
     wbdc_data_->cost_weight[prev_size+3] = 10.;
     wbdc_data_->cost_weight[prev_size+4] = 10.;
+    wbdc_data_->cost_weight[prev_size+5] = 1.;
   }
 
   // Push back to task list
   task_list_.push_back(body_task_);
-  // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
+
 void TransitionCtrl::_double_contact_setup(){
   double_contact_->UpdateContactSpec();
   contact_list_.push_back(double_contact_);
@@ -136,10 +108,12 @@ void TransitionCtrl::_double_contact_setup(){
 }
 
 void TransitionCtrl::FirstVisit(){
+  printf("[Transition] Start\n");
   ctrl_start_time_ = sp_->curr_time_;
 }
 
 void TransitionCtrl::LastVisit(){
+  printf("[Transition] End\n");
 }
 
 bool TransitionCtrl::EndOfPhase(){

@@ -27,6 +27,7 @@ public:
 protected:
   StateProvider* sp_;
   virtual int _NextPhase(const int & phase);
+  void _SettingParameter();
 
   Controller* jpos_ctrl_;
   Controller* body_up_ctrl_;

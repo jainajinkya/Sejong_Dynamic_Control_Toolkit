@@ -1,0 +1,2 @@
+compute_target: false
+traj_type: B_Spline

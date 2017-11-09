@@ -18,8 +18,10 @@ public:
 
   virtual void CtrlInitialization(std::string setting_file_name);
 
+  void setSwingTime(double swing_time){ end_time_ = swing_time; }
 protected:
   int swing_foot_;
+  bool b_compute_target_;
 
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;

@@ -9,7 +9,7 @@ class WBDC_ContactSpec;
 
 class TransitionCtrl: public Controller{
 public:
-  TransitionCtrl(int moving_foot);
+  TransitionCtrl(int moving_foot, bool b_increase);
   virtual ~TransitionCtrl();
 
   virtual void OneStep(sejong::Vector & gamma);
@@ -19,7 +19,10 @@ public:
 
   virtual void CtrlInitialization(std::string setting_file_name);
 
+  void setTransitionTime(double time){ end_time_ = time; }
+
 protected:
+  double end_time_;
   int moving_foot_;
   bool b_increase_; // Increasing or decreasing reaction force
 
@@ -31,7 +34,7 @@ protected:
   sejong::Vector body_pos_ini_;
   sejong::Vect3 ini_com_pos_;
 
-  double end_time_;
+
   void _body_task_setup();
   void _double_contact_setup();
   void _body_ctrl(sejong::Vector & gamma);

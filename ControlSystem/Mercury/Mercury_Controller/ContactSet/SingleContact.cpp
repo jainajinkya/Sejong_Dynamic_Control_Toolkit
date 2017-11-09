@@ -37,3 +37,8 @@ bool SingleContact::_UpdateUf(){
   Uf_(4, 1) = -1.; Uf_(4, 2) = mu; // Fy <=  mu * Fz
   return true;
 }
+
+bool SingleContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(5);
+  return true;
+}

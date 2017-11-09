@@ -38,6 +38,10 @@ bool DoubleContact::_UpdateJcDotQdot(){
   return true;
 }
 
+bool DoubleContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(17*2);
+  return true;
+}
 bool DoubleContact::_UpdateUf(){
   double mu(0.8);
   double X(0.1);

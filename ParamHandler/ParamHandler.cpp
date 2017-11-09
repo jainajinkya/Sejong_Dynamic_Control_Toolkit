@@ -22,3 +22,8 @@ bool ParamHandler::getValue(const std::string & key, double & double_value){
   double_value = config_[key].as<double>();
   return true;
 }
+
+bool ParamHandler::getBoolean(const std::string & key, bool & bool_value){
+  bool_value = config_[key].as<bool>();
+  return true;
+}

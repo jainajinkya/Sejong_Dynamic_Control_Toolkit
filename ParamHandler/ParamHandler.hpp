@@ -13,6 +13,7 @@ public:
   bool getString(const std::string & key, std::string & str_value);
   bool getVector(const std::string & key, std::vector<double> & vec_value);
   bool getValue(const std::string & key, double & double_value);
+  bool getBoolean(const std::string & key, bool & bool_value);
 
 protected:
   YAML::Node config_;

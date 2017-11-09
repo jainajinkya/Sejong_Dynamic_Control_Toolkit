@@ -12,7 +12,7 @@ CoMBodyOriTask::CoMBodyOriTask():WBDC_Task(6),
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();
   Jt_ = sejong::Matrix::Zero(dim_task_, NUM_QDOT);
-  printf("[CoMBodyOri Task] Constructed\n");
+  // printf("[CoMBodyOri Task] Constructed\n");
 }
 
 CoMBodyOriTask::~CoMBodyOriTask(){}

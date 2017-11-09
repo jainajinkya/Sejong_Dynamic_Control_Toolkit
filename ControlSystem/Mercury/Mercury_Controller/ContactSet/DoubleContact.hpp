@@ -15,6 +15,8 @@ protected:
   virtual bool _UpdateJc();
   virtual bool _UpdateJcDotQdot();
   virtual bool _UpdateUf();
+  virtual bool _UpdateInequalityVector();
+
   void _setU(double mu, sejong::Matrix & U);
 
   RobotModel* model_;

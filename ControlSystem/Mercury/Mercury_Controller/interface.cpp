@@ -56,7 +56,19 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
     std::cout << "[interface] All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
 #endif
 
+    double input(0.);
+    double limit(90.);
     for (int i(0); i<NUM_ACT_JOINT; ++i){
+      input = torque_command_[i];
+      if(torque_command_[i] > limit){
+        printf("%i th torque is too large: %f\n", i, torque_command_[i]);
+        input = limit;
+        exit(0);
+      }else if(torque_command_[i]<-limit){
+        printf("%i th torque is too large: %f\n", i, torque_command_[i]);
+        input = -limit;
+        exit(0);
+      }
       command[i] = torque_command_[i];
       sensed_torque_[i] = torque[i];
     }
