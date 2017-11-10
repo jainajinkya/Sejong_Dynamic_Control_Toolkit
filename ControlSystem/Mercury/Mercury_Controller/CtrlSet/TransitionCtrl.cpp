@@ -2,12 +2,10 @@
 #include <Configuration.h>
 #include <StateProvider.hpp>
 #include <TaskSet/CoMBodyOriTask.hpp>
-#include <ContactSet/DoubleContact.hpp>
+#include <ContactSet/DoubleContactBounding.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
-#include <chrono>
-
-// #define WBDC_COMPUTATION_TIME
+#include <ParamHandler/ParamHandler.hpp>
 
 TransitionCtrl::TransitionCtrl(int moving_foot, bool b_increase):
   Controller(),
@@ -16,7 +14,7 @@ TransitionCtrl::TransitionCtrl(int moving_foot, bool b_increase):
   end_time_(100.)
 {
   body_task_ = new CoMBodyOriTask();
-  double_contact_ = new DoubleContact();
+  double_contact_ = new DoubleContactBounding(moving_foot);
   wbdc_ = new WBDC(act_list_);
 
   wbdc_data_ = new WBDC_ExtraData();
@@ -50,6 +48,9 @@ void TransitionCtrl::OneStep(sejong::Vector & gamma){
 void TransitionCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
+
+  for(int i(0); i<6; ++i)
+    sp_->reaction_forces_[i] = wbdc_data_->opt_result_[i];
 }
 
 void TransitionCtrl::_body_task_setup(){
@@ -97,8 +98,17 @@ void TransitionCtrl::_body_task_setup(){
 }
 
 void TransitionCtrl::_double_contact_setup(){
+  if(b_increase_){
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(min_rf_z_ + state_machine_time_/end_time_ * (max_rf_z_ - min_rf_z_));
+  } else {
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(max_rf_z_ - state_machine_time_/end_time_ * (max_rf_z_ - min_rf_z_));
+  }
+  // ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(1000.);
+
   double_contact_->UpdateContactSpec();
+
   contact_list_.push_back(double_contact_);
+
   wbdc_data_->cost_weight = sejong::Vector::Zero(double_contact_->getDim());
   for(int i(0); i<double_contact_->getDim(); ++i){
     wbdc_data_->cost_weight[i] = 1.;
@@ -108,12 +118,12 @@ void TransitionCtrl::_double_contact_setup(){
 }
 
 void TransitionCtrl::FirstVisit(){
-  printf("[Transition] Start\n");
+  // printf("[Transition] Start\n");
   ctrl_start_time_ = sp_->curr_time_;
 }
 
 void TransitionCtrl::LastVisit(){
-  printf("[Transition] End\n");
+  // printf("[Transition] End\n");
 }
 
 bool TransitionCtrl::EndOfPhase(){
@@ -124,4 +134,8 @@ bool TransitionCtrl::EndOfPhase(){
 }
 void TransitionCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
+
+  ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
+  handler.getValue("max_rf_z", max_rf_z_);
+  handler.getValue("min_rf_z", min_rf_z_);
 }

@@ -1,29 +1,31 @@
-#include "StepTest.hpp"
+#include "WalkingTest.hpp"
 #include <StateProvider.hpp>
 #include <CtrlSet/CoMzRxRyRzCtrl.hpp>
-#include <CtrlSet/JPosCtrl.hpp>
-#include <CtrlSet/BodyFootCtrl.hpp>
+#include <CtrlSet/JPosTargetCtrl.hpp>
+#include <CtrlSet/BodyFootPlanningCtrl.hpp>
 #include <CtrlSet/TransitionCtrl.hpp>
 #include <ParamHandler/ParamHandler.hpp>
 
-StepTest::StepTest():Test(){
+WalkingTest::WalkingTest():Test(){
 
   sp_ = StateProvider::GetStateProvider();
   sp_->stance_foot_ = SJLinkID::LK_LFOOT;
 
-  phase_ = STPhase::lift_up;
+  // phase_ = WKPhase::wk_lift_up;
+  phase_ = WKPhase::wk_initiation;
+
   state_list_.clear();
 
-  jpos_ctrl_ = new JPosCtrl();
+  jpos_ctrl_ = new JPosTargetCtrl();
   body_up_ctrl_ = new CoMzRxRyRzCtrl();
   body_fix_ctrl_ = new CoMzRxRyRzCtrl();
   // Right
   right_swing_start_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_RFOOT, false);
-  right_swing_ctrl_ = new BodyFootCtrl(SJLinkID::LK_RFOOT);
+  right_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_RFOOT);
   right_swing_end_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_RFOOT, true);
   // Left
   left_swing_start_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_LFOOT, false);
-  left_swing_ctrl_ = new BodyFootCtrl(SJLinkID::LK_LFOOT);
+  left_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_LFOOT);
   left_swing_end_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_LFOOT, true);
 
   state_list_.push_back(jpos_ctrl_);
@@ -39,16 +41,16 @@ StepTest::StepTest():Test(){
 
   _SettingParameter();
 
-  printf("[Step Test] Constructed\n");
+  printf("[Walking Test] Constructed\n");
 }
 
-StepTest::~StepTest(){
+WalkingTest::~WalkingTest(){
   for(int i(0); i<state_list_.size(); ++i){
     delete state_list_[i];
   }
 }
 
-void StepTest::TestInitialization(){
+void WalkingTest::TestInitialization(){
   // Yaml file name
   jpos_ctrl_->CtrlInitialization("set_initial_jpos");
   body_up_ctrl_->CtrlInitialization("move_to_target_height");
@@ -61,40 +63,42 @@ void StepTest::TestInitialization(){
   left_swing_end_trans_ctrl_->CtrlInitialization("trans");
 
   // Swing
-  right_swing_ctrl_->CtrlInitialization("right_step_swing");
-  left_swing_ctrl_->CtrlInitialization("left_step_swing");
+  right_swing_ctrl_->CtrlInitialization("right_walking_swing");
+  left_swing_ctrl_->CtrlInitialization("left_walking_swing");
 }
 
-int StepTest::_NextPhase(const int & phase){
+int WalkingTest::_NextPhase(const int & phase){
   int next_phase = phase + 1;
   printf("next phase: %i\n", next_phase);
-  if(phase == double_contact_1) {
+  if(phase == WKPhase::wk_double_contact_1) {
     printf("One swing done: Next Right Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_LFOOT;
   }
-  if(phase == double_contact_2){
+  if(phase == WKPhase::wk_double_contact_2){
     printf("One swing done: Next Left Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_RFOOT;
-  } 
-
-  if(next_phase == NUM_STPHASE) {
-    
+  }
+  if(next_phase == NUM_WALKING_PHASE) {
     printf("one step is done\n");
-    return STPhase::double_contact_1; 
+    return WKPhase::wk_double_contact_1;
   }
   else{ return next_phase; }
 }
 
-void StepTest::_SettingParameter(){
+void WalkingTest::_SettingParameter(){
   // Setting Parameters
-  ParamHandler handler(CONFIG_PATH"step_test.yaml");
+  ParamHandler handler(CONFIG_PATH"walking_test.yaml");
 
-  // TEST
   double tmp;
   std::vector<double> tmp_vec;
   std::string tmp_str;
 
   //// Timing Setup
+  handler.getValue("jpos_initialization_time", tmp);
+  handler.getVector("initial_jpos", tmp_vec);
+  ((JPosTargetCtrl*)jpos_ctrl_)->setMovingTime(tmp);
+  ((JPosTargetCtrl*)jpos_ctrl_)->setTargetPosition(tmp_vec);
+
   handler.getValue("com_lifting_time", tmp);
   ((CoMzRxRyRzCtrl*)body_up_ctrl_)->setStanceTime(tmp);
 
@@ -102,10 +106,18 @@ void StepTest::_SettingParameter(){
   handler.getValue("stance_time", tmp);
   ((CoMzRxRyRzCtrl*)body_fix_ctrl_)->setStanceTime(tmp);
 
-  // Swing Time
+  // Swing & prime Time
   handler.getValue("swing_time", tmp);
-  ((BodyFootCtrl*)right_swing_ctrl_)->setSwingTime(tmp);
-  ((BodyFootCtrl*)left_swing_ctrl_)->setSwingTime(tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setSwingTime(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setSwingTime(tmp);
+
+  handler.getValue("t_prime_x", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeX(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeX(tmp);
+
+  handler.getValue("t_prime_y", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeY(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeY(tmp);
 
   // Transition Time
   handler.getValue("st_transition_time", tmp);

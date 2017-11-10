@@ -114,7 +114,7 @@
   </joint>
   <link name="thigh_r">
     <inertial>
-      <mass value="3.0"/>
+      <mass value="5.0"/>
       <origin xyz="-0.00396 0.000018 -0.16"/>
       <inertia ixx="0.038482" ixy="0" ixz="0.0" iyy="0.039835" iyz="-0.003" izz="0.0042934"/>
     </inertial>
@@ -154,9 +154,9 @@
   </joint>
   <link name="rfoot">
     <inertial>
-      <mass value="0.000000000001"/>
+      <mass value="0.123"/>
       <origin xyz="0.0 0.0 0.0"/>
-      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0.0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
     <visual>
       <geometry>
@@ -195,7 +195,7 @@
   </joint>
   <link name="thigh_l">
     <inertial>
-      <mass value="3.0"/>
+      <mass value="5.0"/>
       <origin xyz="-0.00396 -0.000018 -0.16"/>
       <inertia ixx="0.038482" ixy="0" ixz="0.0" iyy="0.039835" iyz="0" izz="0.0042934"/>
     </inertial>
@@ -236,9 +236,9 @@
   </joint>
   <link name="lfoot">
     <inertial>
-      <mass value="0.000000000001"/>
+      <mass value="0.123"/>
       <origin xyz="0.0 0.0 0.0"/>
-      <inertia ixx="0.000000001" ixy="0" ixz="0.0" iyy="0.00000000338" iyz="0" izz="0.000000000011"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0.0" iyy="0.00001" iyz="0" izz="0.00001"/>
     </inertial>
     <visual>
       <geometry>

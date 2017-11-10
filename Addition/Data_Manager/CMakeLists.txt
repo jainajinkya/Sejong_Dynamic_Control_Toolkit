@@ -18,36 +18,33 @@ message ("----------------------------------------------------------------------
 message ("")
 
 include_directories ("${PROJECT_SOURCE_DIR}/../../utils")
-include_directories ("${PROJECT_SOURCE_DIR}/../../ExternalSources")
+include_directories ("${PROJECT_SOURCE_DIR}/../../ExternalSource")
 include_directories ("${PROJECT_SOURCE_DIR}/../../")
-
-#find_package(Eigen3 REQUIRED)
-#include_directories(${EIGEN3_INCLUDE_DIR})
 
 
 set (headers 
 DataSave.h
 data_protocol.h
-../../utils/Sejong_Thread.h
-../../utils/wrap_eigen.hpp
-../../utils/comm_udp.h
-../../utils/utilities.h
-../../utils/DataManager.h
+../../Utils/Sejong_Thread.hpp
+../../Utils/wrap_eigen.hpp
+../../Utils/comm_udp.hpp
+../../Utils/utilities.hpp
+../../Utils/DataManager.hpp
 )
 
 set (sources
 DataSave.cpp
 Status_Display.cpp
-../../utils/Sejong_Thread.cpp
-../../utils/wrap_eigen.cpp
-../../utils/comm_udp.cpp
-../../utils/utilities.cpp
-../../utils/DataManager.cpp
+../../Utils/Sejong_Thread.cpp
+../../Utils/wrap_eigen.cpp
+../../Utils/comm_udp.cpp
+../../Utils/utilities.cpp
+../../Utils/DataManager.cpp
 )
 
 link_directories("/usr/local/lib/")
 link_directories("/usr/lib/")
 
 add_executable(Status_Display ${sources} ${headers})
-add_dependencies(Status_Display comm_comm)
+# add_dependencies(Status_Display comm_comm)
 target_link_libraries(Status_Display pthread)

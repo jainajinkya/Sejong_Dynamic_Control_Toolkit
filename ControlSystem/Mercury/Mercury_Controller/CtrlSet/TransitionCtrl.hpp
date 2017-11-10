@@ -25,7 +25,9 @@ protected:
   double end_time_;
   int moving_foot_;
   bool b_increase_; // Increasing or decreasing reaction force
-
+  double max_rf_z_;
+  double min_rf_z_;
+  
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
   WBDC_Task* body_task_;

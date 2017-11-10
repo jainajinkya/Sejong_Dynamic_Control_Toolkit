@@ -1,5 +1,5 @@
-#ifndef JOINT_POSITION_CTRL
-#define JOINT_POSITION_CTRL
+#ifndef JOINT_POSITION_MOVE_TO_TARGET_POS_CTRL
+#define JOINT_POSITION_MOVE_TO_TARGET_POS_CTRL
 
 #include <Controller.hpp>
 
@@ -8,10 +8,10 @@ class WBDC_ExtraData;
 class WBDC_Task;
 class WBDC_ContactSpec;
 
-class JPosCtrl: public Controller{
+class JPosTargetCtrl: public Controller{
 public:
-  JPosCtrl();
-  virtual ~JPosCtrl();
+  JPosTargetCtrl();
+  virtual ~JPosTargetCtrl();
 
   virtual void OneStep(sejong::Vector & gamma);
   virtual void FirstVisit();
@@ -19,7 +19,9 @@ public:
   virtual bool EndOfPhase();
 
   virtual void CtrlInitialization(std::string setting_file_name);
+
   void setMovingTime(double time) { end_time_ = time; }
+  void setTargetPosition(const std::vector<double> & jpos);
 protected:
   double end_time_;
 

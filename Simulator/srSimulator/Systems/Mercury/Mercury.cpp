@@ -12,7 +12,7 @@ Mercury::Mercury(const  Vec3 & location, BASELINKTYPE base_link_type, srJoint::A
 Mercury::~Mercury(){
 }
 void Mercury::_SetCollision(){
-  collision_.resize(2);
+  collision_.resize(3);
 
   for(int i(0); i<2; ++i){
     collision_[i] = new srCollision();
@@ -35,6 +35,16 @@ void Mercury::_SetCollision(){
   double restit(0.0);
   link_[link_idx_map_.find("rfoot")->second]->SetRestitution(restit);
   link_[link_idx_map_.find("lfoot")->second]->SetRestitution(restit);
+
+
+  // Link
+  collision_[2] = new srCollision();
+  collision_[2]->GetGeomInfo().SetShape(srGeometryInfo::CYLINDER);
+  collision_[2]->GetGeomInfo().SetDimension(0.05, 0.1, 0.05);
+  collision_[2]->SetLocalFrame(EulerZYX(Vec3(0.,0., 0.), Vec3(0., 0., -0.80)));
+  link_[link_idx_map_.find("body")->second]->AddCollision(collision_[2]);
+  link_[link_idx_map_.find("body")->second]->SetFriction(fric);
+
 }
 
 void Mercury::_SetInitialConf()
@@ -44,7 +54,7 @@ void Mercury::_SetInitialConf()
     vr_joint_[i]->m_State.m_rValue[0] = 0.;
   }
 
-  int pos(2);
+  int pos(1);
 
   switch (pos){
   case 0:
@@ -54,8 +64,18 @@ void Mercury::_SetInitialConf()
       r_joint_[i]->m_State.m_rValue[0] = 0.;
     }
     break;
-
   case 1:
+    vp_joint_[2]->m_State.m_rValue[0] = 0.85;
+
+    for(int i(0); i<2; ++i){
+      r_joint_[4*i]->m_State.m_rValue[0] = 0.;
+      r_joint_[4*i + 1]->m_State.m_rValue[0] = -0.95;
+      r_joint_[4*i + 2]->m_State.m_rValue[0] = 1.85;
+      r_joint_[4*i + 3]->m_State.m_rValue[0] = -1.0;
+    }
+    break;
+
+  case 2:
     vp_joint_[2]->m_State.m_rValue[0] = 1.3;
     //right abduction
     r_joint_[0]->m_State.m_rValue[0] = -0.2;
@@ -75,7 +95,7 @@ void Mercury::_SetInitialConf()
     //left ankle
     r_joint_[7]->m_State.m_rValue[0] = 0.;
 
-  case 2:
+  case 3:
     vp_joint_[2]->m_State.m_rValue[0] = 1.05;
     //right abduction
     r_joint_[0]->m_State.m_rValue[0] = 0.0;
