@@ -19,7 +19,7 @@ bool SingleContact::_UpdateJc(){
 }
 bool SingleContact::_UpdateJcDotQdot(){
   sejong::Matrix JcDot;
-  model_->getFullJacobianDot(sp_->Q_,sp_->Qdot_,  contact_pt_, JcDot);
+  model_->getFullJacobianDot(sp_->Q_, sp_->Qdot_,  contact_pt_, JcDot);
   JcDotQdot_ = JcDot.block(3, 0, 3, NUM_QDOT) * sp_->Qdot_;
   return true;
 

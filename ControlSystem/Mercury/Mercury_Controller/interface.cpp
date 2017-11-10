@@ -57,7 +57,7 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
 #endif
 
     double input(0.);
-    double limit(90.);
+    double limit(100.);
     for (int i(0); i<NUM_ACT_JOINT; ++i){
       input = torque_command_[i];
       if(torque_command_[i] > limit){
@@ -79,7 +79,12 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
   StateProvider::GetStateProvider()->curr_time_ = time;
 }
 void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
-
+  reaction_force.resize(2);
+  for(int i(0); i<2; ++i){
+    for(int j(0); j<3; ++j){
+      reaction_force[i][j] = StateProvider::GetStateProvider()->reaction_forces_[j];
+    }
+  }
 }
 
 bool interface::_Initialization(_DEF_SENSOR_DATA_){

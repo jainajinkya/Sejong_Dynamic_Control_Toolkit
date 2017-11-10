@@ -1,14 +1,14 @@
 # Torque limt (Nm)
-torque_max: [100, 100, 100, 100, 100, 100]
-torque_min: [-100, -100, -100, -100, -100, -100]
+torque_max: [100, 100, 130, 100, 100, 130]
+torque_min: [-100, -100, -130, -100, -100, -130]
 
 
 
 # Timing Parameters (sec)
 com_lifting_time: 1.0
 swing_time: 0.32
-st_transition_time: 0.05
-end_transition_time: 0.05
-stance_time: 0.03
+st_transition_time: 0.08
+end_transition_time: 0.08
+stance_time: 0.02
 
 planner_name: velocity_reversal_lipm

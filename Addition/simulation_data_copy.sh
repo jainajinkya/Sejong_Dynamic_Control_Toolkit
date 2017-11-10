@@ -1,5 +1,5 @@
 #! /bin/bash
-PATH_PACKAGE="/Users/donghyunkim/locomotion_package"
+PATH_PACKAGE="/Users/donghyunkim/Sejong_Dynamic_Control_Toolkit"
 
 # Move experiment data to the other folder to plot data
 cp $PATH_PACKAGE/experiment_data/* $PATH_PACKAGE/experiment_data_check/

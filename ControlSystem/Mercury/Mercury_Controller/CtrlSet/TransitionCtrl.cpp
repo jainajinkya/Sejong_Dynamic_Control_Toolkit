@@ -5,9 +5,7 @@
 #include <ContactSet/DoubleContactBounding.hpp>
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
-#include <chrono>
-
-// #define WBDC_COMPUTATION_TIME
+#include <ParamHandler/ParamHandler.hpp>
 
 TransitionCtrl::TransitionCtrl(int moving_foot, bool b_increase):
   Controller(),
@@ -50,6 +48,9 @@ void TransitionCtrl::OneStep(sejong::Vector & gamma){
 void TransitionCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
+
+  for(int i(0); i<6; ++i)
+    sp_->reaction_forces_[i] = wbdc_data_->opt_result_[i];
 }
 
 void TransitionCtrl::_body_task_setup(){
@@ -98,10 +99,12 @@ void TransitionCtrl::_body_task_setup(){
 
 void TransitionCtrl::_double_contact_setup(){
   if(b_increase_){
-    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(5.0 + state_machine_time_/end_time_ * 80.);
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(min_rf_z_ + state_machine_time_/end_time_ * (max_rf_z_ - min_rf_z_));
   } else {
-    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(80. - state_machine_time_/end_time_ * 75.);
+    ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(max_rf_z_ - state_machine_time_/end_time_ * (max_rf_z_ - min_rf_z_));
   }
+  // ((DoubleContactBounding*)double_contact_)->setFzUpperLimit(1000.);
+
   double_contact_->UpdateContactSpec();
 
   contact_list_.push_back(double_contact_);
@@ -131,4 +134,8 @@ bool TransitionCtrl::EndOfPhase(){
 }
 void TransitionCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
+
+  ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
+  handler.getValue("max_rf_z", max_rf_z_);
+  handler.getValue("min_rf_z", min_rf_z_);
 }

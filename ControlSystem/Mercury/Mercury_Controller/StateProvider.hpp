@@ -26,6 +26,8 @@ public:
   Vector Qdot_;
   Vector curr_torque_;
 
+  sejong::Vector reaction_forces_;
+
   ///// Desired
   sejong::Vect3 Body_pos_des_;
   sejong::Vect3 Body_vel_des_;

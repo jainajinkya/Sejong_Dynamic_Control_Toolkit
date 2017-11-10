@@ -55,10 +55,10 @@ void StepTest::TestInitialization(){
   body_fix_ctrl_->CtrlInitialization("fix_des_pos");
 
   // Transition
-  right_swing_start_trans_ctrl_->CtrlInitialization("start_trans");
-  right_swing_end_trans_ctrl_->CtrlInitialization("end_trans");
-  left_swing_start_trans_ctrl_->CtrlInitialization("start_trans");
-  left_swing_end_trans_ctrl_->CtrlInitialization("end_trans");
+  right_swing_start_trans_ctrl_->CtrlInitialization("trans");
+  right_swing_end_trans_ctrl_->CtrlInitialization("trans");
+  left_swing_start_trans_ctrl_->CtrlInitialization("trans");
+  left_swing_end_trans_ctrl_->CtrlInitialization("trans");
 
   // Swing
   right_swing_ctrl_->CtrlInitialization("right_step_swing");

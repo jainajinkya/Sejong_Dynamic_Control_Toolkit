@@ -43,6 +43,9 @@ void CoMzRxRyRzCtrl::OneStep(sejong::Vector & gamma){
 void CoMzRxRyRzCtrl::_body_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
+
+  for(int i(0); i<6; ++i)
+    sp_->reaction_forces_[i] = wbdc_data_->opt_result_[i];
 }
 
 void CoMzRxRyRzCtrl::_body_task_setup(){

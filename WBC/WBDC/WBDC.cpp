@@ -58,6 +58,10 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
 
   _GetSolution(cmd);
+  data_->opt_result_ = sejong::Vector(dim_opt_);
+  for(int i(0); i<dim_opt_; ++i){
+    data_->opt_result_[i] = z[i];
+  }
   if(f > 1.e5){
     std::cout << "f: " << f << std::endl;
     std::cout << "x: " << z << std::endl;

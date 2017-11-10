@@ -46,18 +46,12 @@ void BodyFootCtrl::OneStep(sejong::Vector & gamma){
 
 void BodyFootCtrl::_body_foot_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
-
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
-
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
 
-#ifdef WBDC_COMPUTATION_TIME
-  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-  std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
-#endif
+  int offset(0);
+  if(swing_foot_ == LK_RFOOT) offset = 3;
+  for(int i(0); i<3; ++i)
+    sp_->reaction_forces_[i + offset] = wbdc_data_->opt_result_[i];
 }
 
 void BodyFootCtrl::_task_setup(){
