@@ -7,11 +7,12 @@
 #include <ParamHandler/ParamHandler.hpp>
 
 JPosCtrl::JPosCtrl():Controller(),
-                     jpos_target_(NUM_ACT_JOINT)
+                     jpos_target_(NUM_ACT_JOINT),
+                     end_time_(1000.0)
 {
   jpos_task_ = new JPosTask();
-  fixed_body_contact_ = new DoubleContact();
-  // fixed_body_contact_ = new FixedBodyContact();
+  // fixed_body_contact_ = new DoubleContact();
+  fixed_body_contact_ = new FixedBodyContact();
   wbdc_ = new WBDC(act_list_);
   wbdc_data_ = new WBDC_ExtraData();
 
@@ -114,6 +115,9 @@ void JPosCtrl::LastVisit(){
 }
 
 bool JPosCtrl::EndOfPhase(){
+  if(state_machine_time_ > end_time_){
+    return true;
+  }
   return false;
 }
 void JPosCtrl::CtrlInitialization(std::string setting_file_name){

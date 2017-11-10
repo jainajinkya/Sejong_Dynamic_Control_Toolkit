@@ -1,7 +1,7 @@
 #include "WalkingTest.hpp"
 #include <StateProvider.hpp>
 #include <CtrlSet/CoMzRxRyRzCtrl.hpp>
-#include <CtrlSet/JPosCtrl.hpp>
+#include <CtrlSet/JPosTargetCtrl.hpp>
 #include <CtrlSet/BodyFootPlanningCtrl.hpp>
 #include <CtrlSet/TransitionCtrl.hpp>
 #include <ParamHandler/ParamHandler.hpp>
@@ -11,10 +11,12 @@ WalkingTest::WalkingTest():Test(){
   sp_ = StateProvider::GetStateProvider();
   sp_->stance_foot_ = SJLinkID::LK_LFOOT;
 
-  phase_ = WKPhase::wk_lift_up;
+  // phase_ = WKPhase::wk_lift_up;
+  phase_ = WKPhase::wk_initiation;
+
   state_list_.clear();
 
-  jpos_ctrl_ = new JPosCtrl();
+  jpos_ctrl_ = new JPosTargetCtrl();
   body_up_ctrl_ = new CoMzRxRyRzCtrl();
   body_fix_ctrl_ = new CoMzRxRyRzCtrl();
   // Right
@@ -85,13 +87,18 @@ int WalkingTest::_NextPhase(const int & phase){
 
 void WalkingTest::_SettingParameter(){
   // Setting Parameters
-  ParamHandler handler(CONFIG_PATH"step_test.yaml");
+  ParamHandler handler(CONFIG_PATH"walking_test.yaml");
 
   double tmp;
   std::vector<double> tmp_vec;
   std::string tmp_str;
 
   //// Timing Setup
+  handler.getValue("jpos_initialization_time", tmp);
+  handler.getVector("initial_jpos", tmp_vec);
+  ((JPosTargetCtrl*)jpos_ctrl_)->setMovingTime(tmp);
+  ((JPosTargetCtrl*)jpos_ctrl_)->setTargetPosition(tmp_vec);
+
   handler.getValue("com_lifting_time", tmp);
   ((CoMzRxRyRzCtrl*)body_up_ctrl_)->setStanceTime(tmp);
 
@@ -99,10 +106,18 @@ void WalkingTest::_SettingParameter(){
   handler.getValue("stance_time", tmp);
   ((CoMzRxRyRzCtrl*)body_fix_ctrl_)->setStanceTime(tmp);
 
-  // Swing Time
+  // Swing & prime Time
   handler.getValue("swing_time", tmp);
   ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setSwingTime(tmp);
   ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setSwingTime(tmp);
+
+  handler.getValue("t_prime_x", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeX(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeX(tmp);
+
+  handler.getValue("t_prime_y", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeY(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeY(tmp);
 
   // Transition Time
   handler.getValue("st_transition_time", tmp);

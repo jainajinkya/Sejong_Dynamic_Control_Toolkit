@@ -7,4 +7,4 @@ target_link_libraries (${CTRL_SYS}_Controller SJutils SJfilters SJrbdl)
 target_link_libraries (${CTRL_SYS}_Controller ${CTRL_SYS}_model)
 target_link_libraries (${CTRL_SYS}_Controller WBDC)
 
-target_link_libraries (${CTRL_SYS}_Controller SJparam_handler)
+target_link_libraries (${CTRL_SYS}_Controller SJparam_handler PIPM_planner)

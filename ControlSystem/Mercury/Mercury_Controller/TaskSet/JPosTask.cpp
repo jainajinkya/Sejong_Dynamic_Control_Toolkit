@@ -28,7 +28,7 @@ bool JPosTask::_UpdateCommand(void* pos_des,
   }
   // sejong::pretty_print(op_cmd_, std::cout, "op cmd");
   // sejong::pretty_print(*pos_cmd, std::cout, "pos cmd");
-  // sejong::pretty_print(sp_->JPos_pos_, std::cout, "body pos");
+  // sejong::pretty_print(sp_->Q_, std::cout, "config");
   return true;
 }
 

@@ -106,8 +106,15 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   for(int i(0); i<3; ++i){
     robot->r_joint_[i+4]->m_State.m_rCommand = torque_command[i+3];
   }
-  robot->r_joint_[3]->m_State.m_rCommand = 0.;
-  robot->r_joint_[7]->m_State.m_rCommand = 0.;
+  // Ankle Passive
+  double kp(0.02);
+  double kd(0.002);
+  double des_pos(-0.5);
+    robot->r_joint_[3]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[3]->m_State.m_rValue[0]) - kd* robot->r_joint_[3]->m_State.m_rValue[1];
+  robot->r_joint_[7]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[7]->m_State.m_rValue[0]) - kd* robot->r_joint_[7]->m_State.m_rValue[1];
+
+  // robot->r_joint_[3]->m_State.m_rCommand = 0.;
+  // robot->r_joint_[7]->m_State.m_rCommand = 0.;
 
   pDyn_env->_FixXY();
   // std::map<std::string, int>::iterator iter = robot->r_joint_idx_map_.begin();

@@ -11,7 +11,9 @@
 BodyFootPlanningCtrl::BodyFootPlanningCtrl(int swing_foot):
   Controller(),
   swing_foot_(swing_foot),
-  update_time_(0.)
+  update_time_(0.),
+  num_planning_(0),
+  planning_frequency_(0.)
 {
   body_foot_task_ = new BodyFootTask(swing_foot);
   if(swing_foot == LK_LFOOT) single_contact_ = new SingleContact(LK_RFOOT);
@@ -103,6 +105,8 @@ void BodyFootPlanningCtrl::_task_setup(){
     wbdc_data_->cost_weight[prev_size+5] = 0.001;
   }
 
+  // _CheckPlanning();
+
   double traj_time = state_machine_time_ - update_time_;
   // Foot Position Task
   double pos[3];
@@ -116,9 +120,13 @@ void BodyFootPlanningCtrl::_task_setup(){
   // printf("pos:%f, %f, %f\n", pos[0], pos[1], pos[2]);
 
   for(int i(0); i<3; ++i){
-    pos_des[i + 7] = pos[i];
-    vel_des[i + 6] = vel[i];
-    acc_des[i + 6] = acc[i];
+    curr_foot_pos_des_[i] = pos[i];
+    curr_foot_vel_des_[i] = vel[i];
+    curr_foot_acc_des_[i] = acc[i];
+
+    pos_des[i + 7] = curr_foot_pos_des_[i];
+    vel_des[i + 6] = curr_foot_vel_des_[i];
+    acc_des[i + 6] = curr_foot_acc_des_[i];
   }
   // sejong::pretty_print(vel_des, std::cout, "[Ctrl] vel des");
   // Push back to task list
@@ -126,6 +134,54 @@ void BodyFootPlanningCtrl::_task_setup(){
   task_list_.push_back(body_foot_task_);
   // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
+
+void BodyFootPlanningCtrl::_CheckPlanning(){
+  if( state_machine_time_ > end_time_/(planning_frequency_ + 1) * (num_planning_ + 1.) ){
+    _Replanning();
+    ++num_planning_;
+  }
+}
+
+void BodyFootPlanningCtrl::_Replanning(){
+  sejong::Vect3 com_pos, com_vel;
+  robot_model_->getCoMPosition(sp_->Q_, com_pos);
+  robot_model_->getCoMVelocity(sp_->Q_, sp_->Qdot_, com_vel);
+
+  double time_modification(0.);
+  double new_nx_loc;
+  bool b_time_change;
+  sejong::Vect3 target_pos; target_pos.setZero();
+
+  // X
+  planner_.getNextFootLocation(com_pos[0], com_vel[0], 0.,
+                               end_time_-state_machine_time_, t_prime_x_,
+                               b_time_change, time_modification,
+                               new_nx_loc);
+  target_pos[0] = new_nx_loc;
+  if(b_time_change) end_time_ += time_modification;
+
+  // Y
+  planner_.getNextFootLocation(com_pos[1], com_vel[1], 0.,
+                               end_time_-state_machine_time_, t_prime_y_,
+                               b_time_change, time_modification,
+                               new_nx_loc);
+  target_pos[1] = new_nx_loc;
+
+  if(b_time_change){
+    end_time_ += time_modification;
+    planner_.getNextFootLocation(com_pos[0], com_vel[0], 0.,
+                                 end_time_-state_machine_time_,t_prime_x_,
+                                 b_time_change, time_modification,
+                                 new_nx_loc);
+    target_pos[0] = new_nx_loc;
+  }
+
+  sejong::pretty_print(target_pos, std::cout, "next foot loc");
+  printf("end_time:%f\n", end_time_);
+
+  _SetBspline(curr_foot_pos_des_, curr_foot_vel_des_, curr_foot_acc_des_, target_pos);
+}
+
 void BodyFootPlanningCtrl::_single_contact_setup(){
   single_contact_->UpdateContactSpec();
   contact_list_.push_back(single_contact_);
@@ -148,6 +204,7 @@ void BodyFootPlanningCtrl::FirstVisit(){
   zero.setZero();
   default_target_loc_[0] = sp_->Q_[0];
   _SetBspline(curr_foot_pos_des_, zero, zero, default_target_loc_);
+  num_planning_ = 0;
 }
 
 void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
@@ -207,6 +264,8 @@ void BodyFootPlanningCtrl::CtrlInitialization(std::string setting_file_name){
   // Setting Parameters
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
   handler.getValue("swing_height", swing_height_);
+  handler.getValue("planning_frequency", planning_frequency_);
+
   handler.getVector("default_target_foot_location", tmp_vec);
   for(int i(0); i<3; ++i){
     default_target_loc_[i] = tmp_vec[i];

@@ -6,7 +6,7 @@ public:
   Reversal_LIPM_Planner();
   ~Reversal_LIPM_Planner();
 
-  void getNextFootLocation(double x, double xdot, double px, double swing_time, double t_prime, double & out_swing_time, double & out_next_px);
+  void getNextFootLocation(double x, double xdot, double px, double swing_time, double t_prime, bool & b_shorten_time, double & out_shorten_time, double & out_next_px);
 };
 
 #endif
