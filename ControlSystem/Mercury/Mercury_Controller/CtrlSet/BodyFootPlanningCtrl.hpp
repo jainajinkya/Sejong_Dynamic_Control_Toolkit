@@ -9,10 +9,10 @@ class WBDC_ExtraData;
 class WBDC_Task;
 class WBDC_ContactSpec;
 
-class BodyFootCtrl:public Controller{
+class BodyFootPlanningCtrl:public Controller{
 public:
-  BodyFootCtrl(int swing_foot);
-  ~BodyFootCtrl();
+  BodyFootPlanningCtrl(int swing_foot);
+  ~BodyFootPlanningCtrl();
   virtual void OneStep(sejong::Vector & gamma);
   virtual void FirstVisit();
   virtual void LastVisit();
@@ -22,9 +22,16 @@ public:
 
   void setSwingTime(double swing_time){ end_time_ = swing_time; }
 protected:
+  void _SetBspline(const sejong::Vect3 & st_pos,
+                   const sejong::Vect3 & st_vel,
+                   const sejong::Vect3 & st_acc,
+                   const sejong::Vect3 & target_pos);
+
   int swing_foot_;
   bool b_update_target_;
   double swing_height_;
+  double update_time_;
+  sejong::Vect3 default_target_loc_;
 
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
@@ -33,7 +40,9 @@ protected:
 
   sejong::Vector body_pos_ini_;
   sejong::Vect3 ini_com_pos_;
-  sejong::Vect3 ini_foot_pos_;
+  sejong::Vect3 curr_foot_pos_des_;
+  sejong::Vect3 curr_foot_vel_des_;
+  sejong::Vect3 curr_foot_acc_des_;
   sejong::Vect3 target_foot_pos_;
 
   BS_Basic<3, 3, 1, 2, 2> foot_traj_;

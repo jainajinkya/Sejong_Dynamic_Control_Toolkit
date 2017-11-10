@@ -118,12 +118,12 @@ void TransitionCtrl::_double_contact_setup(){
 }
 
 void TransitionCtrl::FirstVisit(){
-  printf("[Transition] Start\n");
+  // printf("[Transition] Start\n");
   ctrl_start_time_ = sp_->curr_time_;
 }
 
 void TransitionCtrl::LastVisit(){
-  printf("[Transition] End\n");
+  // printf("[Transition] End\n");
 }
 
 bool TransitionCtrl::EndOfPhase(){

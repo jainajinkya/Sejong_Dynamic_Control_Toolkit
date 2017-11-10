@@ -1,4 +1,4 @@
-#include "BodyFootCtrl.hpp"
+#include "BodyFootPlanningCtrl.hpp"
 #include <Configuration.h>
 #include <StateProvider.hpp>
 #include <TaskSet/BodyFootTask.hpp>
@@ -8,8 +8,10 @@
 #include <ParamHandler/ParamHandler.hpp>
 
 
-BodyFootCtrl::BodyFootCtrl(int swing_foot):Controller(),
-                                           swing_foot_(swing_foot)
+BodyFootPlanningCtrl::BodyFootPlanningCtrl(int swing_foot):
+  Controller(),
+  swing_foot_(swing_foot),
+  update_time_(0.)
 {
   body_foot_task_ = new BodyFootTask(swing_foot);
   if(swing_foot == LK_LFOOT) single_contact_ = new SingleContact(LK_RFOOT);
@@ -28,12 +30,14 @@ BodyFootCtrl::BodyFootCtrl(int swing_foot):Controller(),
   // printf("[BodyFoot Controller] Constructed\n");
 }
 
-BodyFootCtrl::~BodyFootCtrl(){
+BodyFootPlanningCtrl::~BodyFootPlanningCtrl(){
   delete body_foot_task_;
   delete single_contact_;
+  delete wbdc_;
+  delete wbdc_data_;
 }
 
-void BodyFootCtrl::OneStep(sejong::Vector & gamma){
+void BodyFootPlanningCtrl::OneStep(sejong::Vector & gamma){
   _PreProcessing_Command();
 
   gamma.setZero();
@@ -44,7 +48,7 @@ void BodyFootCtrl::OneStep(sejong::Vector & gamma){
   _PostProcessing_Command(gamma);
 }
 
-void BodyFootCtrl::_body_foot_ctrl(sejong::Vector & gamma){
+void BodyFootPlanningCtrl::_body_foot_ctrl(sejong::Vector & gamma){
   wbdc_->UpdateSetting(A_, Ainv_, coriolis_, grav_);
   wbdc_->MakeTorque(task_list_, contact_list_, gamma, wbdc_data_);
 
@@ -54,7 +58,7 @@ void BodyFootCtrl::_body_foot_ctrl(sejong::Vector & gamma){
     sp_->reaction_forces_[i + offset] = wbdc_data_->opt_result_[i];
 }
 
-void BodyFootCtrl::_task_setup(){
+void BodyFootPlanningCtrl::_task_setup(){
   sejong::Vector pos_des(3 + 4 + 3);
   sejong::Vector vel_des(body_foot_task_->getDim());
   sejong::Vector acc_des(body_foot_task_->getDim());
@@ -99,14 +103,16 @@ void BodyFootCtrl::_task_setup(){
     wbdc_data_->cost_weight[prev_size+5] = 0.001;
   }
 
+  double traj_time = state_machine_time_ - update_time_;
   // Foot Position Task
   double pos[3];
   double vel[3];
   double acc[3];
+
   // printf("time: %f\n", state_machine_time_);
-  foot_traj_.getCurvePoint(state_machine_time_, pos);
-  foot_traj_.getCurveDerPoint(state_machine_time_, 1, vel);
-  foot_traj_.getCurveDerPoint(state_machine_time_, 2, acc);
+  foot_traj_.getCurvePoint(traj_time, pos);
+  foot_traj_.getCurveDerPoint(traj_time, 1, vel);
+  foot_traj_.getCurveDerPoint(traj_time, 2, acc);
   // printf("pos:%f, %f, %f\n", pos[0], pos[1], pos[2]);
 
   for(int i(0); i<3; ++i){
@@ -120,7 +126,7 @@ void BodyFootCtrl::_task_setup(){
   task_list_.push_back(body_foot_task_);
   // sejong::pretty_print(wbdc_data_->cost_weight,std::cout, "cost weight");
 }
-void BodyFootCtrl::_single_contact_setup(){
+void BodyFootPlanningCtrl::_single_contact_setup(){
   single_contact_->UpdateContactSpec();
   contact_list_.push_back(single_contact_);
   wbdc_data_->cost_weight = sejong::Vector::Zero(single_contact_->getDim());
@@ -130,64 +136,80 @@ void BodyFootCtrl::_single_contact_setup(){
   wbdc_data_->cost_weight[2] = 0.0001;
 }
 
-void BodyFootCtrl::FirstVisit(){
-  printf("[Body Foot Ctrl] Start\n");
+void BodyFootPlanningCtrl::FirstVisit(){
+  // printf("[Body Foot Ctrl] Start\n");
 
-  robot_model_->getPosition(sp_->Q_, swing_foot_, ini_foot_pos_);
-  // sejong::pretty_print(ini_foot_pos_, std::cout, "ini foot pos");
-  // sejong::pretty_print(target_foot_pos_, std::cout, "target foot pos");
-  if(b_update_target_){   target_foot_pos_[0] = sp_->Q_[0];  }
-
+  robot_model_->getPosition(sp_->Q_, swing_foot_, curr_foot_pos_des_);
   ctrl_start_time_ = sp_->curr_time_;
+  state_machine_time_ = 0.;
+
+  // sejong::pretty_print(target_foot_pos_, std::cout, "target foot pos");
+  sejong::Vect3 zero;
+  zero.setZero();
+  default_target_loc_[0] = sp_->Q_[0];
+  _SetBspline(curr_foot_pos_des_, zero, zero, default_target_loc_);
+}
+
+void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
+                                       const sejong::Vect3 & st_vel,
+                                       const sejong::Vect3 & st_acc,
+                                       const sejong::Vect3 & target_pos){
   // Trajectory Setup
   double init[9];
   double fin[9];
   double** middle_pt = new double*[1];
   middle_pt[0] = new double[3];
 
+  double portion = (1./end_time_) * (end_time_/2. - state_machine_time_);
+  printf("portion: %f\n", portion);
+  // Initial and final position & velocity & acceleration
   for(int i(0); i<3; ++i){
-    init[i] = ini_foot_pos_[i];
-    fin[i] = target_foot_pos_[i];
-    middle_pt[0][i] = (ini_foot_pos_[i] + target_foot_pos_[i])/2.0;
-  }
-  middle_pt[0][2] = swing_height_;
+    // Initial
+    init[i] = st_pos[i];
+    init[i+3] = st_vel[i];
+    init[i+6] = st_acc[i];
+    // Final
+    fin[i] = target_pos[i];
+    fin[i+3] = 0.;
+    fin[i+6] = 0.;
 
-  // Initial and final velocity & acceleration
-  for(int i(3); i<9; ++i){
-    init[i] = 0.;
-    fin[i] = 0.;
+    if(portion > 0.)
+      middle_pt[0][i] = (st_pos[i] + target_pos[i])*portion;
+    else
+      middle_pt[0][i] = (st_pos[i] + target_pos[i])/2.;
   }
+  if(portion > 0.)  middle_pt[0][2] = swing_height_;
+
   foot_traj_.SetParam(init, fin, middle_pt, end_time_);
+
+  update_time_ = state_machine_time_;
 
   delete [] *middle_pt;
   delete [] middle_pt;
 }
 
-void BodyFootCtrl::LastVisit(){
+
+void BodyFootPlanningCtrl::LastVisit(){
 }
 
-bool BodyFootCtrl::EndOfPhase(){
+bool BodyFootPlanningCtrl::EndOfPhase(){
   if(state_machine_time_ > end_time_){
-    printf("[Body Foot Ctrl] End\n");
+    // printf("[Body Foot Ctrl] End\n");
     return true;
   }
   return false;
 }
-void BodyFootCtrl::CtrlInitialization(std::string setting_file_name){
+
+void BodyFootPlanningCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
-  robot_model_->getPosition(sp_->Q_, swing_foot_, ini_foot_pos_);
   std::vector<double> tmp_vec;
 
   // Setting Parameters
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
-
   handler.getValue("swing_height", swing_height_);
-
-  // Target foot location
-  handler.getBoolean("update_target", b_update_target_);
-  handler.getVector("target_location", tmp_vec);
-  for(int i(0);i<3; ++i){
-    target_foot_pos_[i] = tmp_vec[i];
+  handler.getVector("default_target_foot_location", tmp_vec);
+  for(int i(0); i<3; ++i){
+    default_target_loc_[i] = tmp_vec[i];
   }
 
   // Feedback Gain
