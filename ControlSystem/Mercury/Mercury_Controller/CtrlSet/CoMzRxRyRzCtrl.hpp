@@ -20,12 +20,19 @@ public:
   virtual void CtrlInitialization(std::string setting_file_name);
 
   void setStanceTime(double stance_time){ end_time_ = stance_time; }
+  void setAmp(const std::vector<double> & amp);
+  void setFrequency(const std::vector<double> & freq);
+  void setPhase(const std::vector<double> & phase);
+
   void setStanceHeight(double height) {
     des_com_height_ = height;
     b_set_height_target_ = true;
   }
 
 protected:
+  sejong::Vector amp_, freq_, phase_;
+  
+  int dim_ctrl_;
   bool b_set_height_target_;
   double des_com_height_;
 

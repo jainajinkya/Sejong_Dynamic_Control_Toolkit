@@ -139,4 +139,15 @@ void ContactTransBodyCtrl::CtrlInitialization(std::string setting_file_name){
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
   handler.getValue("max_rf_z", max_rf_z_);
   handler.getValue("min_rf_z", min_rf_z_);
+
+  // Feedback Gain
+  std::vector<double> tmp_vec;
+  handler.getVector("Kp", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((CoMBodyOriTask*)body_task_)->Kp_vec_[i] = tmp_vec[i];
+  }
+  handler.getVector("Kd", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((CoMBodyOriTask*)body_task_)->Kd_vec_[i] = tmp_vec[i];
+  }
 }

@@ -63,7 +63,6 @@ void TransitionCtrl::_body_task_setup(){
   // CoM Pos
   pos_des.head(3) = ini_com_pos_;
   if(b_set_height_target_) pos_des[2] = des_com_height_;
-  
   // Orientation
   sejong::Vect3 rpy_des;
   sejong::Quaternion quat_des;
@@ -136,8 +135,20 @@ bool TransitionCtrl::EndOfPhase(){
 }
 void TransitionCtrl::CtrlInitialization(std::string setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
+  std::vector<double> tmp_vec;
 
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");
   handler.getValue("max_rf_z", max_rf_z_);
   handler.getValue("min_rf_z", min_rf_z_);
+
+  // Feedback Gain
+  handler.getVector("Kp", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((CoMBodyOriTask*)body_task_)->Kp_vec_[i] = tmp_vec[i];
+  }
+  handler.getVector("Kd", tmp_vec);
+  for(int i(0); i<tmp_vec.size(); ++i){
+    ((CoMBodyOriTask*)body_task_)->Kd_vec_[i] = tmp_vec[i];
+  }
+
 }

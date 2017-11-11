@@ -153,7 +153,7 @@ void Mercury_Dyn_environment::Rendering_Fnc(){}
 
 
 void Mercury_Dyn_environment::_ParamterSetup(){
-  ParamHandler handler(CONFIG_PATH"sr_sim_setting.yaml");
+  ParamHandler handler(CONFIG_PATH"SIM_sr_sim_setting.yaml");
 
   handler.getInteger("num_substep_rendering", num_substep_rendering_);
 }

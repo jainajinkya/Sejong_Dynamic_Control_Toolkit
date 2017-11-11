@@ -9,7 +9,7 @@ class RobotModel;
 // CoM_{x, y, z}, BodyOri_{Rx, Ry, Rz}, Foot (x, y, z)
 class BodyFootTask: public WBDC_Task{
 public:
-  BodyFootTask(int swing_foot); // 4 dim: Rx, Ry, Rz, Z
+  BodyFootTask(int swing_foot);
   virtual ~BodyFootTask();
 
   sejong::Vector Kp_vec_;
@@ -26,8 +26,6 @@ protected:
   virtual bool _UpdateTaskJacobian();
   // Update JtDotQdot_
   virtual bool _UpdateTaskJDotQdot();
-
-  double Kp_, Kd_;
 
   StateProvider* sp_;
   RobotModel* model_;

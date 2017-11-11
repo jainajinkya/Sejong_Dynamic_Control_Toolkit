@@ -9,7 +9,7 @@ Mercury::Mercury(const  Vec3 & location, BASELINKTYPE base_link_type, srJoint::A
   SystemGenerator(),
   initial_posture_(1)
 {
-  ParamHandler handler(CONFIG_PATH"sr_sim_setting.yaml");
+  ParamHandler handler(CONFIG_PATH"SIM_sr_sim_setting.yaml");
   handler.getInteger("initial_posture", initial_posture_);
 
   BuildRobot(location, base_link_type, joint_type, "urdf/mercury.urdf");

@@ -54,19 +54,19 @@ WalkingTest::~WalkingTest(){
 
 void WalkingTest::TestInitialization(){
   // Yaml file name
-  jpos_ctrl_->CtrlInitialization("set_initial_jpos");
-  body_up_ctrl_->CtrlInitialization("move_to_target_height");
-  body_fix_ctrl_->CtrlInitialization("fix_des_pos");
+  jpos_ctrl_->CtrlInitialization("CTRL_set_initial_jpos");
+  body_up_ctrl_->CtrlInitialization("CTRL_move_to_target_height");
+  body_fix_ctrl_->CtrlInitialization("CTRL_fix_des_pos");
 
   // Transition
-  right_swing_start_trans_ctrl_->CtrlInitialization("trans");
-  right_swing_end_trans_ctrl_->CtrlInitialization("trans");
-  left_swing_start_trans_ctrl_->CtrlInitialization("trans");
-  left_swing_end_trans_ctrl_->CtrlInitialization("trans");
+  right_swing_start_trans_ctrl_->CtrlInitialization("CTRL_trans");
+  right_swing_end_trans_ctrl_->CtrlInitialization("CTRL_trans");
+  left_swing_start_trans_ctrl_->CtrlInitialization("CTRL_trans");
+  left_swing_end_trans_ctrl_->CtrlInitialization("CTRL_trans");
 
   // Swing
-  right_swing_ctrl_->CtrlInitialization("right_walking_swing");
-  left_swing_ctrl_->CtrlInitialization("left_walking_swing");
+  right_swing_ctrl_->CtrlInitialization("CTRL_right_walking_swing");
+  left_swing_ctrl_->CtrlInitialization("CTRL_left_walking_swing");
 }
 
 int WalkingTest::_NextPhase(const int & phase){
@@ -89,7 +89,7 @@ int WalkingTest::_NextPhase(const int & phase){
 
 void WalkingTest::_SettingParameter(){
   // Setting Parameters
-  ParamHandler handler(CONFIG_PATH"walking_test.yaml");
+  ParamHandler handler(CONFIG_PATH"TEST_walking.yaml");
 
   double tmp;
   std::vector<double> tmp_vec;
