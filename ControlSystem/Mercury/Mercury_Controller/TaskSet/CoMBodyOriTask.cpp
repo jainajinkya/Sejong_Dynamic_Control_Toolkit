@@ -37,7 +37,7 @@ bool CoMBodyOriTask::_UpdateCommand(void* pos_des,
   curr_quat.x() = sp_->Q_[3];
   curr_quat.y() = sp_->Q_[4];
   curr_quat.z() = sp_->Q_[5];
-  
+
   sejong::Quaternion des_quat;
   des_quat.w() = (*pos_cmd)[3];
   des_quat.x() = (*pos_cmd)[4];

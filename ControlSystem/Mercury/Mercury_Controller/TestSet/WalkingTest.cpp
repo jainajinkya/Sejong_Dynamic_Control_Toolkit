@@ -94,6 +94,8 @@ void WalkingTest::_SettingParameter(){
   double tmp;
   std::vector<double> tmp_vec;
   std::string tmp_str;
+  // Start Phase
+  handler.getInteger("start_phase", phase_);
 
   //// Posture Setup
   // Initial JPos
