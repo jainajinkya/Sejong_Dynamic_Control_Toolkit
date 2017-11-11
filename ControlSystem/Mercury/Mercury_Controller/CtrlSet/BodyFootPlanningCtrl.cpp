@@ -282,4 +282,16 @@ void BodyFootPlanningCtrl::CtrlInitialization(std::string setting_file_name){
   for(int i(0); i<tmp_vec.size(); ++i){
     ((BodyFootTask*)body_foot_task_)->Kd_vec_[i] = tmp_vec[i];
   }
+
+  // Torque limit
+  handler.getVector("torque_max", tmp_vec);
+  for(int i(0); i<NUM_ACT_JOINT; ++i){
+    wbdc_data_->tau_max[i] = tmp_vec[i];
+  }
+
+  handler.getVector("torque_min", tmp_vec);
+  for(int i(0); i<NUM_ACT_JOINT; ++i){
+    wbdc_data_->tau_min[i] = tmp_vec[i];
+  }
+
 }

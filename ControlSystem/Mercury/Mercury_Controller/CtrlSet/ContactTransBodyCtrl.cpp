@@ -94,7 +94,7 @@ void ContactTransBodyCtrl::_body_task_setup(){
     wbdc_data_->cost_weight.conservativeResize( prev_size + 6);
     wbdc_data_->cost_weight[prev_size] = 0.0001;
     wbdc_data_->cost_weight[prev_size+1] = 0.0001;
-    wbdc_data_->cost_weight[prev_size+2] = 100.;
+    wbdc_data_->cost_weight[prev_size+2] = 10.;
     wbdc_data_->cost_weight[prev_size+3] = 10.;
     wbdc_data_->cost_weight[prev_size+4] = 10.;
     wbdc_data_->cost_weight[prev_size+5] = 0.001;
