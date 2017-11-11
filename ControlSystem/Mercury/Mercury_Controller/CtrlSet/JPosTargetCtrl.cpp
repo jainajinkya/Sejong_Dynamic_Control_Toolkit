@@ -82,9 +82,9 @@ void JPosTargetCtrl::LastVisit(){
 }
 
 bool JPosTargetCtrl::EndOfPhase(){
-  // if(state_machine_time_ > end_time_){
-  //   return true;
-  // }
+  if(state_machine_time_ > end_time_){
+    return true;
+  }
   return false;
 }
 void JPosTargetCtrl::CtrlInitialization(std::string setting_file_name){

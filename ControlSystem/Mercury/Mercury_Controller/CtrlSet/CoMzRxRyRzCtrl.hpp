@@ -20,8 +20,15 @@ public:
   virtual void CtrlInitialization(std::string setting_file_name);
 
   void setStanceTime(double stance_time){ end_time_ = stance_time; }
-  
+  void setStanceHeight(double height) {
+    des_com_height_ = height;
+    b_set_height_target_ = true;
+  }
+
 protected:
+  bool b_set_height_target_;
+  double des_com_height_;
+
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
   WBDC_Task* body_task_;

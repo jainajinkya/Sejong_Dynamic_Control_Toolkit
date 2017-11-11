@@ -68,6 +68,8 @@ void BodyFootPlanningCtrl::_task_setup(){
 
   // CoM Pos
   pos_des.head(3) = ini_com_pos_;
+  if(b_set_height_target_) pos_des[2] = des_com_height_;
+
   // Orientation
   sejong::Vect3 rpy_des;
   sejong::Quaternion quat_des;

@@ -1,7 +1,9 @@
 #include "WalkingTest.hpp"
 #include <StateProvider.hpp>
-#include <CtrlSet/CoMzRxRyRzCtrl.hpp>
+
 #include <CtrlSet/JPosTargetCtrl.hpp>
+#include <CtrlSet/ContactTransBodyCtrl.hpp>
+#include <CtrlSet/CoMzRxRyRzCtrl.hpp>
 #include <CtrlSet/BodyFootPlanningCtrl.hpp>
 #include <CtrlSet/TransitionCtrl.hpp>
 #include <ParamHandler/ParamHandler.hpp>
@@ -17,7 +19,7 @@ WalkingTest::WalkingTest():Test(){
   state_list_.clear();
 
   jpos_ctrl_ = new JPosTargetCtrl();
-  body_up_ctrl_ = new CoMzRxRyRzCtrl();
+  body_up_ctrl_ = new ContactTransBodyCtrl();
   body_fix_ctrl_ = new CoMzRxRyRzCtrl();
   // Right
   right_swing_start_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_RFOOT, false);
@@ -93,14 +95,28 @@ void WalkingTest::_SettingParameter(){
   std::vector<double> tmp_vec;
   std::string tmp_str;
 
+  //// Posture Setup
+  // Initial JPos
+  handler.getVector("initial_jpos", tmp_vec);
+  ((JPosTargetCtrl*)jpos_ctrl_)->setTargetPosition(tmp_vec);
+  // CoM Height
+  handler.getValue("com_height", tmp);
+  ((ContactTransBodyCtrl*)body_up_ctrl_)->setStanceHeight(tmp);
+  ((CoMzRxRyRzCtrl*)body_fix_ctrl_)->setStanceHeight(tmp);
+
+  ((TransitionCtrl*)right_swing_start_trans_ctrl_)->setStanceHeight(tmp);
+  ((TransitionCtrl*)right_swing_end_trans_ctrl_)->setStanceHeight(tmp);
+  ((TransitionCtrl*)left_swing_start_trans_ctrl_)->setStanceHeight(tmp);
+  ((TransitionCtrl*)left_swing_end_trans_ctrl_)->setStanceHeight(tmp);
+
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setStanceHeight(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setStanceHeight(tmp);
+
   //// Timing Setup
   handler.getValue("jpos_initialization_time", tmp);
-  handler.getVector("initial_jpos", tmp_vec);
   ((JPosTargetCtrl*)jpos_ctrl_)->setMovingTime(tmp);
-  ((JPosTargetCtrl*)jpos_ctrl_)->setTargetPosition(tmp_vec);
-
   handler.getValue("com_lifting_time", tmp);
-  ((CoMzRxRyRzCtrl*)body_up_ctrl_)->setStanceTime(tmp);
+  ((ContactTransBodyCtrl*)body_up_ctrl_)->setStanceTime(tmp);
 
   // Stance Time
   handler.getValue("stance_time", tmp);
@@ -126,5 +142,6 @@ void WalkingTest::_SettingParameter(){
   ((TransitionCtrl*)left_swing_start_trans_ctrl_)->setTransitionTime(tmp);
   ((TransitionCtrl*)left_swing_end_trans_ctrl_)->setTransitionTime(tmp);
 
+  //// Planner Setup
   handler.getString("planner_name", tmp_str);
 }

@@ -24,12 +24,19 @@ public:
   void setSwingTime(double swing_time){ end_time_ = swing_time; }
   void setPrimeTimeX(double t_p_x){ t_prime_x_ = t_p_x; }
   void setPrimeTimeY(double t_p_y){ t_prime_y_ = t_p_y; }
+  void setStanceHeight(double height) {
+    des_com_height_ = height;
+    b_set_height_target_ = true;
+  }
 
 protected:
   void _SetBspline(const sejong::Vect3 & st_pos,
                    const sejong::Vect3 & st_vel,
                    const sejong::Vect3 & st_acc,
                    const sejong::Vect3 & target_pos);
+
+  bool b_set_height_target_;
+  double des_com_height_;
 
   int swing_foot_;
   bool b_update_target_;

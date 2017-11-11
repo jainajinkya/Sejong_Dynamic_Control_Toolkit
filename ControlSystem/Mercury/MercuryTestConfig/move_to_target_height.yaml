@@ -1,1 +1,3 @@
-target_height: 0.85
+max_rf_z: 200
+min_rf_z: 8
+
