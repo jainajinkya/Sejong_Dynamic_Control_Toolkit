@@ -18,7 +18,7 @@ public:
   virtual void LastVisit() = 0;
   virtual bool EndOfPhase() = 0;
 
-  virtual void CtrlInitialization(std::string setting_file_name) = 0;
+  virtual void CtrlInitialization(const std::string & setting_file_name) = 0;
 
 protected:
   void _PreProcessing_Command();

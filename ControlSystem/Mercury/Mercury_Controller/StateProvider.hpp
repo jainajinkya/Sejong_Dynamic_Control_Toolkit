@@ -37,6 +37,8 @@ public:
   sejong::Vect3 Body_pos_;
   sejong::Vect3 Body_vel_;
 
+  sejong::Vect2 global_pos_local_;
+  sejong::Vect2 des_location_;
 private:
   StateProvider();
 };

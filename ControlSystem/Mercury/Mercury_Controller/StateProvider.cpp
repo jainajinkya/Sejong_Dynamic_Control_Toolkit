@@ -16,6 +16,8 @@ StateProvider::StateProvider(): initialized_(false),
   Q_.setZero();
   Qdot_.setZero();
   reaction_forces_.setZero();
+  global_pos_local_.setZero();
+  des_location_.setZero();
 
   DataManager* data_manager = DataManager::GetDataManager();
 

@@ -3,7 +3,7 @@
 
 #include <Controller.hpp>
 #include <Utils/BSplineBasic.h>
-#include <Planner/PIPM_FootPlacementPlanner/Reversal_LIPM_Planner.hpp>
+#include <Planner/Planner.hpp>
 
 class WBDC;
 class WBDC_ExtraData;
@@ -12,15 +12,16 @@ class WBDC_ContactSpec;
 
 class BodyFootPlanningCtrl:public Controller{
 public:
-  BodyFootPlanningCtrl(int swing_foot);
+  BodyFootPlanningCtrl(int swing_foot, Planner* planner);
   ~BodyFootPlanningCtrl();
   virtual void OneStep(sejong::Vector & gamma);
   virtual void FirstVisit();
   virtual void LastVisit();
   virtual bool EndOfPhase();
 
-  virtual void CtrlInitialization(std::string setting_file_name);
+  virtual void CtrlInitialization(const std::string & setting_file_name);
 
+  void setPlanningFrequency(double freq){ planning_frequency_ = freq; }
   void setSwingTime(double swing_time){ end_time_ = swing_time; }
   void setPrimeTimeX(double t_p_x){ t_prime_x_ = t_p_x; }
   void setPrimeTimeY(double t_p_y){ t_prime_y_ = t_p_y; }
@@ -54,7 +55,7 @@ protected:
   WBDC_Task* body_foot_task_;
   WBDC_ContactSpec* single_contact_;
 
-  Reversal_LIPM_Planner planner_;
+  Planner* planner_;
   void _CheckPlanning();
   void _Replanning();
 

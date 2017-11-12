@@ -7,12 +7,14 @@
 #include <CtrlSet/BodyFootPlanningCtrl.hpp>
 #include <CtrlSet/TransitionCtrl.hpp>
 #include <ParamHandler/ParamHandler.hpp>
+#include <Planner/PIPM_FootPlacementPlanner/Reversal_LIPM_Planner.hpp>
 
 WalkingTest::WalkingTest():Test(){
-
   sp_ = StateProvider::GetStateProvider();
   sp_->stance_foot_ = SJLinkID::LK_LFOOT;
+  sp_->global_pos_local_[1] = 0.15;
 
+  reversal_planner_ = new Reversal_LIPM_Planner();
   // phase_ = WKPhase::wk_lift_up;
   phase_ = WKPhase::wk_initiation;
 
@@ -23,11 +25,11 @@ WalkingTest::WalkingTest():Test(){
   body_fix_ctrl_ = new CoMzRxRyRzCtrl();
   // Right
   right_swing_start_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_RFOOT, false);
-  right_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_RFOOT);
+  right_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_RFOOT, reversal_planner_);
   right_swing_end_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_RFOOT, true);
   // Left
   left_swing_start_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_LFOOT, false);
-  left_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_LFOOT);
+  left_swing_ctrl_ = new BodyFootPlanningCtrl(SJLinkID::LK_LFOOT, reversal_planner_);
   left_swing_end_trans_ctrl_ = new TransitionCtrl(SJLinkID::LK_LFOOT, true);
 
   state_list_.push_back(jpos_ctrl_);
@@ -67,6 +69,9 @@ void WalkingTest::TestInitialization(){
   // Swing
   right_swing_ctrl_->CtrlInitialization("CTRL_right_walking_swing");
   left_swing_ctrl_->CtrlInitialization("CTRL_left_walking_swing");
+
+  // Planner
+  reversal_planner_->PlannerInitialization("PLANNER_velocity_reversal");
 }
 
 int WalkingTest::_NextPhase(const int & phase){
@@ -113,6 +118,7 @@ void WalkingTest::_SettingParameter(){
 
   ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setStanceHeight(tmp);
   ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setStanceHeight(tmp);
+  ((Reversal_LIPM_Planner*)reversal_planner_)->setOmega(tmp);
 
   //// Timing Setup
   handler.getValue("jpos_initialization_time", tmp);
@@ -129,14 +135,6 @@ void WalkingTest::_SettingParameter(){
   ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setSwingTime(tmp);
   ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setSwingTime(tmp);
 
-  handler.getValue("t_prime_x", tmp);
-  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeX(tmp);
-  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeX(tmp);
-
-  handler.getValue("t_prime_y", tmp);
-  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPrimeTimeY(tmp);
-  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPrimeTimeY(tmp);
-
   // Transition Time
   handler.getValue("st_transition_time", tmp);
   ((TransitionCtrl*)right_swing_start_trans_ctrl_)->setTransitionTime(tmp);
@@ -145,5 +143,8 @@ void WalkingTest::_SettingParameter(){
   ((TransitionCtrl*)left_swing_end_trans_ctrl_)->setTransitionTime(tmp);
 
   //// Planner Setup
-  handler.getString("planner_name", tmp_str);
+  handler.getValue("planning_frequency", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPlanningFrequency(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPlanningFrequency(tmp);
+
 }

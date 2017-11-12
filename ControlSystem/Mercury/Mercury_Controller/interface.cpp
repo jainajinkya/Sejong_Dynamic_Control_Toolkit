@@ -28,8 +28,8 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
   // TEST SETUP
-  // test_ = new WalkingTest();
-  test_ = new BodyCtrlTest();
+  test_ = new WalkingTest();
+  // test_ = new BodyCtrlTest();
   // test_ = new JointCtrlTest();
 
   printf("[interface] Contruct\n");

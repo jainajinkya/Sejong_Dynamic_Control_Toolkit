@@ -12,7 +12,5 @@ st_transition_time: 0.08
 end_transition_time: 0.08
 stance_time: 0.02
 
-t_prime_x: 0.15
-t_prime_y: 0.15
-
-planner_name: velocity_reversal_lipm
+# 0: default stepping test (no planning)
+planning_frequency: 0

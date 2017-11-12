@@ -17,7 +17,7 @@ public:
   virtual void LastVisit();
   virtual bool EndOfPhase();
 
-  virtual void CtrlInitialization(std::string setting_file_name);
+  virtual void CtrlInitialization(const std::string & setting_file_name);
 
   void setTransitionTime(double time){ end_time_ = time; }
   void setStanceHeight(double height) {

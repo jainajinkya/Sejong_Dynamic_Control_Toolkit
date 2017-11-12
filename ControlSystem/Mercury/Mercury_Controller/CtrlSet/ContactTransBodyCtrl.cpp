@@ -133,7 +133,7 @@ bool ContactTransBodyCtrl::EndOfPhase(){
   }
   return false;
 }
-void ContactTransBodyCtrl::CtrlInitialization(std::string setting_file_name){
+void ContactTransBodyCtrl::CtrlInitialization(const std::string & setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
 
   ParamHandler handler(CONFIG_PATH + setting_file_name + ".yaml");

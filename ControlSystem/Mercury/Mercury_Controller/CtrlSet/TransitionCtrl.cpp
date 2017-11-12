@@ -133,7 +133,7 @@ bool TransitionCtrl::EndOfPhase(){
   }
   return false;
 }
-void TransitionCtrl::CtrlInitialization(std::string setting_file_name){
+void TransitionCtrl::CtrlInitialization(const std::string & setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
   std::vector<double> tmp_vec;
 

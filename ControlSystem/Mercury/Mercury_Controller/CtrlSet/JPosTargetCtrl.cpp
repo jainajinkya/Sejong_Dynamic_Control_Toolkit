@@ -87,7 +87,7 @@ bool JPosTargetCtrl::EndOfPhase(){
   }
   return false;
 }
-void JPosTargetCtrl::CtrlInitialization(std::string setting_file_name){
+void JPosTargetCtrl::CtrlInitialization(const std::string & setting_file_name){
   jpos_ini_ = sp_->Q_.segment(NUM_VIRTUAL, NUM_ACT_JOINT);
   // ParamHandler handle(CONFIG_PATH + setting_file_name + ".yaml");
 

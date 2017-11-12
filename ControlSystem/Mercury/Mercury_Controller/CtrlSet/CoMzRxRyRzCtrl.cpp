@@ -158,7 +158,7 @@ bool CoMzRxRyRzCtrl::EndOfPhase(){
   }
   return false;
 }
-void CoMzRxRyRzCtrl::CtrlInitialization(std::string setting_file_name){
+void CoMzRxRyRzCtrl::CtrlInitialization(const std::string & setting_file_name){
   robot_model_->getCoMPosition(sp_->Q_, ini_com_pos_);
   std::vector<double> tmp_vec;
 
