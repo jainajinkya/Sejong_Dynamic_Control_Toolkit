@@ -106,6 +106,8 @@ protected:
 
 
   // QP constraint matrices and vectors
+  double virt_eps_relax;
+  sejong::Vector virt_relax; 
   sejong::Matrix U_f; // Friction Contact Matrix
   sejong::Vector tau_min; // Minimum Torque
   sejong::Vector tau_max; // Maximum Torque

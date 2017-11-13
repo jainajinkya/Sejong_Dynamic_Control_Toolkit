@@ -31,6 +31,14 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   sejong::pretty_print(Sv, std::cout, "Sv");
   sejong::pretty_print(Sa, std::cout, "Sa");
 
+  // Virtual Joints Relaxation
+  virt_relax.setOnes(NUM_VIRTUAL);
+  virt_eps_relax = 1e-6;
+  virt_relax *= virt_eps_relax;
+
+  sejong::pretty_print(virt_relax, std::cout, "virt_relax");
+
+
   // Prepare Box Constraints
   tau_min.resize(NUM_ACT_JOINT); // Minimum Torque
   tau_max.resize(NUM_ACT_JOINT); // Maximum Torque
@@ -362,7 +370,26 @@ void DDP_ctrl::_prep_QP_U_f(){
 void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   int dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
   int dim_eq_cstr = 1;  // Number of Equality Constraints. We won't use any here.
-  int dim_ieq_cstr = 5; // Temporary Have to analyze the actual size.
+  int dim_ieq_cstr = NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
+
+  /*
+  Virtual Joints Relaxation
+   Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+  -Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+
+  Torque Constraints
+   Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
+  -Sa (Aq_des + b + g) + Sa Jc^T Fr + tau_max >= 0 // Vector has NUM_ACT_JOINT rows   
+
+  Reaction Force Constraints
+  -Fr + Fr_max >= 0 // Vector has 4 rows  = dim_opt
+
+  Friction Contact Constraints
+  U_f * Fr >= 0 // Vector has 6 rows = U_f_.rows()
+
+
+  */ 
+
 
   G.resize(dim_opt, dim_opt);
   g0.resize(dim_opt);
@@ -388,6 +415,85 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
     ci0[0] = 0.0;
   }
 
+  // Prepare state variables
+  sejong::Vector q_int = x_state.head(NUM_QDOT);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);
+  // Get Contact Jacobian
+  // Task 1 Left and Right Foot Accelerations
+  sejong::Matrix J_lf, J_rf;  
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_LEFT_FOOT, J_lf);
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_RIGHT_FOOT, J_rf);
+  // Stack The Jacobians
+  sejong::Matrix J_c(dim_opt, NUM_QDOT);
+  J_c.block(0,0, 2, NUM_QDOT) = J_lf.block(0, 0, 2, NUM_QDOT);
+  J_c.block(2,0, 2, NUM_QDOT) = J_rf.block(0, 0, 2, NUM_QDOT);
+
+  // Prepare tot_tau_mtx -------------------------------------------------------
+  sejong::Matrix tot_tau_mtx(NUM_QDOT, dim_opt);
+  tot_tau_mtx = -J_c.transpose();
+
+  // Prepare tot_tau_vec -------------------------------------------------------
+  // Update Internal Model
+  _update_internal_model(x_state);
+
+  // Get B and c Matrices
+  sejong::Matrix B;
+  sejong::Vector c;
+  _get_B_c(x_state, B, c);
+
+  // Calculate qddot task
+  sejong::Vector xddot_des(4); xddot_des.setZero(); // Set no desired foot acceleration
+  sejong::Vector qddot_des = (B*xddot_des + c);
+
+
+  // Desired Whole Body Dynamics
+  sejong::Vector tot_tau_vec = A_int * qddot_des + coriolis_int + grav_int;
+
+
+  sejong::Matrix Sv_tot_tau_mtx = Sv*tot_tau_mtx;
+  sejong::Matrix Sa_tot_tau_mtx = Sa*tot_tau_mtx;  
+  sejong::Vector Sv_tot_tau_vec = Sv*tot_tau_vec;
+  sejong::Vector Sa_tot_tau_vec = Sa*tot_tau_vec;    
+
+
+  // Set Constraints using Eigen
+  sejong::Matrix sj_CE(dim_eq_cstr, dim_opt);
+  sejong::Vector sj_ce0(dim_eq_cstr);
+  sejong::Matrix sj_CI(dim_ieq_cstr, dim_opt);
+  sejong::Vector sj_ci0(dim_ieq_cstr);
+  sj_CE.setZero();
+  sj_ce0.setZero();
+  sj_CI.setZero();
+  sj_ci0.setZero();
+
+  // Virtual Joints Relaxation
+  // Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+  sj_CI.block(0,0, NUM_VIRTUAL, dim_opt)           = -Sv_tot_tau_mtx;
+  sj_ci0.head(NUM_VIRTUAL)                         = Sv_tot_tau_vec + virt_relax;
+
+  //-Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+  sj_CI.block(NUM_VIRTUAL,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
+  sj_ci0.segment(NUM_VIRTUAL, NUM_VIRTUAL)         = -Sv_tot_tau_vec + virt_relax;
+
+  // Torque Limits
+  //    tau_min
+  //    Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0
+  sj_CI.block(NUM_VIRTUAL*2,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
+  sj_ci0.segment(NUM_VIRTUAL*2, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
+
+  //    tau_max
+  //    -Sa (Aq_des + b + g) + Sa Jc^T Fr + tau_max >= 0
+  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
+  sj_ci0.segment(NUM_VIRTUAL*2 + NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
+
+  // Reaction Force Upper Bound
+  //  -Fr + Fr_max >= 0
+  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 ,0, dim_opt, dim_opt) = -1.0*sejong::Matrix::Identity(dim_opt, dim_opt);  
+  sj_ci0.segment(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2, dim_opt)          = Fr_max;
+
+  // Friction Contact Constraints
+  //  U_f * Fr >= 0 
+  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 + dim_opt, 0, U_f_.rows(), dim_opt) = U_f_;  
 
 }
 
@@ -488,6 +594,11 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
 
   // torque = A_ * qddot + coriolis_ + grav_;
   // torque = grav_;
+
+  sejong::Vector x_state(NUM_QDOT + NUM_QDOT);
+  x_state.head(NUM_QDOT) = sp_->Q_;
+  x_state.tail(NUM_QDOT) = sp_->Qdot_;
+  _prep_QP_FR_sol(x_state);
 
   gamma = qddot.tail(NUM_ACT_JOINT);
 
