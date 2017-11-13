@@ -9,7 +9,7 @@ project(SDC_Toolkit)
 #     Build Setup
 #------------------------------------------------------------------------
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
 
 include_directories ("${PROJECT_SOURCE_DIR}/")
 include_directories ("${PROJECT_SOURCE_DIR}/ExternalSource")
@@ -29,10 +29,10 @@ add_definitions(-O3)
 # SET (CTRL_SYS "NAO")
 # SET (CTRL_SYS "DracoP1")
 # SET (CTRL_SYS "DracoP1Rot")
-SET (CTRL_SYS "Mercury")
+# SET (CTRL_SYS "Mercury")
 # SET (CTRL_SYS "Openchain3DoF")
 # SET (CTRL_SYS "Openchain2DoF")
-# SET (CTRL_SYS "Walker2D")
+SET (CTRL_SYS "Walker2D")
 
 include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 
@@ -40,8 +40,8 @@ include_directories ("${PROJECT_SOURCE_DIR}/ControlSystem/${CTRL_SYS}")
 #     Simulator Selection
 #------------------------------------------------------------------------
 SET (RECORD_SIMULATION 0)
-add_subdirectory (Simulator/srSimulator)
-# add_subdirectory (Simulator/RBDL_simulator)
+# add_subdirectory (Simulator/srSimulator)
+add_subdirectory (Simulator/RBDL_simulator)
 
 #------------------------------------------------------------------------
 #    Directory Selection
@@ -54,7 +54,7 @@ add_subdirectory (Optimizer)
 add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 # add_subdirectory (MachineLearning_Package)
-add_subdirectory (Planner)
+# add_subdirectory (Planner)
 add_subdirectory(Tests) # For unit testing with googletest
 
 #------------------------------------------------------------------------
