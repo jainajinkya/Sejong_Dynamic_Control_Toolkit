@@ -216,6 +216,8 @@ void BodyFootPlanningCtrl::FirstVisit(){
   default_target_loc_[0] = sp_->Q_[0];
   default_target_loc_[2] = ini_foot_pos_[2];
   _SetBspline(ini_foot_pos_, zero, zero, default_target_loc_);
+
+  // _Replanning();
   num_planning_ = 0;
 
   // sejong::pretty_print(ini_foot_pos_, std::cout, "ini foot pos");
