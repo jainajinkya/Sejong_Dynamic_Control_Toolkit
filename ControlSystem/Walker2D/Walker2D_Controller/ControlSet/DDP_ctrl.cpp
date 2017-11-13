@@ -19,6 +19,7 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
 
   internal_model = Walker2D_Model::GetWalker2D_Model();
 
+
   // Prepare Selection Matrix
   Sv.resize(NUM_VIRTUAL, NUM_QDOT);
   Sa.resize(NUM_ACT_JOINT, NUM_QDOT);
@@ -44,7 +45,7 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   tau_max.resize(NUM_ACT_JOINT); // Maximum Torque
   Fr_max.resize(4); //  Maximum Reaction Force
   
-  double tau_bound = 50.0;
+  double tau_bound = 10.0;
   for(size_t i = 0; i < NUM_ACT_JOINT; i++){
     tau_max[i] = tau_bound;
     tau_min[i] = -tau_bound;
@@ -55,6 +56,30 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   }  
 
   _prep_QP_U_f();
+  // Prepare Optimization Dimensions
+  dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
+  dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
+  dim_ieq_cstr = NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
+
+  /*
+  Equality Constraints
+   Sv (Aq_des + b + g) + Sv (-Jc^T Fr) = 0 // Vector has NUM_VIRTUAL rows
+
+  Torque Constraints
+   Sa (Aq_des + b + g) + Sa (-Jc^T Fr) - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
+  -Sa (Aq_des + b + g) + Sa (-Jc^T Fr) + tau_max >= 0 // Vector has NUM_ACT_JOINT rows   
+
+  Reaction Force Constraints
+  -Fr + Fr_max >= 0 // Vector has 4 rows  = dim_opt
+
+  Friction Contact Constraints
+  U_f * Fr >= 0 // Vector has 6 rows = U_f_.rows()
+
+
+  */ 
+
+
+
 
 
   // Prepare iLQR
@@ -368,31 +393,6 @@ void DDP_ctrl::_prep_QP_U_f(){
 
 
 void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
-  int dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
-  int dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
-  int dim_ieq_cstr = NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
-
-  /*
-  Equality Constraints
-   Sv (Aq_des + b + g) - Sv Jc^T Fr = 0 // Vector has NUM_VIRTUAL rows
-
-  //Virtual Joints Relaxation
-  // Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
-  //-Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
-
-  Torque Constraints
-   Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
-  -Sa (Aq_des + b + g) + Sa Jc^T Fr + tau_max >= 0 // Vector has NUM_ACT_JOINT rows   
-
-  Reaction Force Constraints
-  -Fr + Fr_max >= 0 // Vector has 4 rows  = dim_opt
-
-  Friction Contact Constraints
-  U_f * Fr >= 0 // Vector has 6 rows = U_f_.rows()
-
-
-  */ 
-
 
   G.resize(dim_opt, dim_opt);
   g0.resize(dim_opt);
@@ -432,7 +432,7 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   J_c.block(2,0, 2, NUM_QDOT) = J_rf.block(0, 0, 2, NUM_QDOT);
 
   // Prepare tot_tau_mtx -------------------------------------------------------
-  sejong::Matrix tot_tau_mtx(NUM_QDOT, dim_opt);
+  tot_tau_mtx.resize(NUM_QDOT, dim_opt);
   tot_tau_mtx = -J_c.transpose();
 
   // Prepare tot_tau_vec -------------------------------------------------------
@@ -450,7 +450,8 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
 
 
   // Desired Whole Body Dynamics
-  sejong::Vector tot_tau_vec = A_int * qddot_des + coriolis_int + grav_int;
+  tot_tau_vec.resize(NUM_QDOT);
+  tot_tau_vec = A_int * qddot_des + coriolis_int + grav_int;
 
 
   sejong::Matrix Sv_tot_tau_mtx = Sv*tot_tau_mtx;
@@ -471,30 +472,19 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   sj_ci0.setZero();
 
   // Virtual Joints Constraint
-  //Sv (Aq_des + b + g) - Sv Jc^T Fr // Vector has NUM_VIRTUAL rows
-  sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = -Sv_tot_tau_mtx;
+  //Sv (Aq_des + b + g) + Sv (-Jc^T Fr) // Vector has NUM_VIRTUAL rows
+  sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
   sj_ce0.head(NUM_VIRTUAL) = Sv*tot_tau_vec;
-
-/*
-  // Virtual Joints Relaxation
-  // Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
-  sj_CI.block(0,0, NUM_VIRTUAL, dim_opt)           = -Sv_tot_tau_mtx;
-  sj_ci0.head(NUM_VIRTUAL)                         = Sv_tot_tau_vec + virt_relax;
-
-  //-Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
-  sj_CI.block(NUM_VIRTUAL,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
-  sj_ci0.segment(NUM_VIRTUAL, NUM_VIRTUAL)         = -Sv_tot_tau_vec + virt_relax;
-*/
 
   // Torque Limits
   //    tau_min
-  //    Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0
-  sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
+  //    Sa (Aq_des + b + g) + Sa (-Jc^T Fr) - tau_min >= 0
+  sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
   sj_ci0.segment(0, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
 
   //    tau_max
-  //    -Sa (Aq_des + b + g) + Sa Jc^T Fr + tau_max >= 0
-  sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
+  //    -Sa (Aq_des + b + g) - Sa (-Jc^T Fr) + tau_max >= 0
+  sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
   sj_ci0.segment(NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
 
   // Reaction Force Upper Bound
@@ -531,14 +521,16 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
     G[i][i] = sj_G(i, i);
   }
 
+}
 
+void DDP_ctrl::_solveQP_for_FR(sejong::Vector & Fr_result){
 
   // Solve Quadratic Program
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
 
   if(f > 1.e5){
-    std::cout << "f: " << f << std::endl;
-    std::cout << "x: " << z_out << std::endl;
+//    std::cout << "f: " << f << std::endl;
+//    std::cout << "x: " << z_out << std::endl;
 //    std::cout << "cmd: "<<cmd<<std::endl;
 
 /*    printf("G:\n");
@@ -557,10 +549,11 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
     std::cout<<ci0<<std::endl;*/
 
   }
+  sejong::Vector result(dim_opt);
+  for(int i(0); i<dim_opt; ++i) result[i] = z_out[i];
 
-
+  Fr_result = result;
 }
-
 
 
 void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state, 
@@ -662,10 +655,21 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   sejong::Vector x_state(NUM_QDOT + NUM_QDOT);
   x_state.head(NUM_QDOT) = sp_->Q_;
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
+
+
+  sejong::Vector Fr_result(dim_opt);
   _prep_QP_FR_sol(x_state);
+  _solveQP_for_FR(Fr_result);
 
-  gamma = qddot.tail(NUM_ACT_JOINT);
+  sejong::pretty_print(Fr_result, std::cout, "Fr_result");
 
+  sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
+  sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
+
+  //gamma = qddot.tail(NUM_ACT_JOINT);
+  gamma = cmd;
+
+  
 }
 
 

@@ -59,7 +59,7 @@ protected:
 
   void _prep_QP_U_f();  
   void _prep_QP_FR_sol(const sejong::Vector & x_state);  
-  void _solveQP_for_FR(sejong::Vector Fr_result);
+  void _solveQP_for_FR(sejong::Vector & Fr_result);
 
 
   iLQR* ilqr_;
@@ -88,7 +88,13 @@ protected:
 
 
   // Quad Program
+  sejong::Matrix tot_tau_mtx;
+  sejong::Vector tot_tau_vec;  
+  int dim_opt;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
+  int dim_eq_cstr;  // Number of Equality Constraints.
+  int dim_ieq_cstr;
   GolDIdnani::GVect<double> z_out;
+
   // Cost
   GolDIdnani::GMatr<double> G;
   GolDIdnani::GVect<double> g0;
