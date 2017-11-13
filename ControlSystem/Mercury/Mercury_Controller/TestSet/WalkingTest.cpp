@@ -8,6 +8,9 @@
 #include <CtrlSet/TransitionCtrl.hpp>
 #include <ParamHandler/ParamHandler.hpp>
 #include <Planner/PIPM_FootPlacementPlanner/Reversal_LIPM_Planner.hpp>
+#include <Utils/DataManager.hpp>
+
+#include <Robot_Model/RobotModel.hpp>
 
 WalkingTest::WalkingTest():Test(){
   sp_ = StateProvider::GetStateProvider();
@@ -45,6 +48,13 @@ WalkingTest::WalkingTest():Test(){
 
   _SettingParameter();
 
+  DataManager::GetDataManager()->RegisterData(&(((BodyFootPlanningCtrl*)right_swing_ctrl_)->curr_foot_pos_des_), VECT3, "rfoot_pos_des", 3);
+  DataManager::GetDataManager()->RegisterData(&(((BodyFootPlanningCtrl*)left_swing_ctrl_)->curr_foot_pos_des_), VECT3, "lfoot_pos_des", 3);
+
+
+  DataManager::GetDataManager()->RegisterData(&(((BodyFootPlanningCtrl*)right_swing_ctrl_)->curr_foot_vel_des_), VECT3, "rfoot_vel_des", 3);
+  DataManager::GetDataManager()->RegisterData(&(((BodyFootPlanningCtrl*)left_swing_ctrl_)->curr_foot_vel_des_), VECT3, "lfoot_vel_des", 3);
+
   printf("[Walking Test] Constructed\n");
 }
 
@@ -55,6 +65,9 @@ WalkingTest::~WalkingTest(){
 }
 
 void WalkingTest::TestInitialization(){
+  // Planner
+  reversal_planner_->PlannerInitialization("PLANNER_velocity_reversal");
+
   // Yaml file name
   jpos_ctrl_->CtrlInitialization("CTRL_set_initial_jpos");
   body_up_ctrl_->CtrlInitialization("CTRL_move_to_target_height");
@@ -69,21 +82,29 @@ void WalkingTest::TestInitialization(){
   // Swing
   right_swing_ctrl_->CtrlInitialization("CTRL_right_walking_swing");
   left_swing_ctrl_->CtrlInitialization("CTRL_left_walking_swing");
-
-  // Planner
-  reversal_planner_->PlannerInitialization("PLANNER_velocity_reversal");
 }
 
 int WalkingTest::_NextPhase(const int & phase){
   int next_phase = phase + 1;
-  printf("next phase: %i\n", next_phase);
+  // printf("next phase: %i\n", next_phase);
+
   if(phase == WKPhase::wk_double_contact_1) {
     printf("One swing done: Next Right Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_LFOOT;
+
+    // Global Frame Update
+    sejong::Vect3 next_local_frame_location;
+    RobotModel::GetRobotModel()->getPosition(sp_->Q_, SJLinkID::LK_LFOOT, next_local_frame_location);
+    sp_->global_pos_local_.head(2) += next_local_frame_location.head(2);
   }
   if(phase == WKPhase::wk_double_contact_2){
     printf("One swing done: Next Left Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_RFOOT;
+
+    // Global Frame Update
+    sejong::Vect3 next_local_frame_location;
+    RobotModel::GetRobotModel()->getPosition(sp_->Q_, SJLinkID::LK_RFOOT, next_local_frame_location);
+    sp_->global_pos_local_.head(2) += next_local_frame_location.head(2);
   }
   if(next_phase == NUM_WALKING_PHASE) {
     printf("one step is done\n");
@@ -129,6 +150,8 @@ void WalkingTest::_SettingParameter(){
   // Stance Time
   handler.getValue("stance_time", tmp);
   ((CoMzRxRyRzCtrl*)body_fix_ctrl_)->setStanceTime(tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->notifyStanceTime(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->notifyStanceTime(tmp);
 
   // Swing & prime Time
   handler.getValue("swing_time", tmp);
@@ -142,9 +165,21 @@ void WalkingTest::_SettingParameter(){
   ((TransitionCtrl*)left_swing_start_trans_ctrl_)->setTransitionTime(tmp);
   ((TransitionCtrl*)left_swing_end_trans_ctrl_)->setTransitionTime(tmp);
 
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->notifyTransitionTime(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->notifyTransitionTime(tmp);
+
   //// Planner Setup
   handler.getValue("planning_frequency", tmp);
   ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setPlanningFrequency(tmp);
   ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setPlanningFrequency(tmp);
 
+  handler.getValue("double_stance_mix_ratio", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setDoubleStanceRatio(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setDoubleStanceRatio(tmp);
+
+  handler.getValue("transition_phase_mix_ratio", tmp);
+  ((BodyFootPlanningCtrl*)right_swing_ctrl_)->setTransitionPhaseRatio(tmp);
+  ((BodyFootPlanningCtrl*)left_swing_ctrl_)->setTransitionPhaseRatio(tmp);
+
+  printf("[Walking Test] Complete to Setupt Parameters\n");
 }

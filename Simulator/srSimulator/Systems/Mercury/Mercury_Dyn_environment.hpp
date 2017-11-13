@@ -29,7 +29,7 @@ public:
 private:
   void _ParamterSetup();
   int num_substep_rendering_;
-
+  double release_time_;
 };
 
 #endif

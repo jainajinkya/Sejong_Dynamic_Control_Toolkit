@@ -1,5 +1,6 @@
 #include "StateProvider.hpp"
 #include <Utils/DataManager.hpp>
+#include <Robot_Model/RobotModel.hpp>
 
 StateProvider* StateProvider::GetStateProvider(){
     static StateProvider state_provider_;
@@ -19,6 +20,15 @@ StateProvider::StateProvider(): initialized_(false),
   global_pos_local_.setZero();
   des_location_.setZero();
 
+  Rfoot_pos_.setZero();
+  Lfoot_pos_.setZero();
+  Rfoot_vel_.setZero();
+  Lfoot_vel_.setZero();
+
+  CoM_pos_.setZero();
+  CoM_vel_.setZero();
+
+
   DataManager* data_manager = DataManager::GetDataManager();
 
   data_manager->RegisterData(&curr_time_, DOUBLE, "time");
@@ -26,10 +36,25 @@ StateProvider::StateProvider(): initialized_(false),
   data_manager->RegisterData(&Qdot_, SJ_VEC, "qdot", NUM_QDOT);
   data_manager->RegisterData(&reaction_forces_, SJ_VEC, "reaction_force", 6);
 
-  // Body
-  // data_manager->RegisterData(&Body_pos_, VECT3, "body_pos", 3);
-  // data_manager->RegisterData(&Body_vel_, VECT3, "body_vel", 3);
-  // data_manager->RegisterData(&Body_pos_des_, VECT3, "body_pos_des", 3);
-  // data_manager->RegisterData(&Body_vel_des_, VECT3, "body_vel_des", 3);
-  // data_manager->RegisterData(&Body_acc_des_, VECT3, "body_acc_des", 3);
+  data_manager->RegisterData(&Rfoot_pos_, VECT3, "rfoot_pos", 3);
+  data_manager->RegisterData(&Rfoot_vel_, VECT3, "rfoot_vel", 3);
+  data_manager->RegisterData(&Lfoot_pos_, VECT3, "lfoot_pos", 3);
+  data_manager->RegisterData(&Lfoot_vel_, VECT3, "lfoot_vel", 3);
+
+  data_manager->RegisterData(&CoM_pos_, VECT3, "com_pos", 3);
+  data_manager->RegisterData(&CoM_vel_, VECT3, "com_vel", 3);
+}
+
+
+void StateProvider::SaveCurrentData(){
+  RobotModel* model = RobotModel::GetRobotModel();
+
+  model->getPosition(Q_, LK_RFOOT, Rfoot_pos_);
+  model->getPosition(Q_, LK_LFOOT, Lfoot_pos_);
+
+  model->getVelocity(Q_, Qdot_, LK_RFOOT, Rfoot_vel_);
+  model->getVelocity(Q_, Qdot_, LK_LFOOT, Lfoot_vel_);
+
+  model->getCoMPosition(Q_, CoM_pos_);
+  model->getCoMVelocity(Q_, Qdot_, CoM_vel_);
 }

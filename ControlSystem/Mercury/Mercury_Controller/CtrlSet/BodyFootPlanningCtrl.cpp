@@ -6,15 +6,21 @@
 #include <WBDC/WBDC.hpp>
 #include <Robot_Model/RobotModel.hpp>
 #include <ParamHandler/ParamHandler.hpp>
+#include <Planner/PIPM_FootPlacementPlanner/Reversal_LIPM_Planner.hpp>
+#include <Utils/DataManager.hpp>
 
 BodyFootPlanningCtrl::BodyFootPlanningCtrl(int swing_foot, Planner* planner):
   Controller(),
   swing_foot_(swing_foot),
-  update_time_(0.),
   num_planning_(0),
-  planning_frequency_(0.)
+  planning_frequency_(0.),
+  replan_moment_(0.)
 {
   planner_ = planner;
+  curr_foot_pos_des_.setZero();
+  curr_foot_vel_des_.setZero();
+  curr_foot_acc_des_.setZero();
+
   body_foot_task_ = new BodyFootTask(swing_foot);
   if(swing_foot == LK_LFOOT) single_contact_ = new SingleContact(LK_RFOOT);
   else if(swing_foot == LK_RFOOT) single_contact_ = new SingleContact(LK_LFOOT);
@@ -29,6 +35,7 @@ BodyFootPlanningCtrl::BodyFootPlanningCtrl(int swing_foot, Planner* planner):
     wbdc_data_->tau_max[i] = 100.0;
     wbdc_data_->tau_min[i] = -100.0;
   }
+
   // printf("[BodyFoot Controller] Constructed\n");
 }
 
@@ -109,7 +116,7 @@ void BodyFootPlanningCtrl::_task_setup(){
 
   _CheckPlanning();
 
-  double traj_time = state_machine_time_ - update_time_;
+  double traj_time = state_machine_time_ - replan_moment_;
   // Foot Position Task
   double pos[3];
   double vel[3];
@@ -139,34 +146,51 @@ void BodyFootPlanningCtrl::_task_setup(){
 
 void BodyFootPlanningCtrl::_CheckPlanning(){
   if( state_machine_time_ > (end_time_/(planning_frequency_ + 1.) * (num_planning_ + 1.) + 0.002) ){ // + 0.002 is to account one or two more ticks before the end of phase
-    printf("time (state/end): %f, %f\n", state_machine_time_, end_time_);
-    printf("planning freq: %f\n", planning_frequency_);
-    printf("num_planning: %i\n", num_planning_);
+    // printf("time (state/end): %f, %f\n", state_machine_time_, end_time_);
+    // printf("planning freq: %f\n", planning_frequency_);
+    // printf("num_planning: %i\n", num_planning_);
     _Replanning();
     ++num_planning_;
   }
 }
 
 void BodyFootPlanningCtrl::_Replanning(){
-  sejong::Vect3 com_pos, com_vel;
+  sejong::Vect3 com_pos, com_vel, target_loc;
   robot_model_->getCoMPosition(sp_->Q_, com_pos);
   robot_model_->getCoMVelocity(sp_->Q_, sp_->Qdot_, com_vel);
 
-  double time_modification(0.);
-  sejong::Vect3 target_pos; target_pos.setZero();
+  OutputReversalPL pl_output;
+  ParamReversalPL pl_param;
+  pl_param.swing_time = end_time_ - state_machine_time_
+    + transition_time_ * transition_phase_ratio_
+    + stance_time_ * double_stance_ratio_;
 
-  // planner_.getNextFootLocation(com_pos + sp_->global_pos_local_, com_vel,
-  //                              sp_->des_location_,
-  //                              end_time_-state_machine_time_,
-  //                              t_prime_x_, t_prime_y_,
-  //                              time_modification,
-  //                              target_pos);
-  // if(b_time_change) end_time_ += time_modification;
+  pl_param.des_loc = sp_->des_location_;
+  pl_param.stance_foot_loc = sp_->global_pos_local_;
 
-  sejong::pretty_print(target_pos, std::cout, "next foot loc");
-  printf("end_time:%f\n", end_time_);
+  if(swing_foot_ == SJLinkID::LK_LFOOT)
+    pl_param.b_positive_sidestep = true;
+  else
+    pl_param.b_positive_sidestep = false;
 
-  _SetBspline(curr_foot_pos_des_, curr_foot_vel_des_, curr_foot_acc_des_, target_pos);
+  planner_->getNextFootLocation(com_pos + sp_->global_pos_local_,
+                                com_vel,
+                                target_loc,
+                                &pl_param, &pl_output);
+  // Time Modification
+  printf("time modification: %f\n", pl_output.time_modification);
+  replan_moment_ = state_machine_time_;
+  end_time_ += pl_output.time_modification;
+
+  sejong::pretty_print(target_loc, std::cout, "planed foot loc");
+  // sejong::pretty_print(sp_->global_pos_local_, std::cout, "global loc");
+
+  target_loc -= sp_->global_pos_local_;
+
+  sejong::pretty_print(target_loc, std::cout, "next foot loc");
+  // printf("end_time:%f\n", end_time_);
+
+  _SetBspline(curr_foot_pos_des_, curr_foot_vel_des_, curr_foot_acc_des_, target_loc);
 }
 
 void BodyFootPlanningCtrl::_single_contact_setup(){
@@ -182,16 +206,19 @@ void BodyFootPlanningCtrl::_single_contact_setup(){
 void BodyFootPlanningCtrl::FirstVisit(){
   // printf("[Body Foot Ctrl] Start\n");
 
-  robot_model_->getPosition(sp_->Q_, swing_foot_, curr_foot_pos_des_);
+  robot_model_->getPosition(sp_->Q_, swing_foot_, ini_foot_pos_);
   ctrl_start_time_ = sp_->curr_time_;
   state_machine_time_ = 0.;
+  replan_moment_ = 0.;
 
-  // sejong::pretty_print(target_foot_pos_, std::cout, "target foot pos");
   sejong::Vect3 zero;
   zero.setZero();
   default_target_loc_[0] = sp_->Q_[0];
-  _SetBspline(curr_foot_pos_des_, zero, zero, default_target_loc_);
+  default_target_loc_[2] = ini_foot_pos_[2];
+  _SetBspline(ini_foot_pos_, zero, zero, default_target_loc_);
   num_planning_ = 0;
+
+  // sejong::pretty_print(ini_foot_pos_, std::cout, "ini foot pos");
 }
 
 void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
@@ -204,8 +231,9 @@ void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
   double** middle_pt = new double*[1];
   middle_pt[0] = new double[3];
 
+  printf("time (state/end): %f, %f\n", state_machine_time_, end_time_);
   double portion = (1./end_time_) * (end_time_/2. - state_machine_time_);
-  printf("portion: %f\n", portion);
+  printf("portion: %f\n\n", portion);
   // Initial and final position & velocity & acceleration
   for(int i(0); i<3; ++i){
     // Initial
@@ -224,9 +252,7 @@ void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
   }
   if(portion > 0.)  middle_pt[0][2] = swing_height_;
 
-  foot_traj_.SetParam(init, fin, middle_pt, end_time_);
-
-  update_time_ = state_machine_time_;
+  foot_traj_.SetParam(init, fin, middle_pt, end_time_ - replan_moment_);
 
   delete [] *middle_pt;
   delete [] middle_pt;
@@ -278,4 +304,6 @@ void BodyFootPlanningCtrl::CtrlInitialization(const std::string & setting_file_n
     wbdc_data_->tau_min[i] = tmp_vec[i];
   }
 
+  ((Reversal_LIPM_Planner*)planner_)->CheckEigenValues(double_stance_ratio_*stance_time_ + transition_time_ + end_time_);
+  printf("[Body Foot Planning Ctrl] Parameter Setup Completed\n");
 }

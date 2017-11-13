@@ -133,12 +133,12 @@ void CoMzRxRyRzCtrl::_double_contact_setup(){
 }
 
 void CoMzRxRyRzCtrl::FirstVisit(){
-  printf("[CoMzRxRyRz] Start\n");
+  // printf("[CoMzRxRyRz] Start\n");
   ctrl_start_time_ = sp_->curr_time_;
 }
 
 void CoMzRxRyRzCtrl::LastVisit(){
-  printf("[CoMzRxRyRz] End\n");
+  // printf("[CoMzRxRyRz] End\n");
 }
 
 void CoMzRxRyRzCtrl::setAmp(const std::vector<double> & amp){

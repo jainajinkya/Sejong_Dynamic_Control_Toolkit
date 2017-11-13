@@ -8,7 +8,7 @@ addpath(fn_path)
 
 data_path = '~/Sejong_Dynamic_Control_Toolkit/experiment_data_check';
 read_data_simple_file;
-fig = fn_open_figures(4);
+fig = fn_open_figures(6);
 
 min_length = length(t) - 0;
 x = t(1:min_length);
@@ -24,42 +24,50 @@ end
 %% Draw Figure
 % Torque
 figure(fig(1))
-
-for i = 1:3
-  tmp(i) = subplot(3,1,i);  
-  plot(x, torque(i,1:min_length) ,'b-', 'linewidth',1.0);
-  phase_drawing_script;
-end
-title(tmp(1), 'Torque (right)');
-xlabel('Time (sec)','fontsize', 12);
-
+right_leg_torque_plot_script;
 figure(fig(2))
-for i = 1:3
-  tmp(i) = subplot(3,1,i);
-  plot(x, torque(i+3,1:min_length) ,'b-', 'linewidth',1.2);
-  phase_drawing_script;
-end
-
-xlabel('Time (sec)','fontsize', 12);
-title(tmp(1), 'Torque (left)');
+left_leg_torque_plot_script;
 
 %% Reaction Force
 
 figure(fig(3))
-
+%right_leg_reaction_force_plot_script;
 for i = 1:3
-  tmp(i) = subplot(3,1,i);
-  plot(x, rforce(i,1:min_length) ,'b-', 'linewidth',1.0);
+    subplot(3,1,i)
+    hold on
+    plot(x, rfoot_pos_des(i,:), 'linewidth',3);
+    plot(x, rfoot_pos(i,:));
   phase_drawing_script;
-end
-title(tmp(1), 'rforce (right)');
-xlabel('Time (sec)','fontsize', 12);
 
+end
 figure(fig(4))
+%left_leg_reaction_force_plot_script;
 for i = 1:3
-  tmp(i) = subplot(3,1,i);
-  plot(x, rforce(i+3,1:min_length) ,'b-', 'linewidth',1.2);
-  phase_drawing_script;
+    subplot(3,1,i)
+    hold on
+    plot(x, lfoot_pos_des(i,:), 'linewidth',3);
+    plot(x, lfoot_pos(i,:));
+      phase_drawing_script;
+
 end
-xlabel('Time (sec)','fontsize', 12);
-title(tmp(1), 'rforce (left)');
+
+figure(fig(5))
+%right_leg_reaction_force_plot_script;
+for i = 1:3
+    subplot(3,1,i)
+    hold on
+    plot(x, rfoot_vel_des(i,:), 'linewidth',3);
+    plot(x, rfoot_vel(i,:));
+  phase_drawing_script;
+
+end
+figure(fig(6))
+%left_leg_reaction_force_plot_script;
+for i = 1:3
+    subplot(3,1,i)
+    hold on
+    plot(x, lfoot_vel_des(i,:), 'linewidth',3);
+    plot(x, lfoot_vel(i,:));
+      phase_drawing_script;
+
+end

@@ -34,8 +34,7 @@ void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
   sp_->body_ori_.x() = 0.;
   sp_->body_ori_.y() = 0.;
   sp_->body_ori_.z() = 0.;
-
-
+  // Local Frame Setting
   sejong::Vect3 foot_pos, foot_vel;
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
   robot_model_->getPosition(sp_->Q_, sp_->stance_foot_, foot_pos);
@@ -47,9 +46,9 @@ void StateEstimator::Initialization(_DEF_SENSOR_DATA_){
   sp_->Qdot_[1] = -foot_vel[1];
   sp_->Qdot_[2] = -foot_vel[2];
 
+  sp_->global_pos_local_.head(2) = foot_pos.head(2);
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
-  robot_model_->getPosition(sp_->Q_, SJLinkID::LK_Body, sp_->Body_pos_);
-  robot_model_->getVelocity(sp_->Q_, sp_->Qdot_, SJLinkID::LK_Body, sp_->Body_vel_);
+  sp_->SaveCurrentData();
 }
 
 void StateEstimator::Update(_DEF_SENSOR_DATA_){
@@ -114,6 +113,5 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
   sp_->Qdot_[2] = -foot_vel[2];
 
   robot_model_->UpdateModel(sp_->Q_, sp_->Qdot_);
-  robot_model_->getPosition(sp_->Q_, SJLinkID::LK_Body, sp_->Body_pos_);
-  robot_model_->getVelocity(sp_->Q_, sp_->Qdot_, SJLinkID::LK_Body, sp_->Body_vel_);
+  sp_->SaveCurrentData();
 }
