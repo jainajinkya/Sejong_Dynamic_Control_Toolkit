@@ -15,6 +15,7 @@ public:
   void SetConfiguration(const std::vector<double>& _conf);
 
 protected:
+  int initial_posture_;
   std::vector<srCollision*> collision_;
 
   virtual void _SetCollision();

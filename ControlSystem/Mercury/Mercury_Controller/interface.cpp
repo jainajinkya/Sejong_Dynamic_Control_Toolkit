@@ -10,7 +10,6 @@
 // TEST SET LIST
 #include <TestSet/BodyCtrlTest.hpp>
 #include <TestSet/JointCtrlTest.hpp>
-#include <TestSet/StepTest.hpp>
 #include <TestSet/WalkingTest.hpp>
 
 #if MEASURE_TIME
@@ -30,7 +29,6 @@ interface::interface():
 
   // TEST SETUP
   test_ = new WalkingTest();
-  // test_ = new StepTest();
   // test_ = new BodyCtrlTest();
   // test_ = new JointCtrlTest();
 

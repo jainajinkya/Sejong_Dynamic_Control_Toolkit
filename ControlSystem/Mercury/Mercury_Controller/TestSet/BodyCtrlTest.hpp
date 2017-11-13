@@ -4,11 +4,11 @@
 #include <Test.hpp>
 
 enum BCPhase{
-  initial_transition = 0,
-  shake = 1,
-  move_up = 2,
-  stay_up = 3,
-  NUM_PHASE
+  initial_jpos = 0,
+  lift_up = 1,
+  stay_up = 2,
+  body_ctrl = 3,
+  NUM_BC_PHASE
 };
 
 class BodyCtrlTest: public Test{
@@ -19,11 +19,12 @@ public:
 
 protected:
   virtual int _NextPhase(const int & phase);
-
-  Controller* body_ini_tran_;
-  Controller* body_shake_ctrl_;
+  void _SettingParameter();
+  
+  Controller* jpos_ctrl_;
   Controller* body_up_ctrl_;
-  Controller* body_stay_;
+  Controller* body_fix_ctrl_;
+  Controller* body_shake_ctrl_;
 };
 
 #endif

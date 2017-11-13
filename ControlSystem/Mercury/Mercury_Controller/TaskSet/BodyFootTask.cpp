@@ -6,12 +6,15 @@
 #include <Utils/utilities.hpp>
 
 BodyFootTask::BodyFootTask(int swing_foot):WBDC_Task(9),
-                                           Kp_(200.0),
-                                           Kd_(25.0),
                                            swing_foot_(swing_foot)
 {
-  Kp_vec_ = sejong::Vector::Zero(9);
-  Kd_vec_ = sejong::Vector::Zero(9);
+  Kp_vec_ = sejong::Vector(dim_task_);
+  Kd_vec_ = sejong::Vector(dim_task_);
+
+  for(int i(0); i<dim_task_; ++i){
+    Kp_vec_[i] = 100.0;
+    Kd_vec_[i] = 10.0;
+  }
 
   sp_ = StateProvider::GetStateProvider();
   model_ = RobotModel::GetRobotModel();
@@ -32,7 +35,7 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   op_cmd_ = sejong::Vector::Zero(dim_task_);
 
   for(int i(0); i<3; ++i){
-    op_cmd_[i] = acc_des[i] + Kp_vec_[i] * ((*pos_cmd)[i] - com_pos[i]) + Kd_ * (vel_des[i] - com_vel[i]);
+    op_cmd_[i] = acc_des[i] + Kp_vec_[i] * ((*pos_cmd)[i] - com_pos[i]) + Kd_vec_[i] * (vel_des[i] - com_vel[i]);
   }
 
   // Orientation
@@ -55,9 +58,6 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   // sejong::pretty_print(err_quat, std::cout, "err quat");
   // sejong::pretty_print(ori_err, std::cout, "so3 err");
 
-  double Kp_ori(300.0);
-  double Kd_ori(30.0);
-
   for(int i(0); i<3; ++i){
     op_cmd_[i+3] = acc_des[i+3] + Kp_vec_[i+3] * ori_err[i] + Kd_vec_[i+3] * (vel_des[i+1] - sp_->Qdot_[i+3]);
   }
@@ -66,8 +66,7 @@ bool BodyFootTask::_UpdateCommand(void* pos_des,
   sejong::Vect3 foot_pos, foot_vel;
   model_->getPosition(sp_->Q_, swing_foot_, foot_pos);
   model_->getVelocity(sp_->Q_, sp_->Qdot_, swing_foot_, foot_vel);
-  double Kp_foot(300.);
-  double Kd_foot(30.);
+
   for(int i(0); i<3; ++i){
     op_cmd_[i+6] = acc_des[i+6] + Kp_vec_[i+6] * ((*pos_cmd)[i+7] - foot_pos[i]) + Kd_vec_[i+6] * (vel_des[i+6] - foot_vel[i]);
   }
@@ -104,11 +103,13 @@ bool BodyFootTask::_UpdateTaskJacobian(){
 }
 
 bool BodyFootTask::_UpdateTaskJDotQdot(){
-  sejong::Matrix Jdot;
-  // model_->getFullJacobianDot(sp_->Q_, sp_->Qdot_, SJLinkID::LK_BodyFoot, Jdot);
   // TODO
-  JtDotQdot_ = Jdot * sp_->Qdot_;
   JtDotQdot_ = sejong::Vector::Zero(dim_task_);
+
+  sejong::Matrix Jfoot_dot;
+  model_->getFullJacobianDot(sp_->Q_, sp_->Qdot_, swing_foot_, Jfoot_dot);
+  JtDotQdot_.tail(3) = Jfoot_dot.block(3, 0, 3, NUM_QDOT) * sp_->Qdot_;
+
   return true;
 }
 

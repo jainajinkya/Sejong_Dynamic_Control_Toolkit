@@ -17,11 +17,18 @@ public:
   virtual void LastVisit();
   virtual bool EndOfPhase();
 
-  virtual void CtrlInitialization(std::string setting_file_name);
+  virtual void CtrlInitialization(const std::string & setting_file_name);
 
   void setTransitionTime(double time){ end_time_ = time; }
+  void setStanceHeight(double height) {
+    des_com_height_ = height;
+    b_set_height_target_ = true;
+  }
 
 protected:
+  bool b_set_height_target_;
+  double des_com_height_;
+
   double end_time_;
   int moving_foot_;
   bool b_increase_; // Increasing or decreasing reaction force

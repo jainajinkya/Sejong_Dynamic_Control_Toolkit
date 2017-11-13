@@ -3,9 +3,15 @@
 #include <iostream>
 #include <stdio.h>
 #include "Configuration.h"
+#include <ParamHandler/ParamHandler.hpp>
 
-Mercury::Mercury(const  Vec3 & location, BASELINKTYPE base_link_type, srJoint::ACTTYPE joint_type):SystemGenerator()
+Mercury::Mercury(const  Vec3 & location, BASELINKTYPE base_link_type, srJoint::ACTTYPE joint_type):
+  SystemGenerator(),
+  initial_posture_(1)
 {
+  ParamHandler handler(CONFIG_PATH"SIM_sr_sim_setting.yaml");
+  handler.getInteger("initial_posture", initial_posture_);
+
   BuildRobot(location, base_link_type, joint_type, "urdf/mercury.urdf");
   printf("[Mercury] END of Mercury assemble\n");
 }
@@ -53,10 +59,11 @@ void Mercury::_SetInitialConf()
     vp_joint_[i]->m_State.m_rValue[0] = 0.;
     vr_joint_[i]->m_State.m_rValue[0] = 0.;
   }
+  // 1: similar to actual
+  // 3: stand up ready to walk
 
-  int pos(1);
 
-  switch (pos){
+  switch (initial_posture_){
   case 0:
     vp_joint_[2]->m_State.m_rValue[0] = 1.3;
 

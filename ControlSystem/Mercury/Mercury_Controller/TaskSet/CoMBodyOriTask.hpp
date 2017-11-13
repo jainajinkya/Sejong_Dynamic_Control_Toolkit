@@ -8,8 +8,11 @@ class RobotModel;
 
 class CoMBodyOriTask: public WBDC_Task{
 public:
-  CoMBodyOriTask(); // 4 dim: Rx, Ry, Rz, Z
+  CoMBodyOriTask(); // X, Y, Z, Rx, Ry, Rz
   virtual ~CoMBodyOriTask();
+
+  sejong::Vector Kp_vec_;
+  sejong::Vector Kd_vec_;
 
 protected:
   // Update op_cmd_
@@ -20,8 +23,6 @@ protected:
   virtual bool _UpdateTaskJacobian();
   // Update JtDotQdot_
   virtual bool _UpdateTaskJDotQdot();
-
-  double Kp_, Kd_;
 
   StateProvider* sp_;
   RobotModel* model_;

@@ -18,7 +18,7 @@ public:
   virtual void LastVisit();
   virtual bool EndOfPhase();
 
-  virtual void CtrlInitialization(std::string setting_file_name);
+  virtual void CtrlInitialization(const std::string & setting_file_name);
   void setMovingTime(double time) { end_time_ = time; }
 protected:
   double end_time_;

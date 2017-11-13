@@ -4,12 +4,17 @@
 #include <Utils/utilities.hpp>
 #include <ControlSystem/Mercury/Mercury_Controller/interface.hpp>
 #include <ControlSystem/Mercury/Mercury_Controller/StateProvider.hpp>
+#include <ParamHandler/ParamHandler.hpp>
 
 // #define SENSOR_NOISE
 #define SENSOR_DELAY 0 // Sensor_delay* SERVO_RATE (sec) = time delay 
 
 
-Mercury_Dyn_environment::Mercury_Dyn_environment(){
+Mercury_Dyn_environment::Mercury_Dyn_environment():
+  num_substep_rendering_(15)
+{
+  _ParamterSetup();
+
   m_Mercury = new Mercury(Vec3(0.0, 0.0, 0.0), srSystem::FIXED, srJoint::TORQUE);
   m_Space = new srSpace();
   m_ground = new Ground();
@@ -20,10 +25,11 @@ Mercury_Dyn_environment::Mercury_Dyn_environment(){
   m_Space->AddSystem((srSystem*)m_Mercury);
   m_Space->DYN_MODE_PRESTEP();
 
+
   m_Space->SET_USER_CONTROL_FUNCTION_2(ContolFunction);
   m_Space->SetTimestep(SERVO_RATE);
   m_Space->SetGravity(0.0,0.0,-9.8);
-  m_Space->SetNumberofSubstepForRendering(15);
+  m_Space->SetNumberofSubstepForRendering(num_substep_rendering_);
 }
 
 void Mercury_Dyn_environment::ContolFunction( void* _data ) {
@@ -113,15 +119,9 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
     robot->r_joint_[3]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[3]->m_State.m_rValue[0]) - kd* robot->r_joint_[3]->m_State.m_rValue[1];
   robot->r_joint_[7]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[7]->m_State.m_rValue[0]) - kd* robot->r_joint_[7]->m_State.m_rValue[1];
 
-  // robot->r_joint_[3]->m_State.m_rCommand = 0.;
-  // robot->r_joint_[7]->m_State.m_rCommand = 0.;
-
-  pDyn_env->_FixXY();
-  // std::map<std::string, int>::iterator iter = robot->r_joint_idx_map_.begin();
-  // while(iter != robot->r_joint_idx_map_.end()){
-  //   std::cout<<iter->first<<std::endl;
-  //   ++iter;
-  // }
+  if(count*SERVO_RATE < pDyn_env->release_time_){
+    pDyn_env->_FixXY();
+  }
   ++count;
 }
 void Mercury_Dyn_environment::_FixXY(){
@@ -144,3 +144,11 @@ void Mercury_Dyn_environment::_FixXY(){
 }
 
 void Mercury_Dyn_environment::Rendering_Fnc(){}
+
+
+void Mercury_Dyn_environment::_ParamterSetup(){
+  ParamHandler handler(CONFIG_PATH"SIM_sr_sim_setting.yaml");
+
+  handler.getInteger("num_substep_rendering", num_substep_rendering_);
+  handler.getValue("releasing_time", release_time_);
+}

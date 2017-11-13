@@ -3,6 +3,7 @@
 
 #include <Test.hpp>
 class StateProvider;
+class Planner;
 
 enum WKPhase{
   wk_initiation = 0,
@@ -28,6 +29,8 @@ protected:
   StateProvider* sp_;
   virtual int _NextPhase(const int & phase);
   void _SettingParameter();
+
+  Planner* reversal_planner_;
 
   Controller* jpos_ctrl_;
   Controller* body_up_ctrl_;

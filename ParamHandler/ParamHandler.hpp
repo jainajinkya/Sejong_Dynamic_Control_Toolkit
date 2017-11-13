@@ -14,6 +14,7 @@ public:
   bool getVector(const std::string & key, std::vector<double> & vec_value);
   bool getValue(const std::string & key, double & double_value);
   bool getBoolean(const std::string & key, bool & bool_value);
+  bool getInteger(const std::string & key, int & int_value);
 
 protected:
   YAML::Node config_;

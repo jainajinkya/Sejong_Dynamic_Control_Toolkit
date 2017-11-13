@@ -1,14 +1,12 @@
+start_phase: 0
+
 # Initialization
 initial_jpos: [0.05, -0.94, 1.85, -0.05, -0.94, 1.85]
-com_height: 0.9
-
-# Torque limt (Nm)
-torque_max: [100, 100, 130, 100, 100, 130]
-torque_min: [-100, -100, -130, -100, -100, -130]
+com_height: 0.85
 
 # Timing Parameters (sec)
-jpos_initialization_time: 2.
-com_lifting_time: 1.0
+jpos_initialization_time: 1.5
+com_lifting_time: 4.0
 swing_time: 0.32
 st_transition_time: 0.08
 end_transition_time: 0.08

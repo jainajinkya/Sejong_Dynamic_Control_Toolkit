@@ -11,7 +11,6 @@
 Controller::Controller():state_machine_time_(0.),
                          ctrl_start_time_(0.)
 {
-
   robot_model_ = RobotModel::GetRobotModel();
   sp_ = StateProvider::GetStateProvider();
 

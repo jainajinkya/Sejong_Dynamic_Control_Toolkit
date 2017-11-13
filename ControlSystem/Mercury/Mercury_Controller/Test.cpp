@@ -1,7 +1,9 @@
 #include "Test.hpp"
 #include "Controller.hpp"
+#include <Utils/DataManager.hpp>
 
 Test::Test():b_first_visit_(true){
+  DataManager::GetDataManager()->RegisterData(&phase_, INT, "phase");
 }
 
 Test::~Test(){
