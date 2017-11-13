@@ -58,6 +58,9 @@ protected:
   void _StepLengthCheck(sejong::Vect3 & target_loc,
                         bool b_positive_sidestep,
                         const sejong::Vect3 & stance_foot);
+
+  int _check_switch_velocity(const std::vector<sejong::Vect2> & switch_state);
+
 };
 
 #endif

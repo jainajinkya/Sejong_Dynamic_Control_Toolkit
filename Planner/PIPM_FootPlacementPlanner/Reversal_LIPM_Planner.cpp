@@ -40,9 +40,30 @@ void Reversal_LIPM_Planner::getNextFootLocation(
     exit(0);
   }
   ParamReversalPL* _input = ((ParamReversalPL*) additional_input);
+  OutputReversalPL* _output = ((OutputReversalPL*) additional_output);
 
   std::vector<sejong::Vect2> switch_state(2);
   _computeSwitchingState(_input-> swing_time, com_pos, com_vel, _input->stance_foot_loc, switch_state);
+
+  printf("switching velocity: %f, %f\n", switch_state[0][1], switch_state[1][1]);
+  int check_switch(_check_switch_velocity(switch_state));
+  double new_swing_time(_input->swing_time);
+  int count(0);
+  while(check_switch != 0){
+    if(check_switch > 0){ // Too small velocity increase time
+      new_swing_time *= 1.1;
+      printf("Too small velocity.. increase time: %f\n", new_swing_time);
+    } else{ // Too larget velocity decrease time
+      new_swing_time *= 0.9;
+      printf("Too large velocity.. decrease time: %f\n", new_swing_time);
+    }
+    _computeSwitchingState(new_swing_time, com_pos, com_vel, _input->stance_foot_loc, switch_state);
+
+    check_switch = _check_switch_velocity(switch_state);
+    ++count;
+    if(count > 20) break;
+  }
+  _output->time_modification = new_swing_time - _input->swing_time;
 
   for(int i(0); i<2; ++i){
     double exp_weight = (exp(omega_ * t_prime_[i]) + exp(-omega_ * t_prime_[i]))/(exp(omega_ * t_prime_[i]) - exp(-omega_ * t_prime_[i]));
@@ -54,6 +75,31 @@ void Reversal_LIPM_Planner::getNextFootLocation(
   // _StepLengthCheck(target_loc, switch_state);
   _StepLengthCheck(target_loc, _input->b_positive_sidestep, _input->stance_foot_loc);
 
+}
+int Reversal_LIPM_Planner::_check_switch_velocity(const std::vector<sejong::Vect2> & switch_state){
+  int ret(0);
+  double x_vel(switch_state[0][1]);
+  double y_vel(switch_state[1][1]);
+
+  // X
+  if( x_vel > 0.){
+    if(x_vel < com_vel_limit_[0]) ret = 1;
+    if(x_vel > com_vel_limit_[1]) ret = -1;
+  } else {
+    if(x_vel > -com_vel_limit_[0]) ret = 1;
+    if(x_vel < -com_vel_limit_[1]) ret = -1;
+  }
+
+  // Y
+  if( y_vel > 0.){
+    if(y_vel < com_vel_limit_[0]) ret = 1;
+    if(y_vel > com_vel_limit_[1]) ret = -1;
+  } else {
+    if(y_vel > -com_vel_limit_[0]) ret = 1;
+    if(y_vel < -com_vel_limit_[1]) ret = -1;
+  }
+
+  return ret;
 }
 
 void Reversal_LIPM_Planner::_StepLengthCheck(sejong::Vect3 & target_loc,

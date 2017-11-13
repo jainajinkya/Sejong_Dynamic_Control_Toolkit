@@ -231,9 +231,9 @@ void BodyFootPlanningCtrl::_SetBspline(const sejong::Vect3 & st_pos,
   double** middle_pt = new double*[1];
   middle_pt[0] = new double[3];
 
-  printf("time (state/end): %f, %f\n", state_machine_time_, end_time_);
+  // printf("time (state/end): %f, %f\n", state_machine_time_, end_time_);
   double portion = (1./end_time_) * (end_time_/2. - state_machine_time_);
-  printf("portion: %f\n\n", portion);
+  // printf("portion: %f\n\n", portion);
   // Initial and final position & velocity & acceleration
   for(int i(0); i<3; ++i){
     // Initial

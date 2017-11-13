@@ -1,7 +1,7 @@
 start_phase: 0
 
 # Initialization
-initial_jpos: [0.1, -0.94, 1.85, -0.1, -0.94, 1.85]
+initial_jpos: [0.1, -0.94, 1.85, -0.15, -0.94, 1.85]
 com_height: 0.85
 
 # Timing Parameters (sec)
