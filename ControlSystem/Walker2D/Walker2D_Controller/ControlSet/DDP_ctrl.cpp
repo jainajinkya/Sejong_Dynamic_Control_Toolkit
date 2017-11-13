@@ -369,13 +369,16 @@ void DDP_ctrl::_prep_QP_U_f(){
 
 void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   int dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
-  int dim_eq_cstr = 1;  // Number of Equality Constraints. We won't use any here.
-  int dim_ieq_cstr = NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
+  int dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
+  int dim_ieq_cstr = NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
 
   /*
-  Virtual Joints Relaxation
-   Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
-  -Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+  Equality Constraints
+   Sv (Aq_des + b + g) - Sv Jc^T Fr = 0 // Vector has NUM_VIRTUAL rows
+
+  //Virtual Joints Relaxation
+  // Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
+  //-Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
 
   Torque Constraints
    Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
@@ -457,6 +460,7 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
 
 
   // Set Constraints using Eigen
+  sejong::Matrix sj_G(dim_opt, dim_opt);
   sejong::Matrix sj_CE(dim_eq_cstr, dim_opt);
   sejong::Vector sj_ce0(dim_eq_cstr);
   sejong::Matrix sj_CI(dim_ieq_cstr, dim_opt);
@@ -466,6 +470,12 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   sj_CI.setZero();
   sj_ci0.setZero();
 
+  // Virtual Joints Constraint
+  //Sv (Aq_des + b + g) - Sv Jc^T Fr // Vector has NUM_VIRTUAL rows
+  sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = -Sv_tot_tau_mtx;
+  sj_ce0.head(NUM_VIRTUAL) = Sv*tot_tau_vec;
+
+/*
   // Virtual Joints Relaxation
   // Sv (Aq_des + b + g) - Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
   sj_CI.block(0,0, NUM_VIRTUAL, dim_opt)           = -Sv_tot_tau_mtx;
@@ -474,26 +484,80 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
   //-Sv (Aq_des + b + g) + Sv Jc^T Fr + eps >= 0 // Vector has NUM_VIRTUAL rows
   sj_CI.block(NUM_VIRTUAL,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
   sj_ci0.segment(NUM_VIRTUAL, NUM_VIRTUAL)         = -Sv_tot_tau_vec + virt_relax;
+*/
 
   // Torque Limits
   //    tau_min
   //    Sa (Aq_des + b + g) - Sa Jc^T Fr - tau_min >= 0
-  sj_CI.block(NUM_VIRTUAL*2,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
-  sj_ci0.segment(NUM_VIRTUAL*2, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
+  sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
+  sj_ci0.segment(0, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
 
   //    tau_max
   //    -Sa (Aq_des + b + g) + Sa Jc^T Fr + tau_max >= 0
-  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
-  sj_ci0.segment(NUM_VIRTUAL*2 + NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
+  sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
+  sj_ci0.segment(NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
 
   // Reaction Force Upper Bound
   //  -Fr + Fr_max >= 0
-  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 ,0, dim_opt, dim_opt) = -1.0*sejong::Matrix::Identity(dim_opt, dim_opt);  
-  sj_ci0.segment(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2, dim_opt)          = Fr_max;
+  sj_CI.block(NUM_ACT_JOINT*2 ,0, dim_opt, dim_opt) = -1.0*sejong::Matrix::Identity(dim_opt, dim_opt);  
+  sj_ci0.segment(NUM_ACT_JOINT*2, dim_opt)          = Fr_max;
 
   // Friction Contact Constraints
   //  U_f * Fr >= 0 
-  sj_CI.block(NUM_VIRTUAL*2 + NUM_ACT_JOINT*2 + dim_opt, 0, U_f_.rows(), dim_opt) = U_f_;  
+  sj_CI.block(NUM_ACT_JOINT*2 + dim_opt, 0, U_f_.rows(), dim_opt) = U_f_;  
+
+
+  // Set Cost Matrix
+  sj_G = sejong::Matrix::Identity(dim_opt, dim_opt);
+
+  // Set GoldFarb Equality Constraint
+  for(int i(0); i< dim_eq_cstr; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      CE[j][i] = sj_CE(i,j);
+    }
+    ce0[i] = sj_ce0[i];
+  }  
+
+  // Set GoldFarb Inequality Constraint
+  for(int i(0); i< dim_ieq_cstr; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      CI[j][i] = sj_CI(i,j);
+    }
+    ci0[i] = sj_ci0[i];
+  }
+
+  // Set GoldFarb G Matrix
+  for(int i(0); i < dim_opt; ++i){
+    G[i][i] = sj_G(i, i);
+  }
+
+
+
+  // Solve Quadratic Program
+  double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
+
+  if(f > 1.e5){
+    std::cout << "f: " << f << std::endl;
+    std::cout << "x: " << z_out << std::endl;
+//    std::cout << "cmd: "<<cmd<<std::endl;
+
+/*    printf("G:\n");
+    std::cout<<G<<std::endl;
+    printf("g0:\n");
+    std::cout<<g0<<std::endl;
+
+    printf("CE:\n");
+    std::cout<<CE<<std::endl;
+    printf("ce0:\n");
+    std::cout<<ce0<<std::endl;
+
+    printf("CI:\n");
+    std::cout<<CI<<std::endl;
+    printf("ci0:\n");
+    std::cout<<ci0<<std::endl;*/
+
+  }
+
 
 }
 

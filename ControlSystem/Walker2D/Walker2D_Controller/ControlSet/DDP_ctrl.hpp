@@ -88,7 +88,7 @@ protected:
 
 
   // Quad Program
-  GolDIdnani::GVect<double> z;
+  GolDIdnani::GVect<double> z_out;
   // Cost
   GolDIdnani::GMatr<double> G;
   GolDIdnani::GVect<double> g0;
