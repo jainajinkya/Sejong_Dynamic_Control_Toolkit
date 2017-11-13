@@ -7,6 +7,8 @@
 #include "Optimizer/lcp/MobyLCP.h"
 #include <chrono>
 
+#define TIME_DDP
+
 DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
                           count_command_(0),
                           jpos_ini_(NUM_ACT_JOINT),
@@ -16,6 +18,36 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
 {
 
   internal_model = Walker2D_Model::GetWalker2D_Model();
+
+  // Prepare Selection Matrix
+  Sv.resize(NUM_VIRTUAL, NUM_QDOT);
+  Sa.resize(NUM_ACT_JOINT, NUM_QDOT);
+  Sv.setZero();
+  Sa.setZero();
+
+  Sv.block(0,0, NUM_VIRTUAL, NUM_VIRTUAL) = sejong::Matrix::Identity(NUM_VIRTUAL, NUM_VIRTUAL);
+  Sa.block(0, NUM_VIRTUAL, NUM_ACT_JOINT, NUM_ACT_JOINT) = sejong::Matrix::Identity(NUM_ACT_JOINT, NUM_ACT_JOINT);
+
+  sejong::pretty_print(Sv, std::cout, "Sv");
+  sejong::pretty_print(Sa, std::cout, "Sa");
+
+  // Prepare Box Constraints
+  tau_min.resize(NUM_ACT_JOINT); // Minimum Torque
+  tau_max.resize(NUM_ACT_JOINT); // Maximum Torque
+  Fr_max.resize(4); //  Maximum Reaction Force
+  
+  double tau_bound = 50.0;
+  for(size_t i = 0; i < NUM_ACT_JOINT; i++){
+    tau_max[i] = tau_bound;
+    tau_min[i] = -tau_bound;
+  }
+  double Fr_max_bound = 100.0;
+  for(size_t i = 0; i < Fr_max.size(); i++){
+    Fr_max[i] = Fr_max_bound;
+  }  
+
+  _prep_QP_U_f();
+
 
   // Prepare iLQR
   ilqr_ = new iLQR();  
@@ -304,6 +336,63 @@ void DDP_ctrl::_get_B_c(const sejong::Vector & x_state, sejong::Matrix & B_out, 
 
 }
 
+
+void DDP_ctrl::_prep_QP_U_f(){
+  sejong::Matrix U_f(6, 4); 
+  U_f.setZero();
+
+  sejong::Matrix U1(3,2); // Left Foot Friction Contact Matrix Constraint 
+  sejong::Matrix U2(3,2); // Right Foot Friction Contact Matrix Constraint   
+  U1.setZero();
+  U2.setZero();
+
+  double mu_static = 0.7; // Static Friction Assumption
+                   U1(0, 1) = 1.0;
+  U1(1, 0) = -1.0; U1(1, 1) = mu_static;
+  U1(2, 0) = 1.0 ; U1(2, 1) = mu_static;
+  U2 = U1;
+
+  U_f.block(0,0, 3,2) = U1;
+  U_f.block(3,2, 3,2) = U2;
+
+  U_f_ = U_f;
+}
+
+
+void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
+  int dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
+  int dim_eq_cstr = 1;  // Number of Equality Constraints. We won't use any here.
+  int dim_ieq_cstr = 5; // Temporary Have to analyze the actual size.
+
+  G.resize(dim_opt, dim_opt);
+  g0.resize(dim_opt);
+  CE.resize(dim_opt, dim_eq_cstr);
+  ce0.resize(dim_eq_cstr);
+  CI.resize(dim_opt, dim_ieq_cstr);
+  ci0.resize(dim_ieq_cstr);
+
+  // Set Values to Zero
+  for(int i(0); i<dim_opt; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      G[i][j] = 0.0;
+    }
+    for(int j(0); j<dim_eq_cstr; ++j){
+      CE[i][j] = 0.0;
+    }
+    for(int j(0); j<dim_ieq_cstr; ++j){
+      CI[i][j] = 0.0;
+    }
+    g0[i] = 0.0;
+  }
+  for(int i(0); i<dim_ieq_cstr; ++i){
+    ci0[0] = 0.0;
+  }
+
+
+}
+
+
+
 void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state, 
                                 const sejong::Vector & u_input, 
                                 sejong::Vector & gamma_int){
@@ -353,13 +442,57 @@ void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state,
 void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
   _PreProcessing_Command();
   gamma.setZero();
+
+  #ifdef TIME_DDP
+  // ---- START TIMER 
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();  
+  #endif
+
   //_jpos_ctrl(gamma);
-  _DDP_ctrl(gamma);
+  _QP_ctrl(gamma);
+  //_DDP_ctrl(gamma);
+
+  #ifdef TIME_DDP
+    // ----- END TIMER
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
+    std::cout << "  Control Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
+  #endif
+
   ++count_command_;
 
   state_machine_time_ = sp_->curr_time_ - start_time_;
   _PostProcessing_Command(gamma);
 }
+
+
+
+void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
+ 
+  double kp(50.);
+  double kd(15.);
+  sejong::Vector jpos_des = jpos_ini_;
+
+  double amp(1.0);
+  double omega(2.*M_PI * 1.);
+  //jpos_des[0] += amp * sin(omega * state_machine_time_);
+  //jpos_des[3] += amp * sin(-omega * state_machine_time_);
+  //jpos_des[4] += amp * sin(-omega * state_machine_time_);  
+
+  sejong::Vector qddot(NUM_QDOT); qddot.setZero();
+  qddot.tail(NUM_ACT_JOINT)=
+    kp*(jpos_des - sp_->Q_.tail(NUM_ACT_JOINT)) +
+    kd * ( - sp_->Qdot_.tail(NUM_ACT_JOINT));
+
+  sejong::Vector torque(NUM_QDOT);
+
+  // torque = A_ * qddot + coriolis_ + grav_;
+  // torque = grav_;
+
+  gamma = qddot.tail(NUM_ACT_JOINT);
+
+}
+
 
 void DDP_ctrl::_DDP_ctrl(sejong::Vector & gamma){
   sejong::Vector x_state(STATE_SIZE);
@@ -415,7 +548,23 @@ void DDP_ctrl::_jpos_ctrl(sejong::Vector & gamma){
   // torque = grav_;
 
   gamma = qddot.tail(NUM_ACT_JOINT);
+
+
+
+/*  sejong::Quaternion ori_body;
+  internal_model->getOrientation(sp_->Q_, SJLinkID::LK_BODY, ori_body);
+  Eigen::Matrix3d R = ori_body.toRotationMatrix();
+  //sejong::pretty_print(ori_body,std::cout,"quat");
+  std::cout<<"mat R : \n"<<R<<std::endl;
+
+  sejong::Vect3 svec; 
+  svec.setZero();
+  svec[0] = 1.0;
+  sejong::pretty_print(svec,std::cout,"svec");
+  std::cout<<"R*svec: \n"<<R*svec<<std::endl;*/
+
 }
+
 
 
 

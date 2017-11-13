@@ -48,6 +48,7 @@ protected:
   // Functions
   void _DDP_ctrl(sejong::Vector & gamma);  
   void _jpos_ctrl(sejong::Vector & gamma);
+  void _QP_ctrl(sejong::Vector & gamma);  
   sejong::Vect3 ee_ini_;
 
   void _update_internal_model(const sejong::Vector & x_state);
@@ -56,6 +57,11 @@ protected:
                         const sejong::Vector & u_input, 
                         sejong::Vector & gamma_int); 
 
+  void _prep_QP_U_f();  
+  void _prep_QP_FR_sol(const sejong::Vector & x_state);  
+  void _solveQP_for_FR(sejong::Vector Fr_result);
+
+
   iLQR* ilqr_;
   // Get Internal Model of the robot for DDP
   Walker2D_Model* internal_model;
@@ -63,6 +69,9 @@ protected:
   sejong::Matrix Ainv_int;
   sejong::Vector grav_int;
   sejong::Vector coriolis_int;
+
+  sejong::Matrix Sv; // Virtual Joints Selection Matrix
+  sejong::Matrix Sa; // Actuated Joints Selection Matrix
 
   std::vector<sejong::Vector> gamma_sequence;  
   // Prepare running and final costs
@@ -76,6 +85,33 @@ protected:
   sejong::Vector x_des_final; // desired final x_state
 
   sejong::Vector ee_des; // desired final x_state    
+
+
+  // Quad Program
+  GolDIdnani::GVect<double> z;
+  // Cost
+  GolDIdnani::GMatr<double> G;
+  GolDIdnani::GVect<double> g0;
+
+  // Equality
+  GolDIdnani::GMatr<double> CE;
+  GolDIdnani::GVect<double> ce0;
+
+  // Inequality
+  GolDIdnani::GMatr<double> CI;
+  GolDIdnani::GVect<double> ci0;
+
+  // QP Const Matrices;
+  sejong::Matrix U_f_;
+
+
+  // QP constraint matrices and vectors
+  sejong::Matrix U_f; // Friction Contact Matrix
+  sejong::Vector tau_min; // Minimum Torque
+  sejong::Vector tau_max; // Maximum Torque
+  sejong::Vector Fr_max; //  Maximum Reaction Force
+
+
 
   // Data Save
   sejong::Vector des_pos_;
