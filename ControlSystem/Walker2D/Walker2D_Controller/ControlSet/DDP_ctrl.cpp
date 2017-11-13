@@ -619,7 +619,7 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
     // ----- END TIMER
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-    std::cout << "  Control Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
+    std::cout << "  QP Control Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
   #endif
 
   ++count_command_;
@@ -661,7 +661,7 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   _prep_QP_FR_sol(x_state);
   _solveQP_for_FR(Fr_result);
 
-  sejong::pretty_print(Fr_result, std::cout, "Fr_result");
+  //sejong::pretty_print(Fr_result, std::cout, "Fr_result");
 
   sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  

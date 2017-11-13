@@ -54,7 +54,7 @@ add_subdirectory (Optimizer)
 add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 # add_subdirectory (MachineLearning_Package)
-add_subdirectory (Planner)
+# add_subdirectory (Planner)
 add_subdirectory(Tests) # For unit testing with googletest
 
 #------------------------------------------------------------------------
