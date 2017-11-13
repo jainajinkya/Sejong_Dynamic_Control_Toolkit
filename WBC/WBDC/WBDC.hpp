@@ -13,6 +13,7 @@ class WBDC_ExtraData{
   sejong::Vector cost_weight;
   sejong::Vector tau_min;
   sejong::Vector tau_max;
+  sejong::Vector opt_result_;
 
   WBDC_ExtraData(){}
   ~WBDC_ExtraData(){}
@@ -74,6 +75,7 @@ private:
 
   sejong::Matrix S_delta_;
   sejong::Matrix Uf_;
+  sejong::Vector uf_ieq_vec_;
 
   sejong::Matrix Jc_;
   sejong::Vector JcDotQdot_;

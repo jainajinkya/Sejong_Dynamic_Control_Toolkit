@@ -4,18 +4,17 @@
 #include <Utils/utilities.hpp>
 #include <ControlSystem/Mercury/Mercury_Controller/interface.hpp>
 #include <ControlSystem/Mercury/Mercury_Controller/StateProvider.hpp>
-
-// #define Measure_Time
-#ifdef Measure_Time
-#include <chrono>
-using namespace std::chrono;
-#endif
+#include <ParamHandler/ParamHandler.hpp>
 
 // #define SENSOR_NOISE
 #define SENSOR_DELAY 0 // Sensor_delay* SERVO_RATE (sec) = time delay 
 
 
-Mercury_Dyn_environment::Mercury_Dyn_environment(){
+Mercury_Dyn_environment::Mercury_Dyn_environment():
+  num_substep_rendering_(15)
+{
+  _ParamterSetup();
+
   m_Mercury = new Mercury(Vec3(0.0, 0.0, 0.0), srSystem::FIXED, srJoint::TORQUE);
   m_Space = new srSpace();
   m_ground = new Ground();
@@ -26,10 +25,11 @@ Mercury_Dyn_environment::Mercury_Dyn_environment(){
   m_Space->AddSystem((srSystem*)m_Mercury);
   m_Space->DYN_MODE_PRESTEP();
 
+
   m_Space->SET_USER_CONTROL_FUNCTION_2(ContolFunction);
   m_Space->SetTimestep(SERVO_RATE);
   m_Space->SetGravity(0.0,0.0,-9.8);
-  m_Space->SetNumberofSubstepForRendering(15);
+  m_Space->SetNumberofSubstepForRendering(num_substep_rendering_);
 }
 
 void Mercury_Dyn_environment::ContolFunction( void* _data ) {
@@ -47,6 +47,42 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   bool rfoot_contact(false);
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
+
+  // IMU data
+  se3 imu_se3_vel = robot->link_[robot->link_idx_map_.find("imu")->second]->GetVel();
+  se3 imu_se3_acc = robot->link_[robot->link_idx_map_.find("imu")->second]->GetAcc();
+  SE3 imu_frame = robot->link_[robot->link_idx_map_.find("imu")->second]->GetFrame();
+  SO3 imu_ori = robot->link_[robot->link_idx_map_.find("imu")->second]->GetOrientation();
+
+  for(int i(0); i<3; ++i){
+    imu_ang_vel[i] = imu_se3_vel[i];
+  }
+
+  Eigen::Matrix3d Rot;
+  Rot<<
+    imu_frame(0,0), imu_frame(0,1), imu_frame(0,2),
+    imu_frame(1,0), imu_frame(1,1), imu_frame(1,2),
+    imu_frame(2,0), imu_frame(2,1), imu_frame(2,2);
+  Eigen::Matrix<double, 3, 1> ang_vel;
+  ang_vel<<imu_se3_vel[0], imu_se3_vel[1], imu_se3_vel[2];
+  sejong::Vect3 global_ang_vel = Rot * ang_vel;
+
+  bool b_printout(false);
+  if(b_printout){
+    printf("imu info: \n");
+    std::cout<<imu_se3_vel<<std::endl;
+    std::cout<<imu_se3_acc<<std::endl;
+    std::cout<<imu_frame<<std::endl;
+
+    printf("global ang vel\n");
+    std::cout<<global_ang_vel<<std::endl;
+
+    Eigen::Quaterniond quat(Rot);
+    printf("quat global:\n");
+    std::cout<<quat.w()<<std::endl;
+    std::cout<<quat.vec()<<std::endl;
+  }
+
 
   // Right
   for(int i(0); i< 3; ++i){
@@ -76,14 +112,43 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   for(int i(0); i<3; ++i){
     robot->r_joint_[i+4]->m_State.m_rCommand = torque_command[i+3];
   }
+  // Ankle Passive
+  double kp(0.02);
+  double kd(0.002);
+  double des_pos(-0.5);
+    robot->r_joint_[3]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[3]->m_State.m_rValue[0]) - kd* robot->r_joint_[3]->m_State.m_rValue[1];
+  robot->r_joint_[7]->m_State.m_rCommand = kp * (des_pos - robot->r_joint_[7]->m_State.m_rValue[0]) - kd* robot->r_joint_[7]->m_State.m_rValue[1];
 
-  // std::map<std::string, int>::iterator iter = robot->r_joint_idx_map_.begin();
-  // while(iter != robot->r_joint_idx_map_.end()){
-  //   std::cout<<iter->first<<std::endl;
-  //   ++iter;
-  // }
+  if(count*SERVO_RATE < pDyn_env->release_time_){
+    pDyn_env->_FixXY();
+  }
   ++count;
 }
+void Mercury_Dyn_environment::_FixXY(){
+  double pos,vel;
 
+  double kp(2000.0);
+  double kd(300.0);
+
+  int idx(0);
+  pos = m_Mercury->vp_joint_[idx]->m_State.m_rValue[0];
+  vel = m_Mercury->vp_joint_[idx]->m_State.m_rValue[1];
+  m_Mercury->vp_joint_[idx]->m_State.m_rCommand = -kp * pos - kd * vel;
+
+  idx = 1;
+  pos = m_Mercury->vp_joint_[idx]->m_State.m_rValue[0];
+  vel = m_Mercury->vp_joint_[idx]->m_State.m_rValue[1];
+
+  m_Mercury->vp_joint_[idx]->m_State.m_rCommand = -kp * pos - kd * vel;
+
+}
 
 void Mercury_Dyn_environment::Rendering_Fnc(){}
+
+
+void Mercury_Dyn_environment::_ParamterSetup(){
+  ParamHandler handler(CONFIG_PATH"SIM_sr_sim_setting.yaml");
+
+  handler.getInteger("num_substep_rendering", num_substep_rendering_);
+  handler.getValue("releasing_time", release_time_);
+}

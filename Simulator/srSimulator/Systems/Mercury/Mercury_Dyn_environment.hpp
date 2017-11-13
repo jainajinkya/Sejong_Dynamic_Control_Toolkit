@@ -19,12 +19,17 @@ public:
   static void ContolFunction(void* _data);
 
   void Rendering_Fnc();
-
+  void _FixXY();
+  
   interface* interface_;
   Mercury*	m_Mercury;
   srSpace*	m_Space;
   Ground*	m_ground;
 
+private:
+  void _ParamterSetup();
+  int num_substep_rendering_;
+  double release_time_;
 };
 
 #endif

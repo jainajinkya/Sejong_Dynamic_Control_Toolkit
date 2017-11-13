@@ -4,4 +4,9 @@ Configuration.h
 .DS_Store
 *~
 experiment_data
+<<<<<<< HEAD
 tags
+=======
+experiment_data_*
+#*
+>>>>>>> 56ddb6dc35b27e76d44a5c1fd9e3d322e3e63328

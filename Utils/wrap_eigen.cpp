@@ -28,9 +28,9 @@
 using namespace std;
 
 namespace sejong {
-    void convert(sejong::Quaternion const & from, sejong::Vector & to){
+    void convert(sejong::Quaternion const & from, sejong::Vect3 & to){
         double w = from.w();
-        Vector img_vec(3);
+        Vect3 img_vec;
         img_vec[0] = from.x();
         img_vec[1] = from.y();
         img_vec[2] = from.z();
@@ -55,7 +55,7 @@ namespace sejong {
         to = to * theta;
     }
 
-    void convert(sejong::Vector const & from, sejong::Quaternion & to){
+    void convert(sejong::Vect3 const & from, sejong::Quaternion & to){
         double theta = from[0]*from[0] + from[1]*from[1] + from[2]*from[2];
         theta = sqrt(theta);
 
@@ -72,14 +72,14 @@ namespace sejong {
             to.z() = 0.5 * from[2];
         }
     }
-    Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2){
+  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2, bool bound_pi){
         Quaternion ret_q(
             q1.w()*q2.w() - q1.x()*q2.x() - q1.y()*q2.y() - q1.z()*q2.z(),
             q1.w()*q2.x() + q1.x()*q2.w() + q1.y()*q2.z() - q1.z()*q2.y(),
             q1.w()*q2.y() - q1.x()*q2.z() + q1.y()*q2.w() + q1.z()*q2.x(),
             q1.w()*q2.z() + q1.x()*q2.y() - q1.y()*q2.x() + q1.z()*q2.w());
-
-        if(ret_q.w() < 0){
+        
+        if(ret_q.w() < 0 && bound_pi){
           ret_q.w() *= -1.;
           ret_q.x() *= -1.;
           ret_q.y() *= -1.;

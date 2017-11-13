@@ -1,7 +1,7 @@
 #ifndef DATA_SAVE
 #define DATA_SAVE
 
-#include <Utils/Sejong_Thread.h>
+#include <Utils/Sejong_Thread.hpp>
 #include "data_protocol.h"
 
 class DataSave: public Sejong_Thread{

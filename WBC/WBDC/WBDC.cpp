@@ -1,5 +1,7 @@
 #include "WBDC.hpp"
 #include <Utils/utilities.hpp>
+#include <Eigen/LU>
+#include <Eigen/SVD>
 
 WBDC::WBDC(const std::vector<bool> & act_list): WBC(act_list){}
 
@@ -54,21 +56,52 @@ void WBDC::MakeTorque(const std::vector<Task*> & task_list,
   // printf("ci0:\n");
   // std::cout<<ci0<<std::endl;
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z);
-  // std::cout << "f: " << f << std::endl;
-  // std::cout << "x: " << z << std::endl;
 
   _GetSolution(cmd);
+  data_->opt_result_ = sejong::Vector(dim_opt_);
+  for(int i(0); i<dim_opt_; ++i){
+    data_->opt_result_[i] = z[i];
+  }
+  // if(f > 1.e5){
+  //   std::cout << "f: " << f << std::endl;
+  //   std::cout << "x: " << z << std::endl;
+  //   std::cout << "cmd: "<<cmd<<std::endl;
+
+  //   printf("G:\n");
+  //   std::cout<<G<<std::endl;
+  //   printf("g0:\n");
+  //   std::cout<<g0<<std::endl;
+
+  //   printf("CE:\n");
+  //   std::cout<<CE<<std::endl;
+  //   printf("ce0:\n");
+  //   std::cout<<ce0<<std::endl;
+
+  //   printf("CI:\n");
+  //   std::cout<<CI<<std::endl;
+  //   printf("ci0:\n");
+  //   std::cout<<ci0<<std::endl;
+  // }
+
 }
 
 void WBDC::_SetEqualityConstraint(){
+  sejong::Matrix test_eq = Sv_ * tot_tau_Mtx_;
+  // sejong::pretty_print(test_eq, std::cout, "Test EQ");
+
+  // Eigen::JacobiSVD<sejong::Matrix> svd(test_eq, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+  // sejong::pretty_print(svd.matrixV(), std::cout, "Matrix V");
+  // sejong::pretty_print(svd.singularValues(), std::cout, "Matrix S");
+  // sejong::pretty_print(svd.matrixU(), std::cout, "Matrix U");
+
+
   sejong::Matrix sj_CE(dim_eq_cstr_, dim_opt_);
   sejong::Vector sj_ce0(dim_eq_cstr_);
   sj_CE.setZero();
   sj_ce0.setZero();
   // Virtual Torque
-  sj_CE.block(0,0, num_passive_, dim_opt_) = Sv_ * tot_tau_Mtx_;
-  // sj_CE = Sv_ * tot_tau_Mtx_;
-
+  sj_CE = Sv_ * tot_tau_Mtx_;
   sj_ce0.head(num_passive_) = Sv_ * tot_tau_Vect_;
 
   for(int i(0); i< dim_eq_cstr_; ++i){
@@ -77,6 +110,29 @@ void WBDC::_SetEqualityConstraint(){
     }
     ce0[i] = sj_ce0[i];
   }
+  // int eq_dim(6);
+  // sejong::Matrix sj_CE(eq_dim, dim_opt_);
+  // sejong::Vector sj_ce0(eq_dim);
+  // sj_CE.setZero();
+  // sj_ce0.setZero();
+  // // Virtual Torque
+  // // sj_CE.block(0,0, num_passive_-1, dim_opt_) = Sv_ * tot_tau_Mtx_;
+
+  // for(int i(0); i<eq_dim; ++i){
+  //   sj_CE.block(i, 0, 1, dim_opt_) =  tot_tau_Mtx_.block(i,0,1,dim_opt_);
+  //   sj_ce0[i] = tot_tau_Vect_[i];
+  // }
+  // // sj_CE = Sv_ * tot_tau_Mtx_;
+  // CE.resize(dim_opt_, eq_dim);
+  // ce0.resize(eq_dim);
+
+  // for(int i(0); i< eq_dim; ++i){
+  //   for(int j(0); j<dim_opt_; ++j){
+  //     CE[j][i] = sj_CE(i,j);
+  //   }
+  //   ce0[i] = sj_ce0[i];
+  // }
+
   // sejong::pretty_print(sj_CE, std::cout, "WBDC: CE");
   // sejong::pretty_print(sj_ce0, std::cout, "WBDC: ce0");
 }
@@ -89,7 +145,7 @@ void WBDC::_SetInEqualityConstraint(){
 
   // RF constraint
   sj_CI.block(0,0, dim_rf_cstr_, dim_rf_) = Uf_;
-  (sj_ci0.head(dim_rf_cstr_)).setZero();
+  (sj_ci0.head(dim_rf_cstr_)) = uf_ieq_vec_;
 
   // Torque min & max
   // min
@@ -112,6 +168,7 @@ void WBDC::_SetInEqualityConstraint(){
 
 void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
   sejong::Matrix Uf;
+  sejong::Vector uf_ieq_vec;
   // Initial
   sejong::Matrix Jc;
   sejong::Vector JcDotQdot;
@@ -121,6 +178,8 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
 
   JcDotQdot_ = JcDotQdot;
   static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintMtx(Uf_);
+  static_cast<WBDC_ContactSpec*>(contact_list[0])->getRFConstraintVec(uf_ieq_vec_);
+
   dim_rf_ = contact_list[0]->getDim();
   dim_rf_cstr_ = static_cast<WBDC_ContactSpec*>(contact_list[0])->getDimRFConstratint();
 
@@ -147,6 +206,12 @@ void WBDC::_ContactBuilding(const std::vector<ContactSpec*> & contact_list){
     Uf_.block(dim_rf_cstr_, 0, dim_new_rf_cstr, dim_rf_).setZero();
     Uf_.block(dim_rf_cstr_, dim_rf_, dim_new_rf_cstr, dim_new_rf) = Uf;
 
+    // Uf inequality vector
+    static_cast<WBDC_ContactSpec*>(contact_list[i])->getRFConstraintVec(uf_ieq_vec);
+    uf_ieq_vec_.conservativeResize(dim_rf_cstr_ + dim_new_rf_cstr);
+    uf_ieq_vec_.tail(dim_new_rf_cstr) = uf_ieq_vec;
+
+    // Increase reaction force dimension
     dim_rf_ += dim_new_rf;
     dim_rf_cstr_ += dim_new_rf_cstr;
   }

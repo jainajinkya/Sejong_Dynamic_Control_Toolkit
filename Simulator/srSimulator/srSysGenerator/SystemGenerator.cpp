@@ -1,7 +1,7 @@
 #include "SystemGenerator.h"
 #include <Utils/utilities.hpp>
 
-#define FIX_IN_THE_AIR 1
+#define FIX_IN_THE_AIR 0
 
 SystemGenerator::SystemGenerator() :
   num_r_joint_(0),
@@ -112,6 +112,12 @@ void SystemGenerator::_SetJointType(){
       // vr_joint_[i]->SetActType(srJoint::VELOCITY);
       vp_joint_[i]->SetActType(srJoint::HYBRID);
       vr_joint_[i]->SetActType(srJoint::HYBRID);
+    }
+#else
+    printf("Floating\n");
+    for(int i(0); i<3; ++i){
+      vp_joint_[i]->SetActType(srJoint::TORQUE);
+      vr_joint_[i]->SetActType(srJoint::TORQUE);
     }
 #endif
 }

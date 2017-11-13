@@ -18,16 +18,19 @@ public:
   virtual void LastVisit();
   virtual bool EndOfPhase();
 
-  virtual void CtrlInitialization(std::string setting_file_name);
-
+  virtual void CtrlInitialization(const std::string & setting_file_name);
+  void setMovingTime(double time) { end_time_ = time; }
 protected:
+  double end_time_;
+
   WBDC* wbdc_;
   WBDC_ExtraData* wbdc_data_;
   WBDC_Task* jpos_task_;
   WBDC_ContactSpec* fixed_body_contact_;
 
   sejong::Vector jpos_ini_;
-
+  sejong::Vector jpos_target_;
+  
   void _jpos_task_setup();
   void _fixed_body_contact_setup();
   void _jpos_ctrl(sejong::Vector & gamma);

@@ -11,7 +11,6 @@
 Controller::Controller():state_machine_time_(0.),
                          ctrl_start_time_(0.)
 {
-
   robot_model_ = RobotModel::GetRobotModel();
   sp_ = StateProvider::GetStateProvider();
 
@@ -19,6 +18,7 @@ Controller::Controller():state_machine_time_(0.),
   for(int i(0); i<NUM_VIRTUAL; ++i){
     act_list_[i] = false;
   }
+  // printf("[Controller] Constructed\n");
 }
 
 Controller::~Controller(){

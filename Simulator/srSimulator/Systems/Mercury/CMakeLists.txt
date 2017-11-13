@@ -15,6 +15,7 @@ target_link_libraries (simulation_mercury
   ${CTRL_SYS}_Controller
  SR_Terrain
  SJutils
+ SJparam_handler
 )
 
 if (APPLE)

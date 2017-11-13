@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 
 include_directories ("${PROJECT_SOURCE_DIR}/")
 include_directories ("${PROJECT_SOURCE_DIR}/ExternalSource")
+include_directories("${PROJECT_SOURCE_DIR}/ExternalSource/yaml_cpp/include")
 include_directories ("${PROJECT_SOURCE_DIR}/WBC")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -48,11 +49,12 @@ add_subdirectory (Simulator/srSimulator)
 add_subdirectory (Utils)
 add_subdirectory (Filter)
 add_subdirectory (ExternalSource)
+add_subdirectory (ParamHandler)
 add_subdirectory (Optimizer)
 add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 # add_subdirectory (MachineLearning_Package)
-# add_subdirectory (LocomotionPlanner)
+add_subdirectory (Planner)
 add_subdirectory(Tests) # For unit testing with googletest
 
 #------------------------------------------------------------------------

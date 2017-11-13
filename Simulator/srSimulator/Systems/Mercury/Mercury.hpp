@@ -10,11 +10,12 @@
 class Mercury: public SystemGenerator
 {
 public:
-    Mercury(const Vec3 & location, srSystem::BASELINKTYPE base_link_type, srJoint::ACTTYPE joint_type);
-    virtual ~Mercury(){}
-    void SetConfiguration(const std::vector<double>& _conf);
+  Mercury(const Vec3 & location, srSystem::BASELINKTYPE base_link_type, srJoint::ACTTYPE joint_type);
+  virtual ~Mercury();
+  void SetConfiguration(const std::vector<double>& _conf);
 
 protected:
+  int initial_posture_;
   std::vector<srCollision*> collision_;
 
   virtual void _SetCollision();

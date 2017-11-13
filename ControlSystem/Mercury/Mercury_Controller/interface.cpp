@@ -10,6 +10,7 @@
 // TEST SET LIST
 #include <TestSet/BodyCtrlTest.hpp>
 #include <TestSet/JointCtrlTest.hpp>
+#include <TestSet/WalkingTest.hpp>
 
 #if MEASURE_TIME
 #include <chrono>
@@ -27,11 +28,12 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
   // TEST SETUP
+  test_ = new WalkingTest();
   // test_ = new BodyCtrlTest();
-  test_ = new JointCtrlTest();
+  // test_ = new JointCtrlTest();
 
   printf("[interface] Contruct\n");
-  }
+}
 
 interface::~interface(){
   delete test_;
@@ -51,10 +53,22 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
 #if MEASURE_TIME
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-    std::cout << "All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
+    std::cout << "[interface] All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
 #endif
 
+    double input(0.);
+    double limit(100.);
     for (int i(0); i<NUM_ACT_JOINT; ++i){
+      input = torque_command_[i];
+      if(torque_command_[i] > limit){
+        printf("%i th torque is too large: %f\n", i, torque_command_[i]);
+        input = limit;
+        exit(0);
+      }else if(torque_command_[i]<-limit){
+        printf("%i th torque is too large: %f\n", i, torque_command_[i]);
+        input = -limit;
+        exit(0);
+      }
       command[i] = torque_command_[i];
       sensed_torque_[i] = torque[i];
     }
@@ -65,11 +79,16 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
   StateProvider::GetStateProvider()->curr_time_ = time;
 }
 void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
-
+  reaction_force.resize(2);
+  for(int i(0); i<2; ++i){
+    for(int j(0); j<3; ++j){
+      reaction_force[i][j] = StateProvider::GetStateProvider()->reaction_forces_[j];
+    }
+  }
 }
 
 bool interface::_Initialization(_DEF_SENSOR_DATA_){
-  if(count_ < 2){
+  if(count_ < 1){
     torque_command_.setZero();
     state_estimator_.Initialization(_VAR_SENSOR_DATA_);
     test_->TestInitialization();

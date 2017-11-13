@@ -7,7 +7,8 @@ DoubleContact::DoubleContact():WBDC_ContactSpec(6)
 {
   model_ = RobotModel::GetRobotModel();
   sp_ = StateProvider::GetStateProvider();
-  Jc_ = sejong::Matrix(dim_contact_, NUM_QDOT);
+  Jc_ = sejong::Matrix(6, NUM_QDOT);
+  // printf("[Double Contact] Constructed\n");
 }
 
 DoubleContact::~DoubleContact(){}
@@ -48,6 +49,11 @@ bool DoubleContact::_UpdateUf(){
   _setU(mu, U);
   Uf_.block(0, 0, size_u, 3) = U;
   Uf_.block(size_u, 3, size_u, 3) = U;
+  return true;
+}
+
+bool DoubleContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(5*2);
   return true;
 }
 

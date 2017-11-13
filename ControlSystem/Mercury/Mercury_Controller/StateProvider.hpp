@@ -14,6 +14,7 @@ public:
   static StateProvider* GetStateProvider();
   ~StateProvider(){}
 
+  sejong::Quaternion body_ori_;
   // Important!!!!!!!!
   int stance_foot_;
 
@@ -25,14 +26,20 @@ public:
   Vector Qdot_;
   Vector curr_torque_;
 
-  ///// Desired
-  sejong::Vect3 Body_pos_des_;
-  sejong::Vect3 Body_vel_des_;
-  sejong::Vect3 Body_acc_des_;
+  sejong::Vector reaction_forces_;
 
-  ////// Current
-  sejong::Vect3 Body_pos_;
-  sejong::Vect3 Body_vel_;
+  sejong::Vect3 global_pos_local_;
+  sejong::Vect2 des_location_;
+
+  sejong::Vect3 Rfoot_pos_;
+  sejong::Vect3 Lfoot_pos_;
+  sejong::Vect3 Rfoot_vel_;
+  sejong::Vect3 Lfoot_vel_;
+
+  sejong::Vect3 CoM_pos_;
+  sejong::Vect3 CoM_vel_;
+
+  void SaveCurrentData();
 
 private:
   StateProvider();

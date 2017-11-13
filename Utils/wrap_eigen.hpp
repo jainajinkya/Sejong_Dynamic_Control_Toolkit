@@ -36,10 +36,10 @@ namespace sejong {
   // Quaternion to Euler ZYX
   void convert(const sejong::Quaternion& from, double & yaw, double & pitch, double & roll);
   // Quaternion to so(3)
-  void convert(sejong::Quaternion const & from, sejong::Vector & to);
+  void convert(sejong::Quaternion const & from, sejong::Vect3 & to);
 
   // so(3) to Quaternion
-  void convert(sejong::Vector const & from, sejong::Quaternion & to);
+  void convert(sejong::Vect3 const & from, sejong::Quaternion & to);
   // sejong::Vector to std::vector
   void convert(sejong::Vector const & from, std::vector<double> & to);
   // std::vector to sejong::Vector
@@ -47,7 +47,7 @@ namespace sejong {
   // double array to sejong::Vector
   void convert(double const * from, size_t length, sejong::Vector & to);
 
-  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2);
+  Quaternion QuatMultiply(const Quaternion & q1, const Quaternion & q2, bool bound_pi = true);
 
   bool compare(sejong::Matrix const & lhs, sejong::Matrix const & rhs, double precision);
   bool compare(sejong::Quaternion const & lhs, sejong::Quaternion const & rhs, double precision);

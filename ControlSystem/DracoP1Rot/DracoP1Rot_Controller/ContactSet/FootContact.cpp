@@ -34,3 +34,8 @@ bool FootContact::_UpdateUf(){
 
   return true;
 }
+
+bool FootContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(5);
+  return true;
+}

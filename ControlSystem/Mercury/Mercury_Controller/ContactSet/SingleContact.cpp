@@ -19,7 +19,7 @@ bool SingleContact::_UpdateJc(){
 }
 bool SingleContact::_UpdateJcDotQdot(){
   sejong::Matrix JcDot;
-  model_->getFullJacobianDot(sp_->Q_,sp_->Qdot_,  SJLinkID::LK_RFOOT, JcDot);
+  model_->getFullJacobianDot(sp_->Q_, sp_->Qdot_,  contact_pt_, JcDot);
   JcDotQdot_ = JcDot.block(3, 0, 3, NUM_QDOT) * sp_->Qdot_;
   return true;
 
@@ -35,5 +35,10 @@ bool SingleContact::_UpdateUf(){
 
   Uf_(3, 1) = 1.; Uf_(3, 2) = mu; // Fy >= - mu * Fz
   Uf_(4, 1) = -1.; Uf_(4, 2) = mu; // Fy <=  mu * Fz
+  return true;
+}
+
+bool SingleContact::_UpdateInequalityVector(){
+  ieq_vec_ = sejong::Vector::Zero(5);
   return true;
 }

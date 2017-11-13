@@ -1,7 +1,7 @@
 #ifndef B_SPLINE_BASIC
 #define B_SPLINE_BASIC
 
-#include "Spline.h"
+/* #include "Spline.h" */
 #include <assert.h>
 #include <iostream>
 #include <stdio.h>
@@ -25,7 +25,7 @@
 
 
 template<int DIM, int DEGREE, int NUM_MIDDLE, int CONST_LEVEL_INI, int CONST_LEVEL_FIN>
-  class BS_Basic : public Spline{
+  class BS_Basic{ // : public Spline{
  public:
  BS_Basic():
   NumKnots_(DEGREE + NUM_MIDDLE + 2 + CONST_LEVEL_INI + CONST_LEVEL_FIN+ 1),
