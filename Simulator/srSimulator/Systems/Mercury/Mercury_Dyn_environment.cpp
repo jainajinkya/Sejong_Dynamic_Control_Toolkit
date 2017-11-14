@@ -44,6 +44,7 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   std::vector<double> jtorque(6);
   std::vector<double> imu_acc(3);
   std::vector<double> imu_ang_vel(3);
+  std::vector<double> imu_inc(3);
   bool rfoot_contact(false);
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
@@ -97,7 +98,7 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
     jtorque[i+3] = robot->r_joint_[i+4]->m_State.m_rValue[3];
   }
 
-  pDyn_env->interface_->GetCommand(alternate_time, jpos, jvel, jtorque, imu_acc, imu_ang_vel, rfoot_contact, lfoot_contact, torque_command);
+  pDyn_env->interface_->GetCommand(alternate_time, jpos, jvel, jtorque, imu_acc, imu_ang_vel, imu_inc, rfoot_contact, lfoot_contact, torque_command);
 
   for(int i(0); i<3; ++i){
     robot->vp_joint_[i]->m_State.m_rCommand = 0.0;
