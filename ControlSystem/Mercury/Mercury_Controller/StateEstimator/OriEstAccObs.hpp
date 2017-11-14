@@ -2,7 +2,7 @@
 #define ACCELERATION_OBSERVING_ESTIMATOR
 
 #include "OriEstimator.hpp"
-#define DIM_STATE_EST_ACC_OBS 3*5
+#define DIM_STATE_EST_ACC_OBS 3*4
 #define DIM_OBSER_EST_ACC_OBS 3*2
 
 class OriEstAccObs:public OriEstimator{
@@ -26,7 +26,7 @@ protected:
 
   Eigen::Matrix<double, DIM_STATE_EST_ACC_OBS, DIM_STATE_EST_ACC_OBS> Q_;
   Eigen::Matrix<double, DIM_OBSER_EST_ACC_OBS, DIM_OBSER_EST_ACC_OBS> R_;
-  // vel(3), acc(3), bias_omega(3), bias_acc(3), ...[orientation (3*)]
+  // vel(3), acc(3), bias_omega(3), ...[orientation (3*)]
   sejong::Vector x_;
   sejong::Vector x_pred_;
   //Observation

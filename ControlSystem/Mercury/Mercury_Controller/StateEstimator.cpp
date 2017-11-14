@@ -7,15 +7,15 @@
 // Orientation Estimators
 #include <StateEstimator/OriEstAccObs.hpp>
 #include <StateEstimator/BasicAccumulation.hpp>
-
-
+#include <StateEstimator/NoBias.hpp>
 
 StateEstimator::StateEstimator(){
   sp_ = StateProvider::GetStateProvider();
   robot_model_ = RobotModel::GetRobotModel();
 
-  ori_est_ = new BasicAccumulation();
+  // ori_est_ = new BasicAccumulation();
   // ori_est_ = new OriEstAccObs();
+  ori_est_ = new NoBias();
 }
 
 StateEstimator::~StateEstimator(){

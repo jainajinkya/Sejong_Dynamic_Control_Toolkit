@@ -1,11 +1,11 @@
-#include "OriEstAccObs.hpp"
+#include "NoBias.hpp"
 #include <Configuration.h>
 #include <Utils/utilities.hpp>
 #include <Utils/pseudo_inverse.hpp>
 
-OriEstAccObs::OriEstAccObs():OriEstimator(),
-                             x_(DIM_STATE_EST_ACC_OBS - 3),
-                             x_pred_(DIM_STATE_EST_ACC_OBS - 3)
+NoBias::NoBias():OriEstimator(),
+                             x_(DIM_STATE_NO_BIAS - 3),
+                             x_pred_(DIM_STATE_NO_BIAS - 3)
 {
   global_ori_.w() = 1.;
   global_ori_.x() = 0.;
@@ -28,18 +28,15 @@ OriEstAccObs::OriEstAccObs():OriEstimator(),
   // Velocity
   // Q_.block<3,3>(0,0) *= 1.0;
   // Q_.block<3,3>(3,3) *= 10.0;
-  Q_.block<3,3>(6,6) *= 0.1;
-  // Q_.block<6,6>(9,9) *= 1.0;
-
+  // Q_.block<3,3>(6,6) *= 0.1;
   // R_*=1000.0;
 }
 
 
-OriEstAccObs::~OriEstAccObs(){}
+NoBias::~NoBias(){}
 
-void OriEstAccObs::EstimatorInitialization(const std::vector<double> & acc,
+void NoBias::EstimatorInitialization(const std::vector<double> & acc,
                                          const std::vector<double> & ang_vel){
-  printf("here\n");
   global_ori_.w() = 1.;
   global_ori_.x() = 0.;
   global_ori_.y() = 0.;
@@ -48,19 +45,16 @@ void OriEstAccObs::EstimatorInitialization(const std::vector<double> & acc,
   for(int i(0); i<3; ++i)  global_ang_vel_[i] = ang_vel[i];
 }
 
-void OriEstAccObs::setSensorData(const std::vector<double> & acc,
+void NoBias::setSensorData(const std::vector<double> & acc,
                                  const std::vector<double> & acc_inc,
                                  const std::vector<double> & ang_vel){
-
-  sejong::Vect3 bias_w;
-  for(int i(0); i<3; ++i) bias_w[i] = x_[i + 6];
 
   // Orientation
   sejong::Quaternion delt_quat;
   sejong::Vect3 delta_th;
   double theta(0.);
   for(int i(0); i<3; ++i){
-    delta_th[i] = (ang_vel[i] + bias_w[i]) * SERVO_RATE;
+    delta_th[i] = (ang_vel[i]) * SERVO_RATE;
     theta += delta_th[i] * delta_th[i];
   }
 
@@ -74,14 +68,12 @@ void OriEstAccObs::setSensorData(const std::vector<double> & acc,
   for(int i(0); i<3; ++i){
     x_pred_[i] = x_[i] + x_[i+3] * SERVO_RATE; // Velocity
     x_pred_[i+3] = x_[i+3]; // Acceleration
-    x_pred_[i+6] = x_[i+6]; // bias omega
   }
 
   // Propagate Covariance
   Eigen::Matrix3d RotMtx(global_ori_);
   F_.setIdentity();
   F_.block<3,3>(0,3) = Eigen::Matrix3d::Identity() * SERVO_RATE;
-  F_.block<3,3>(6,9) = RotMtx * SERVO_RATE;
   // sejong::pretty_print((sejong::Matrix)F_, std::cout, "F");
   P_pred_ = F_ * P_ * F_.transpose() + Q_;
 
@@ -100,8 +92,8 @@ void OriEstAccObs::setSensorData(const std::vector<double> & acc,
     h_[i+3] = local_acc[i];
   }
   y_ = s_ - h_;
-  // sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
-  // sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
+  sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
+  sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
 
   Eigen::Matrix3d a_g_skew; a_g_skew.setZero();
   a_g_skew(0, 1) = -(h_[2] + 9.81);   a_g_skew(0, 2) = h_[1];
@@ -138,7 +130,7 @@ void OriEstAccObs::setSensorData(const std::vector<double> & acc,
   sejong::pretty_print(delta, std::cout, "delta");
   // sejong::pretty_print(ori_pred_, std::cout, "ori updated");
 
-  sejong::Matrix eye(DIM_STATE_EST_ACC_OBS, DIM_STATE_EST_ACC_OBS);
+  sejong::Matrix eye(DIM_STATE_NO_BIAS, DIM_STATE_NO_BIAS);
   eye.setIdentity();
   P_pred_ = (eye - K * H_) * P_pred_;
 
@@ -150,7 +142,7 @@ void OriEstAccObs::setSensorData(const std::vector<double> & acc,
 }
 
 
-void OriEstAccObs::_SetGlobalAngularVelocity(const std::vector<double> & ang_vel){
+void NoBias::_SetGlobalAngularVelocity(const std::vector<double> & ang_vel){
   sejong::Quaternion ang_quat;
   ang_quat.w() = 0.;
   ang_quat.x() = ang_vel[0];
