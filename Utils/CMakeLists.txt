@@ -12,3 +12,6 @@ endif()
 if(CMAKE_THREAD_LIBS_INIT)
   target_link_libraries(SJutils "${CMAKE_THREAD_LIBS_INIT}")
 endif()
+
+install(TARGETS SJutils DESTINATION "${INSTALL_LIB_DIR}")
+install(FILES ${cppheaders} DESTINATION "${INSTALL_INCLUDE_DIR}/Utils")

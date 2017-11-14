@@ -1,6 +1,9 @@
 #include "iLQR.hpp"
 #include <chrono>
 
+//#define ITER_OUTPUT_PRINT
+
+
 iLQR::iLQR(int STATE_SIZE_in, int DIM_u_in, int N_horizon_in, int ilqr_iters_in){
   // Set Parameters
   STATE_SIZE = STATE_SIZE_in;
@@ -354,8 +357,10 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
     // Step 4: Accept or Discard Changes      
 //    std::cout << "iteration, cost, reduction, expected, gradient, log10(lambda)" << std::endl;
     if (forward_pass_done){
-      std::cout << "iteration: " << ii << "  cost:" << old_Jcost << "  reduction:" << dcost << "  expected" << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;     
-    
+      #ifdef ITER_OUTPUT_PRINT
+        std::cout << "iteration: " << ii << "  cost:" << old_Jcost << "  reduction:" << dcost << "  expected" << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;     
+      #endif
+
       // Decrease Lambda
       dlambda = std::min(dlambda/lambda_factor, 1.0/lambda_factor );
       if (lambda > lambda_min){
@@ -369,9 +374,10 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       X_seq = X_seq_tmp;      
       flag_change = 1.0;
 
-      sejong::pretty_print(U_seq[0], std::cout, " U_seq[0]");
-      sejong::pretty_print(X_seq.back(), std::cout, " xF");
-
+      #ifdef ITER_OUTPUT_PRINT
+        sejong::pretty_print(U_seq[0], std::cout, " U_seq[0]");
+        sejong::pretty_print(X_seq.back(), std::cout, " xF");
+      #endif
 
       if (dcost < tolFun){
         //std::cout << "Success! cost change < tolFun" << std::endl;
@@ -383,9 +389,11 @@ void iLQR::compute_ilqr(const sejong::Vector & x_state_start,
       dlambda = std::max(dlambda * lambda_factor, lambda_factor);
       lambda  = std::max(lambda_min, dlambda * lambda_factor);
 
-      std::cout << "iteration: " << ii << "  NO_STEP " << "  reduction: " << dcost << "  expected: " << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;  
-      sejong::pretty_print(U_seq[0], std::cout, "U_seq[0]");
-      sejong::pretty_print(X_seq.back(), std::cout, " xF");
+      #ifdef ITER_OUTPUT_PRINT
+        std::cout << "iteration: " << ii << "  NO_STEP " << "  reduction: " << dcost << "  expected: " << expected << "  gradient:" << g_norm << "  log10(lambda)" << log10(lambda) << std::endl;  
+        sejong::pretty_print(U_seq[0], std::cout, "U_seq[0]");
+        sejong::pretty_print(X_seq.back(), std::cout, " xF");
+      #endif
 
       if (lambda > lambda_max){
         //std::cout << "EXIT: lambda > lambda_max" << std::endl;

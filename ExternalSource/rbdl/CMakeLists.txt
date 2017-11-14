@@ -22,3 +22,6 @@ CONFIGURE_FILE( ${PROJECT_SOURCE_DIR}/ExternalSource/rbdl/rbdl_config.h.cmake ${
 
 add_library(SJrbdl SHARED ${sources} ${headers})
 target_link_libraries(SJrbdl SJurdf)
+
+install(TARGETS SJrbdl DESTINATION "${INSTALL_LIB_DIR}")
+install(FILES ${headers} DESTINATION "${INSTALL_INCLUDE_DIR}/rbdl")
