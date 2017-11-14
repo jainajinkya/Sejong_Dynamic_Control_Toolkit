@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <Utils/utilities.hpp>
 #include <Utils/DataManager.hpp>
+#include <Utils/pseudo_inverse.hpp>
 #include <Walker2D_Model/Walker2D_Model.hpp>
 #include "Optimizer/lcp/MobyLCP.h"
 #include <chrono>
@@ -56,28 +57,6 @@ DDP_ctrl::DDP_ctrl(): Walker2D_Controller(),
   }  
 
   _prep_QP_U_f();
-  // Prepare Optimization Dimensions
-  dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
-  dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
-  dim_ieq_cstr = NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
-
-  /*
-  Equality Constraints
-   Sv (Aq_des + b + g) + Sv (-Jc^T Fr) = 0 // Vector has NUM_VIRTUAL rows
-
-  Torque Constraints
-   Sa (Aq_des + b + g) + Sa (-Jc^T Fr) - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
-  -Sa (Aq_des + b + g) + Sa (-Jc^T Fr) + tau_max >= 0 // Vector has NUM_ACT_JOINT rows   
-
-  Reaction Force Constraints
-  -Fr + Fr_max >= 0 // Vector has 4 rows  = dim_opt
-
-  Friction Contact Constraints
-  U_f * Fr >= 0 // Vector has 6 rows = U_f_.rows()
-
-
-  */ 
-
 
 
 
@@ -393,7 +372,27 @@ void DDP_ctrl::_prep_QP_U_f(){
 
 
 void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
+  // Prepare Optimization Dimensions
+  dim_opt = 4;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
+  dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
+  dim_ieq_cstr = NUM_ACT_JOINT*2 + dim_opt + U_f_.rows(); // Based on the constraints below
 
+  /*
+  Equality Constraints
+   Sv (Aq_des + b + g) + Sv (-Jc^T Fr) = 0 // Vector has NUM_VIRTUAL rows
+
+  Torque Constraints
+   Sa (Aq_des + b + g) + Sa (-Jc^T Fr) - tau_min >= 0 // Vector has NUM_ACT_JOINT rows
+  -Sa (Aq_des + b + g) + Sa (-Jc^T Fr) + tau_max >= 0 // Vector has NUM_ACT_JOINT rows   
+
+  Reaction Force Constraints
+  -Fr + Fr_max >= 0 // Vector has 4 rows  = dim_opt
+
+  Friction Contact Constraints
+  U_f * Fr >= 0 // Vector has 6 rows = U_f_.rows()
+
+
+  */ 
   G.resize(dim_opt, dim_opt);
   g0.resize(dim_opt);
   CE.resize(dim_opt, dim_eq_cstr);
@@ -523,8 +522,8 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
 
 }
 
-void DDP_ctrl::_solveQP_for_FR(sejong::Vector & Fr_result){
-
+void DDP_ctrl::_solveQP_for_FR(const sejong::Vector & x_state, sejong::Vector & Fr_result){
+  _prep_QP_FR_sol(x_state);
   // Solve Quadratic Program
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
 
@@ -554,6 +553,182 @@ void DDP_ctrl::_solveQP_for_FR(sejong::Vector & Fr_result){
 
   Fr_result = result;
 }
+
+
+void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::Vector & Fr){
+  // Prepare Optimization Dimensions
+  dim_opt = 4;  // Number of Task Accelerations: xddot = [xddot_lf, zddot_lf, xddot_rf, zddot_rf]
+  dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
+  dim_ieq_cstr = 2*NUM_ACT_JOINT; // Torque Limit Constraints
+
+  // Virtual Joint Constraint:
+  // (Sv*A*B) + Sv*(A*c + b + g - J_c^T Fr) = 0
+
+  // Torque Limit Constraints
+  //  (Sa*A*B) + Sa*(A*c + b + g - J_c^T Fr) - tau_min >= 0
+  // -(Sa*A*B) + -Sa*(A*c + b + g - J_c^T Fr) + tau_max >= 0
+
+  G.resize(dim_opt, dim_opt);
+  g0.resize(dim_opt);
+  CE.resize(dim_opt, dim_eq_cstr);
+  ce0.resize(dim_eq_cstr);
+  CI.resize(dim_opt, dim_ieq_cstr);
+  ci0.resize(dim_ieq_cstr);
+
+  // Set Values to Zero
+  for(int i(0); i<dim_opt; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      G[i][j] = 0.0;
+    }
+    for(int j(0); j<dim_eq_cstr; ++j){
+      CE[i][j] = 0.0;
+    }
+    for(int j(0); j<dim_ieq_cstr; ++j){
+      CI[i][j] = 0.0;
+    }
+    g0[i] = 0.0;
+  }
+  for(int i(0); i<dim_ieq_cstr; ++i){
+    ci0[0] = 0.0;
+  }
+
+  // Prepare state variables
+  sejong::Vector q_int = x_state.head(NUM_QDOT);  
+  sejong::Vector qdot_int = x_state.tail(NUM_QDOT);
+  // Get Contact Jacobian
+  // Task 1 Left and Right Foot Accelerations
+  sejong::Matrix J_lf, J_rf;  
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_LEFT_FOOT, J_lf);
+  internal_model->getFullJacobian(q_int, SJLinkID::LK_RIGHT_FOOT, J_rf);
+  // Stack The Jacobians
+  sejong::Matrix J_c(dim_opt, NUM_QDOT);
+  J_c.block(0,0, 2, NUM_QDOT) = J_lf.block(0, 0, 2, NUM_QDOT);
+  J_c.block(2,0, 2, NUM_QDOT) = J_rf.block(0, 0, 2, NUM_QDOT);
+
+
+  // Update Internal Model
+  _update_internal_model(x_state);
+
+  // Get B and c Matrices
+  sejong::Matrix B;
+  sejong::Vector c;
+  _get_B_c(x_state, B, c);
+
+  // Prepare tot_tau_mtx -------------------------------------------------------
+  tot_tau_mtx.resize(NUM_QDOT, dim_opt);
+  tot_tau_mtx =  A_int*B;
+
+  // Prepare tot_tau_vec -------------------------------------------------------
+  tot_tau_vec.resize(NUM_QDOT);
+  tot_tau_vec = A_int * c + coriolis_int + grav_int;
+ 
+  sejong::Matrix Sv_tot_tau_mtx = Sv*tot_tau_mtx;
+  sejong::Matrix Sa_tot_tau_mtx = Sa*tot_tau_mtx;  
+  sejong::Vector Sv_tot_tau_vec = Sv*tot_tau_vec;
+  sejong::Vector Sa_tot_tau_vec = Sa*tot_tau_vec;    
+
+  // Set Constraints using Eigen
+  sejong::Matrix sj_G(dim_opt, dim_opt);
+  sejong::Matrix sj_CE(dim_eq_cstr, dim_opt);
+  sejong::Vector sj_ce0(dim_eq_cstr);
+  sejong::Matrix sj_CI(dim_ieq_cstr, dim_opt);
+  sejong::Vector sj_ci0(dim_ieq_cstr);
+  sj_CE.setZero();
+  sj_ce0.setZero();
+  sj_CI.setZero();
+  sj_ci0.setZero();
+
+
+  // Virtual Joints Constraint
+  // A*B - J_c ^T Fr = 0
+  // (Sv*A*B) + Sv*(A*c + b + g - J_c^T Fr) = 0
+  sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
+  sj_ce0.head(NUM_VIRTUAL) = Sv*(J_c.transpose()*Fr);
+
+  // Torque Limits
+  //    tau_min
+  //  (Sa*A*B) + Sa*(A*c + b + g) - tau_min >= 0
+  sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
+  sj_ci0.segment(0, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
+
+
+  //    tau_max
+  //  -(Sa*A*B) + -Sa*(A*c + b + g) + tau_max >= 0
+  sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
+  sj_ci0.segment(NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
+
+
+
+  // Set Cost Matrix
+  sj_G = sejong::Matrix::Identity(dim_opt, dim_opt);
+
+
+  // Set GoldFarb Equality Constraint
+  for(int i(0); i< dim_eq_cstr; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      CE[j][i] = sj_CE(i,j);
+    }
+    ce0[i] = sj_ce0[i];
+  }  
+
+  // Set GoldFarb Inequality Constraint
+  for(int i(0); i< dim_ieq_cstr; ++i){
+    for(int j(0); j<dim_opt; ++j){
+      CI[j][i] = sj_CI(i,j);
+    }
+    ci0[i] = sj_ci0[i];
+  }
+
+  // Set GoldFarb G Matrix
+  for(int i(0); i < dim_opt; ++i){
+    G[i][i] = sj_G(i, i);
+  }
+
+
+  // Pinv provides the same solution
+  Matrix AB_tmp_inv;
+  sejong::pseudoInverse(Sv*(A_int*B), 0.0001, AB_tmp_inv, 0); 
+  sejong::Vector xddot_test = AB_tmp_inv*(Sv*(-J_c.transpose()*Fr));
+  sejong::pretty_print(xddot_test, std::cout, "Pseudo Inverse xddot solution");
+
+
+}
+
+void DDP_ctrl::_solveQP_for_xddot(const sejong::Vector & x_state, const sejong::Vector & Fr, sejong::Vector & xddot_result){
+  _prep_QP_xddot_sol(x_state, Fr);
+  // Solve Quadratic Program
+  double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
+
+//  std::cout << "f: " << f << std::endl;
+  if(f > 1.e5){
+//    std::cout << "f: " << f << std::endl;
+//    std::cout << "x: " << z_out << std::endl;
+//    std::cout << "cmd: "<<cmd<<std::endl;
+
+/*    printf("G:\n");
+    std::cout<<G<<std::endl;
+    printf("g0:\n");
+    std::cout<<g0<<std::endl;
+
+    printf("CE:\n");
+    std::cout<<CE<<std::endl;
+    printf("ce0:\n");
+    std::cout<<ce0<<std::endl;
+
+    printf("CI:\n");
+    std::cout<<CI<<std::endl;
+    printf("ci0:\n");
+    std::cout<<ci0<<std::endl;*/
+
+  }
+  sejong::Vector result(dim_opt);
+  for(int i(0); i<dim_opt; ++i) result[i] = z_out[i];
+
+  xddot_result = result;
+
+}
+
+
 
 
 void DDP_ctrl::_get_WBC_command(const sejong::Vector & x_state, 
@@ -619,8 +794,16 @@ void DDP_ctrl::ComputeTorqueCommand(sejong::Vector & gamma){
     // ----- END TIMER
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-    std::cout << "  QP Control Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
+//    std::cout << "  QP Control Loop took " << time_span1.count()*1000.0 << "ms"<<std::endl;  
   #endif
+
+    std::cout << " QP took " << time_span1.count()*1000.0 << "ms";  
+    std::cout << " Fr [Fx_lf, Fz_lf, Fx_rf, Fz_rf] " << Fr_result_[0] << " "
+                                                     << Fr_result_[1] << " "
+                                                     << Fr_result_[2] << " "
+                                                     << Fr_result_[3] << " " << std::endl;      
+
+//    sejong::pretty_print(Fr_result_, std::cout, "   Fr [Fx_lf, Fz_lf, Fx_rf, Fz_rf]");
 
   ++count_command_;
 
@@ -657,16 +840,24 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
 
 
-  sejong::Vector Fr_result(dim_opt);
-  _prep_QP_FR_sol(x_state);
-  _solveQP_for_FR(Fr_result);
+  // QP seed solution
+  sejong::Vector Fr_result;
+  sejong::Vector xddot_result;
 
-  //sejong::pretty_print(Fr_result, std::cout, "Fr_result");
+  // Solve for Reaction Force
+  _solveQP_for_FR(x_state, Fr_result);
+  // sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
+  
+  // Solve for Equivalent Task Acceleration
+  _solveQP_for_xddot(x_state, Fr_result, xddot_result);
+  Fr_result_ = Fr_result; // For print out
 
-  sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
+  // The Total Torque to the System
+  sejong::pretty_print(xddot_result, std::cout, " Equivalent: xddot_result");
+  sejong::Vector tot_tau = tot_tau_mtx*xddot_result + tot_tau_vec;
+ 
+  // Only Use the actuated joints
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
-
-  //gamma = qddot.tail(NUM_ACT_JOINT);
   gamma = cmd;
 
   
