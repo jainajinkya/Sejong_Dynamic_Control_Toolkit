@@ -690,10 +690,10 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
   Matrix AB_tmp_inv;
 //  sejong::pseudoInverse(Jtmp, 0.00000001, Jtmp_inv, 0);
   sejong::pseudoInverse(A_int*B, 0.0001, AB_tmp_inv, 0); 
-  sejong::pretty_print(AB_tmp_inv, std::cout, "AB inv");
+//  sejong::pretty_print(AB_tmp_inv, std::cout, "AB inv");
 
   sejong::Vector xddot_test = AB_tmp_inv*(-J_c.transpose()*Fr);
-  sejong::pretty_print(xddot_test, std::cout, "xddot_test");
+//  sejong::pretty_print(xddot_test, std::cout, "xddot_test");
 
 }
 
