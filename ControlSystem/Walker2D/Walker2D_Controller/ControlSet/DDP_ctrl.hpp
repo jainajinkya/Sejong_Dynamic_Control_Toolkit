@@ -61,6 +61,8 @@ protected:
   void _prep_QP_FR_sol(const sejong::Vector & x_state);  
   void _solveQP_for_FR(sejong::Vector & Fr_result);
 
+  void _prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::Vector & Fr);  
+  void _solveQP_for_xddot(sejong::Vector & xddot_result);
 
   iLQR* ilqr_;
   // Get Internal Model of the robot for DDP
@@ -90,6 +92,7 @@ protected:
   // Quad Program
   sejong::Matrix tot_tau_mtx;
   sejong::Vector tot_tau_vec;  
+  sejong::Vector Fr_result_;   
   int dim_opt;  // Number of Reaction Forces: Fr = [Fx1, Fz1, Fx2, Fz2]
   int dim_eq_cstr;  // Number of Equality Constraints.
   int dim_ieq_cstr;
