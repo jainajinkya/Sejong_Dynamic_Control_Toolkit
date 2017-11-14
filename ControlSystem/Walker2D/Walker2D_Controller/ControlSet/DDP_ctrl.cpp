@@ -558,7 +558,7 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
   // Prepare Optimization Dimensions
   dim_opt = 4;  // Number of Task Accelerations: xddot = [xddot_lf, zddot_lf, xddot_rf, zddot_rf]
   dim_eq_cstr = NUM_VIRTUAL;  // Number of Equality Constraints.
-  dim_ieq_cstr = NUM_ACT_JOINT; // Torque Limit Constraints
+  dim_ieq_cstr = 2*NUM_ACT_JOINT; // Torque Limit Constraints
 
   // Virtual Joint Constraint:
   // (Sv*A*B) + Sv*(A*c + b + g - J_c^T Fr) = 0
@@ -621,8 +621,6 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
   tot_tau_vec.resize(NUM_QDOT);
   tot_tau_vec = A_int * c + coriolis_int + grav_int - J_c.transpose()*Fr;
  
-
-
   sejong::Matrix Sv_tot_tau_mtx = Sv*tot_tau_mtx;
   sejong::Matrix Sa_tot_tau_mtx = Sa*tot_tau_mtx;  
   sejong::Vector Sv_tot_tau_vec = Sv*tot_tau_vec;
@@ -641,23 +639,30 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
 
 
   // Virtual Joints Constraint
-  //Sv (Aq_des + b + g) + Sv (-Jc^T Fr) // Vector has NUM_VIRTUAL rows
+  // (Sv*A*B) + Sv*(A*c + b + g - J_c^T Fr) = 0
   sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
   sj_ce0.head(NUM_VIRTUAL) = Sv*tot_tau_vec;
 
+
+
   // Torque Limits
   //    tau_min
-  //    Sa (Aq_des + b + g) + Sa (-Jc^T Fr) - tau_min >= 0
+  //  (Sa*A*B) + Sa*(A*c + b + g - J_c^T Fr) - tau_min >= 0
   sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
   sj_ci0.segment(0, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
 
+
+
   //    tau_max
-  //    -Sa (Aq_des + b + g) - Sa (-Jc^T Fr) + tau_max >= 0
+  //  -(Sa*A*B) + -Sa*(A*c + b + g - J_c^T Fr) + tau_max >= 0
   sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
   sj_ci0.segment(NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
 
+
+
   // Set Cost Matrix
   sj_G = sejong::Matrix::Identity(dim_opt, dim_opt);
+
 
   // Set GoldFarb Equality Constraint
   for(int i(0); i< dim_eq_cstr; ++i){
@@ -806,11 +811,14 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   //sejong::pretty_print(Fr_result, std::cout, "Fr_result");
 
   Fr_result_ = Fr_result; 
-
   sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
 
-  //gamma = qddot.tail(NUM_ACT_JOINT);
+
+  _prep_QP_xddot_sol(x_state, Fr_result);
+
+
+
   gamma = cmd;
 
   
