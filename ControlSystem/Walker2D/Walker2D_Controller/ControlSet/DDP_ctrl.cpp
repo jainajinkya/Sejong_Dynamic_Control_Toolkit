@@ -845,18 +845,18 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   _prep_QP_FR_sol(x_state);
   _solveQP_for_FR(Fr_result);
 
-  //sejong::pretty_print(Fr_result, std::cout, "Fr_result");
-
   Fr_result_ = Fr_result; 
-  sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
+/*  sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
-
+*/
 
   sejong::Vector xddot_result(dim_opt);
   _prep_QP_xddot_sol(x_state, Fr_result);
   _solveQP_for_xddot(xddot_result);
   sejong::pretty_print(xddot_result, std::cout, "xddot_result");
 
+  sejong::Vector tot_tau = tot_tau_mtx*xddot_result + tot_tau_vec;
+  sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
 
 
 
