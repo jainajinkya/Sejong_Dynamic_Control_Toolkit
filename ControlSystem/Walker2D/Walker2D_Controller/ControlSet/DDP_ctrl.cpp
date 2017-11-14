@@ -620,7 +620,7 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
 
   // Prepare tot_tau_vec -------------------------------------------------------
   tot_tau_vec.resize(NUM_QDOT);
-  tot_tau_vec = A_int * c + coriolis_int + grav_int - J_c.transpose()*Fr;
+  tot_tau_vec = A_int * c + coriolis_int + grav_int;
  
   sejong::Matrix Sv_tot_tau_mtx = Sv*tot_tau_mtx;
   sejong::Matrix Sa_tot_tau_mtx = Sa*tot_tau_mtx;  
@@ -640,22 +640,20 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
 
 
   // Virtual Joints Constraint
+  // A*B - J_c ^T Fr = 0
   // (Sv*A*B) + Sv*(A*c + b + g - J_c^T Fr) = 0
   sj_CE.block(0,0, NUM_VIRTUAL, dim_opt) = Sv_tot_tau_mtx;
-  sj_ce0.head(NUM_VIRTUAL) = Sv*tot_tau_vec;
-
-
+  sj_ce0.head(NUM_VIRTUAL) = Sv*(J_c.transpose()*Fr);
 
   // Torque Limits
   //    tau_min
-  //  (Sa*A*B) + Sa*(A*c + b + g - J_c^T Fr) - tau_min >= 0
+  //  (Sa*A*B) + Sa*(A*c + b + g) - tau_min >= 0
   sj_CI.block(0,0, NUM_ACT_JOINT, dim_opt) = Sa_tot_tau_mtx;
   sj_ci0.segment(0, NUM_ACT_JOINT)         = Sa_tot_tau_vec - tau_min;
 
 
-
   //    tau_max
-  //  -(Sa*A*B) + -Sa*(A*c + b + g - J_c^T Fr) + tau_max >= 0
+  //  -(Sa*A*B) + -Sa*(A*c + b + g) + tau_max >= 0
   sj_CI.block(NUM_ACT_JOINT ,0, NUM_ACT_JOINT, dim_opt) = -Sa_tot_tau_mtx;
   sj_ci0.segment(NUM_ACT_JOINT, NUM_ACT_JOINT)          = -Sa_tot_tau_vec + tau_max;
 
@@ -689,11 +687,12 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
 
   Matrix AB_tmp_inv;
 //  sejong::pseudoInverse(Jtmp, 0.00000001, Jtmp_inv, 0);
-  sejong::pseudoInverse(A_int*B, 0.0001, AB_tmp_inv, 0); 
+  sejong::pseudoInverse(Sv*(A_int*B), 0.0001, AB_tmp_inv, 0); 
 //  sejong::pretty_print(AB_tmp_inv, std::cout, "AB inv");
 
-  sejong::Vector xddot_test = AB_tmp_inv*(-J_c.transpose()*Fr);
-//  sejong::pretty_print(xddot_test, std::cout, "xddot_test");
+  sejong::Vector xddot_test = AB_tmp_inv*(Sv*(-J_c.transpose()*Fr));
+  sejong::pretty_print(xddot_test, std::cout, "xddot_test");
+
 
 }
 
@@ -701,9 +700,10 @@ void DDP_ctrl::_solveQP_for_xddot(sejong::Vector & xddot_result){
   // Solve Quadratic Program
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
 
+//  std::cout << "f: " << f << std::endl;
   if(f > 1.e5){
 //    std::cout << "f: " << f << std::endl;
-    std::cout << "x: " << z_out << std::endl;
+//    std::cout << "x: " << z_out << std::endl;
 //    std::cout << "cmd: "<<cmd<<std::endl;
 
 /*    printf("G:\n");
@@ -855,7 +855,7 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   sejong::Vector xddot_result(dim_opt);
   _prep_QP_xddot_sol(x_state, Fr_result);
   _solveQP_for_xddot(xddot_result);
-
+  sejong::pretty_print(xddot_result, std::cout, "xddot_result");
 
 
 
