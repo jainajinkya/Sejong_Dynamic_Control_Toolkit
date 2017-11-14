@@ -7,9 +7,9 @@
 
 #define MEASURE_TIME 0
 
-#define _DEF_SENSOR_DATA_ double time, const std::vector<double> & jpos, const std::vector<double> & jvel, const std::vector<double> & torque, const std::vector<double> & imu_acc, const std::vector<double> & imu_ang_vel, bool rfoot_contact, bool lfoot_contact
+#define _DEF_SENSOR_DATA_ double time, const std::vector<double> & jpos, const std::vector<double> & jvel, const std::vector<double> & torque, const std::vector<double> & imu_acc, const std::vector<double> & imu_ang_vel, const std::vector<double> & imu_inc, bool rfoot_contact, bool lfoot_contact
 
-#define _VAR_SENSOR_DATA_ time, jpos, jvel, torque, imu_acc, imu_ang_vel, rfoot_contact, lfoot_contact
+#define _VAR_SENSOR_DATA_ time, jpos, jvel, torque, imu_acc, imu_ang_vel, imu_inc, rfoot_contact, lfoot_contact
 
 #define CONFIG_PATH THIS_COM"ControlSystem/Mercury/MercuryTestConfig/"
 
