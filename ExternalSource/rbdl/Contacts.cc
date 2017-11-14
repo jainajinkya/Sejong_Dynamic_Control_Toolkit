@@ -988,5 +988,6 @@ void ForwardDynamicsContactsKokkevis (
 
   LOG << "QDDot after applying f_ext: " << QDDot.transpose() << std::endl;
 }
+}
 
-} /* namespace RigidBodyDynamics */
+/* namespace RigidBodyDynamics */

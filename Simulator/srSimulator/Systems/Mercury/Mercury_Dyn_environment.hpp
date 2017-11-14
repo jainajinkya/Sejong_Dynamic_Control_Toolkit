@@ -26,6 +26,8 @@ public:
   srSpace*	m_Space;
   Ground*	m_ground;
 
+  void getIMU_Data(std::vector<double> & imu_acc,
+                   std::vector<double> & imu_ang_vel);
 private:
   void _ParamterSetup();
   int num_substep_rendering_;

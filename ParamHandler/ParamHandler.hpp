@@ -1,7 +1,7 @@
 #ifndef PARAMETER_HANDLER
 #define PARAMETER_HANDLER
 
-#include <yaml_cpp/include/yaml-cpp/yaml.h>
+#include <yaml-cpp/yaml.h>
 #include <string>
 #include <vector>
 

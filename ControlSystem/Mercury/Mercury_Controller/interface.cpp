@@ -28,8 +28,8 @@ interface::interface():
   DataManager::GetDataManager()->RegisterData(&torque_command_, SJ_VEC, "command", NUM_ACT_JOINT);
 
   // TEST SETUP
-  test_ = new WalkingTest();
-  // test_ = new BodyCtrlTest();
+  // test_ = new WalkingTest();
+  test_ = new BodyCtrlTest();
   // test_ = new JointCtrlTest();
 
   printf("[interface] Contruct\n");
@@ -77,6 +77,12 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
   ++count_;
   // When there is sensed time
   StateProvider::GetStateProvider()->curr_time_ = time;
+
+  if(count_%100== 1){
+    sejong::pretty_print(global_ori_, std::cout, "sim global quat");
+    sejong::pretty_print(StateProvider::GetStateProvider()->body_ori_, std::cout, "estimated_quat");
+    printf("\n");
+  }
 }
 void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
   reaction_force.resize(2);

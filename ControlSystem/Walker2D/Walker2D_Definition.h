@@ -6,6 +6,7 @@
 #include <vector>
 
 #define MEASURE_TIME 0
+#define CONFIG_PATH THIS_COM""
 
 #define _DEF_SENSOR_DATA_ double time, const std::vector<double> & jpos, const std::vector<double> & jvel, const std::vector<double> & torque, const std::vector<double> & body_pos, const std::vector<double> & body_vel, const double & body_ori, const double & body_ang_vel
 

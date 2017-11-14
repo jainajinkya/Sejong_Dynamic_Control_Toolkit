@@ -8,6 +8,12 @@ project(SDC_Toolkit)
 #------------------------------------------------------------------------
 #     Build Setup
 #------------------------------------------------------------------------
+set(INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib )
+set(INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin )
+set(INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME})
+message(${INSTALL_LIB_DIR})
+message(${INSTALL_INCLUDE_DIR})
+
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
 
@@ -54,14 +60,15 @@ add_subdirectory (Optimizer)
 add_subdirectory (WBC/WBDC)
 add_subdirectory (ControlSystem/${CTRL_SYS})
 # add_subdirectory (MachineLearning_Package)
-# add_subdirectory (Planner)
+add_subdirectory (Planner)
 add_subdirectory(Tests) # For unit testing with googletest
 
 #------------------------------------------------------------------------
 # Configuration
 #------------------------------------------------------------------------
 SET (THIS_COM "${PROJECT_SOURCE_DIR}/" )
-SET (DEFINITION_FILE "ControlSystem/${CTRL_SYS}/${CTRL_SYS}_Definition.h")
+# SET (DEFINITION_FILE "ControlSystem/${CTRL_SYS}/${CTRL_SYS}_Definition.h")
+SET (DEFINITION_FILE "${CTRL_SYS}_Definition.h")
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/config.h.cmake ${PROJECT_SOURCE_DIR}/Configuration.h)
 
 
@@ -80,3 +87,4 @@ message ("--------------------------------------------------------------")
 message ("")
 
 
+install(FILES ${PROJECT_SOURCE_DIR}/Configuration.h DESTINATION "${INSTALL_INCLUDE_DIR}")

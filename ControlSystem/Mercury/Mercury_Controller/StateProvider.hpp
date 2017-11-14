@@ -15,6 +15,7 @@ public:
   ~StateProvider(){}
 
   sejong::Quaternion body_ori_;
+  sejong::Vect3 body_ang_vel_;
   // Important!!!!!!!!
   int stance_foot_;
 

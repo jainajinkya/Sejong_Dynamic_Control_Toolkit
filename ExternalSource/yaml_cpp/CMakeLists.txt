@@ -1,4 +1,5 @@
 #message("YAML-CPP")
+set(GCC_EXTRA_OPTIONS "${GCC_EXTRA_OPTIONS} -fPIC")
 include_directories("${PROJECT_SOURCE_DIR}/ExternalSource/yaml_cpp/include")
 if(POLICY CMP0012)
 	cmake_policy(SET CMP0012 OLD)
@@ -269,7 +270,7 @@ set(_INSTALL_DESTINATIONS
 ###
 ### Library
 ###
-add_library(yaml-cpp ${library_sources})
+add_library(yaml-cpp SHARED ${library_sources})
 set_target_properties(yaml-cpp PROPERTIES
   COMPILE_FLAGS "${yaml_c_flags} ${yaml_cxx_flags}"
 )
@@ -299,9 +300,12 @@ if(MSVC)
 endif()
 
 install(TARGETS yaml-cpp EXPORT yaml-cpp-targets ${_INSTALL_DESTINATIONS})
+# install(TARGETS SJrbdl DESTINATION "${INSTALL_LIB_DIR}")
+
 install(
 	DIRECTORY ${header_directory}
-	DESTINATION ${INCLUDE_INSTALL_DIR}
+	# DESTINATION ${INCLUDE_INSTALL_DIR}
+  DESTINATION "${INSTALL_INCLUDE_DIR}/yaml_cpp"
 	FILES_MATCHING PATTERN "*.h"
 )
 
