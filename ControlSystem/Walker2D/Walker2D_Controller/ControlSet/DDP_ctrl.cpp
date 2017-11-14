@@ -684,13 +684,13 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
     G[i][i] = sj_G(i, i);
   }
 
-/*
+
   // Pinv provides the same solution
   Matrix AB_tmp_inv;
   sejong::pseudoInverse(Sv*(A_int*B), 0.0001, AB_tmp_inv, 0); 
   sejong::Vector xddot_test = AB_tmp_inv*(Sv*(-J_c.transpose()*Fr));
-  sejong::pretty_print(xddot_test, std::cout, "xddot_test");
-*/
+  sejong::pretty_print(xddot_test, std::cout, "Pseudo Inverse xddot solution");
+
 
 }
 
@@ -853,7 +853,7 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   Fr_result_ = Fr_result; // For print out
 
   // The Total Torque to the System
-  //sejong::pretty_print(xddot_result, std::cout, " Equivalent: xddot_result");
+  sejong::pretty_print(xddot_result, std::cout, " Equivalent: xddot_result");
   sejong::Vector tot_tau = tot_tau_mtx*xddot_result + tot_tau_vec;
  
   // Only Use the actuated joints
