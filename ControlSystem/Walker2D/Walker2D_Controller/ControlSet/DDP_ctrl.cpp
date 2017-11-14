@@ -689,6 +689,34 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
 }
 
 void DDP_ctrl::_solveQP_for_xddot(sejong::Vector & xddot_result){
+  // Solve Quadratic Program
+  double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
+
+  if(f > 1.e5){
+//    std::cout << "f: " << f << std::endl;
+    std::cout << "x: " << z_out << std::endl;
+//    std::cout << "cmd: "<<cmd<<std::endl;
+
+/*    printf("G:\n");
+    std::cout<<G<<std::endl;
+    printf("g0:\n");
+    std::cout<<g0<<std::endl;
+
+    printf("CE:\n");
+    std::cout<<CE<<std::endl;
+    printf("ce0:\n");
+    std::cout<<ce0<<std::endl;
+
+    printf("CI:\n");
+    std::cout<<CI<<std::endl;
+    printf("ci0:\n");
+    std::cout<<ci0<<std::endl;*/
+
+  }
+  sejong::Vector result(dim_opt);
+  for(int i(0); i<dim_opt; ++i) result[i] = z_out[i];
+
+  xddot_result = result;
 
 }
 
@@ -815,8 +843,9 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
 
 
+  sejong::Vector xddot_result(dim_opt);
   _prep_QP_xddot_sol(x_state, Fr_result);
-
+  _solveQP_for_xddot(xddot_result);
 
 
   gamma = cmd;
