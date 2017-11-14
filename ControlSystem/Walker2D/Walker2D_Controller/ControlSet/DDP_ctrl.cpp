@@ -522,8 +522,8 @@ void DDP_ctrl::_prep_QP_FR_sol(const sejong::Vector & x_state){
 
 }
 
-void DDP_ctrl::_solveQP_for_FR(sejong::Vector & Fr_result){
-
+void DDP_ctrl::_solveQP_for_FR(const sejong::Vector & x_state, sejong::Vector & Fr_result){
+  _prep_QP_FR_sol(x_state);
   // Solve Quadratic Program
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
 
@@ -684,19 +684,18 @@ void DDP_ctrl::_prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::
     G[i][i] = sj_G(i, i);
   }
 
-
+/*
+  // Pinv provides the same solution
   Matrix AB_tmp_inv;
-//  sejong::pseudoInverse(Jtmp, 0.00000001, Jtmp_inv, 0);
   sejong::pseudoInverse(Sv*(A_int*B), 0.0001, AB_tmp_inv, 0); 
-//  sejong::pretty_print(AB_tmp_inv, std::cout, "AB inv");
-
   sejong::Vector xddot_test = AB_tmp_inv*(Sv*(-J_c.transpose()*Fr));
   sejong::pretty_print(xddot_test, std::cout, "xddot_test");
-
+*/
 
 }
 
-void DDP_ctrl::_solveQP_for_xddot(sejong::Vector & xddot_result){
+void DDP_ctrl::_solveQP_for_xddot(const sejong::Vector & x_state, const sejong::Vector & Fr, sejong::Vector & xddot_result){
+  _prep_QP_xddot_sol(x_state, Fr);
   // Solve Quadratic Program
   double f = solve_quadprog(G, g0, CE, ce0, CI, ci0, z_out);  
 
@@ -841,26 +840,24 @@ void DDP_ctrl::_QP_ctrl(sejong::Vector & gamma){
   x_state.tail(NUM_QDOT) = sp_->Qdot_;
 
 
-  sejong::Vector Fr_result(dim_opt);
-  _prep_QP_FR_sol(x_state);
-  _solveQP_for_FR(Fr_result);
+  // QP seed solution
+  sejong::Vector Fr_result;
+  sejong::Vector xddot_result;
 
-  Fr_result_ = Fr_result; 
-/*  sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
-  sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
-*/
+  // Solve for Reaction Force
+  _solveQP_for_FR(x_state, Fr_result);
+  // sejong::Vector tot_tau = tot_tau_mtx*Fr_result + tot_tau_vec;
+  
+  // Solve for Equivalent Task Acceleration
+  _solveQP_for_xddot(x_state, Fr_result, xddot_result);
+  Fr_result_ = Fr_result; // For print out
 
-  sejong::Vector xddot_result(dim_opt);
-  _prep_QP_xddot_sol(x_state, Fr_result);
-  _solveQP_for_xddot(xddot_result);
-  sejong::pretty_print(xddot_result, std::cout, "xddot_result");
-
+  // The Total Torque to the System
+  //sejong::pretty_print(xddot_result, std::cout, " Equivalent: xddot_result");
   sejong::Vector tot_tau = tot_tau_mtx*xddot_result + tot_tau_vec;
+ 
+  // Only Use the actuated joints
   sejong::Vector cmd = tot_tau.tail(NUM_ACT_JOINT);  
-
-
-
-
   gamma = cmd;
 
   

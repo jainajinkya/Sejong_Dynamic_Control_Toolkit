@@ -59,10 +59,12 @@ protected:
 
   void _prep_QP_U_f();  
   void _prep_QP_FR_sol(const sejong::Vector & x_state);  
-  void _solveQP_for_FR(sejong::Vector & Fr_result);
+  void _solveQP_for_FR(const sejong::Vector & x_state, 
+                       sejong::Vector & Fr_result);
 
   void _prep_QP_xddot_sol(const sejong::Vector & x_state, const sejong::Vector & Fr);  
-  void _solveQP_for_xddot(sejong::Vector & xddot_result);
+  void _solveQP_for_xddot(const sejong::Vector & x_state, const sejong::Vector & Fr,
+                          sejong::Vector & xddot_result);
 
   iLQR* ilqr_;
   // Get Internal Model of the robot for DDP
