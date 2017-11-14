@@ -14,6 +14,7 @@ StateProvider::StateProvider(): initialized_(false),
                                 Qdot_(NUM_QDOT),
                                 reaction_forces_(6)
 {
+  body_ang_vel_.setZero();
   Q_.setZero();
   Qdot_.setZero();
   reaction_forces_.setZero();
