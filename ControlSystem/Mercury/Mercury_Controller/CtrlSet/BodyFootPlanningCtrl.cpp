@@ -178,18 +178,15 @@ void BodyFootPlanningCtrl::_Replanning(){
                                 target_loc,
                                 &pl_param, &pl_output);
   // Time Modification
-  printf("time modification: %f\n", pl_output.time_modification);
   replan_moment_ = state_machine_time_;
   end_time_ += pl_output.time_modification;
 
-  sejong::pretty_print(target_loc, std::cout, "planed foot loc");
+  // sejong::pretty_print(target_loc, std::cout, "planed foot loc");
   // sejong::pretty_print(sp_->global_pos_local_, std::cout, "global loc");
 
   target_loc -= sp_->global_pos_local_;
 
-  sejong::pretty_print(target_loc, std::cout, "next foot loc");
-  // printf("end_time:%f\n", end_time_);
-
+  // sejong::pretty_print(target_loc, std::cout, "next foot loc");
   _SetBspline(curr_foot_pos_des_, curr_foot_vel_des_, curr_foot_acc_des_, target_loc);
 }
 

@@ -89,7 +89,7 @@ int WalkingTest::_NextPhase(const int & phase){
   // printf("next phase: %i\n", next_phase);
 
   if(phase == WKPhase::wk_double_contact_1) {
-    printf("One swing done: Next Right Leg Swing\n");
+    // printf("One swing done: Next Right Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_LFOOT;
 
     // Global Frame Update
@@ -98,7 +98,7 @@ int WalkingTest::_NextPhase(const int & phase){
     sp_->global_pos_local_.head(2) += next_local_frame_location.head(2);
   }
   if(phase == WKPhase::wk_double_contact_2){
-    printf("One swing done: Next Left Leg Swing\n");
+    // printf("One swing done: Next Left Leg Swing\n");
     sp_->stance_foot_ = SJLinkID::LK_RFOOT;
 
     // Global Frame Update
@@ -107,7 +107,6 @@ int WalkingTest::_NextPhase(const int & phase){
     sp_->global_pos_local_.head(2) += next_local_frame_location.head(2);
   }
   if(next_phase == NUM_WALKING_PHASE) {
-    printf("one step is done\n");
     return WKPhase::wk_double_contact_1;
   }
   else{ return next_phase; }

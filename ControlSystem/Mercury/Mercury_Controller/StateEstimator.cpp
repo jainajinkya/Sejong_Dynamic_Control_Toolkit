@@ -3,8 +3,11 @@
 #include <Utils/utilities.hpp>
 #include <Robot_Model/RobotModel.hpp>
 #include <Filter/filters.hpp>
-// #include <StateEstimator/OriEstAccObs.hpp>
+
+// Orientation Estimators
+#include <StateEstimator/OriEstAccObs.hpp>
 #include <StateEstimator/BasicAccumulation.hpp>
+
 
 
 StateEstimator::StateEstimator(){
@@ -12,6 +15,7 @@ StateEstimator::StateEstimator(){
   robot_model_ = RobotModel::GetRobotModel();
 
   ori_est_ = new BasicAccumulation();
+  // ori_est_ = new OriEstAccObs();
 }
 
 StateEstimator::~StateEstimator(){
@@ -56,7 +60,7 @@ void StateEstimator::Update(_DEF_SENSOR_DATA_){
     sp_->Q_[NUM_VIRTUAL + i] = jpos[i];
     sp_->Qdot_[NUM_VIRTUAL + i] = jvel[i];
   }
-  ori_est_->setSensorData(imu_acc, imu_ang_vel, imu_ang_vel);
+  ori_est_->setSensorData(imu_acc, imu_acc, imu_ang_vel);
   ori_est_->getEstimatedState(sp_->body_ori_, sp_->body_ang_vel_);
 
   sp_->Q_[3] = sp_->body_ori_.x();

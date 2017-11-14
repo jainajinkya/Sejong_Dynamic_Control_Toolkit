@@ -19,8 +19,8 @@ void BasicAccumulation::EstimatorInitialization(const std::vector<double> & acc,
 }
 
 void BasicAccumulation::setSensorData(const std::vector<double> & acc,
-                                      const std::vector<double> & ang_vel,
-                                      const std::vector<double> & ang_vel_inc){
+                                      const std::vector<double> & acc_inc,
+                                      const std::vector<double> & ang_vel){
   // Orientation
   sejong::Quaternion delt_quat;
   sejong::Vect3 delta_th;

@@ -17,6 +17,8 @@ public:
                   std::vector<double> & command);
   void GetReactionForce(std::vector<sejong::Vect3> & reaction_force );
 
+  sejong::Quaternion global_ori_;
+  
 private:
   bool _Initialization(_DEF_SENSOR_DATA_);
   Test* test_;

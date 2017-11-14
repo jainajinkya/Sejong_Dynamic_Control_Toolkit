@@ -45,7 +45,7 @@ void Reversal_LIPM_Planner::getNextFootLocation(
   std::vector<sejong::Vect2> switch_state(2);
   _computeSwitchingState(_input-> swing_time, com_pos, com_vel, _input->stance_foot_loc, switch_state);
 
-  printf("switching velocity: %f, %f\n", switch_state[0][1], switch_state[1][1]);
+  // printf("switching velocity: %f, %f\n", switch_state[0][1], switch_state[1][1]);
   int check_switch(_check_switch_velocity(switch_state));
   double new_swing_time(_input->swing_time);
   int count(0);

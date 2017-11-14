@@ -9,8 +9,9 @@ public:
   virtual ~OriEstimator(){}
 
   virtual void setSensorData(const std::vector<double> & acc,
-                             const std::vector<double> & ang_vel,
-                             const std::vector<double> & ang_vel_inc) = 0;
+                             const std::vector<double> & acc_inc,
+                             const std::vector<double> & ang_vel) = 0;
+
   virtual void EstimatorInitialization(const std::vector<double> & acc,
                                        const std::vector<double> & ang_vel) = 0;
 

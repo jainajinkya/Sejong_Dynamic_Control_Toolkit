@@ -48,41 +48,7 @@ void Mercury_Dyn_environment::ContolFunction( void* _data ) {
   bool lfoot_contact(false);
   std::vector<double> torque_command(robot->num_act_joint_, 0.);
 
-  // IMU data
-  se3 imu_se3_vel = robot->link_[robot->link_idx_map_.find("imu")->second]->GetVel();
-  se3 imu_se3_acc = robot->link_[robot->link_idx_map_.find("imu")->second]->GetAcc();
-  SE3 imu_frame = robot->link_[robot->link_idx_map_.find("imu")->second]->GetFrame();
-  SO3 imu_ori = robot->link_[robot->link_idx_map_.find("imu")->second]->GetOrientation();
-
-  for(int i(0); i<3; ++i){
-    imu_ang_vel[i] = imu_se3_vel[i];
-  }
-
-  Eigen::Matrix3d Rot;
-  Rot<<
-    imu_frame(0,0), imu_frame(0,1), imu_frame(0,2),
-    imu_frame(1,0), imu_frame(1,1), imu_frame(1,2),
-    imu_frame(2,0), imu_frame(2,1), imu_frame(2,2);
-  Eigen::Matrix<double, 3, 1> ang_vel;
-  ang_vel<<imu_se3_vel[0], imu_se3_vel[1], imu_se3_vel[2];
-  sejong::Vect3 global_ang_vel = Rot * ang_vel;
-
-  bool b_printout(false);
-  if(b_printout){
-    printf("imu info: \n");
-    std::cout<<imu_se3_vel<<std::endl;
-    std::cout<<imu_se3_acc<<std::endl;
-    std::cout<<imu_frame<<std::endl;
-
-    printf("global ang vel\n");
-    std::cout<<global_ang_vel<<std::endl;
-
-    Eigen::Quaterniond quat(Rot);
-    printf("quat global:\n");
-    std::cout<<quat.w()<<std::endl;
-    std::cout<<quat.vec()<<std::endl;
-  }
-
+  pDyn_env->getIMU_Data(imu_acc, imu_ang_vel);
 
   // Right
   for(int i(0); i< 3; ++i){
@@ -151,4 +117,53 @@ void Mercury_Dyn_environment::_ParamterSetup(){
 
   handler.getInteger("num_substep_rendering", num_substep_rendering_);
   handler.getValue("releasing_time", release_time_);
+}
+
+void Mercury_Dyn_environment::getIMU_Data(std::vector<double> & imu_acc,
+                                          std::vector<double> & imu_ang_vel){
+  // IMU data
+  se3 imu_se3_vel = m_Mercury->link_[m_Mercury->link_idx_map_.find("imu")->second]->GetVel();
+  se3 imu_se3_acc = m_Mercury->link_[m_Mercury->link_idx_map_.find("imu")->second]->GetAcc();
+  SE3 imu_frame = m_Mercury->link_[m_Mercury->link_idx_map_.find("imu")->second]->GetFrame();
+  SO3 imu_ori = m_Mercury->link_[m_Mercury->link_idx_map_.find("imu")->second]->GetOrientation();
+
+  Eigen::Matrix3d Rot;
+  Rot<<
+    imu_frame(0,0), imu_frame(0,1), imu_frame(0,2),
+    imu_frame(1,0), imu_frame(1,1), imu_frame(1,2),
+    imu_frame(2,0), imu_frame(2,1), imu_frame(2,2);
+
+  sejong::Vect3 grav; grav.setZero();
+  grav[2] = 9.81;
+  sejong::Vect3 local_grav = Rot.transpose() * grav;
+
+  for(int i(0); i<3; ++i){
+    // imu_ang_vel[i] = imu_se3_vel[i] + sejong::generator_white_noise(0., 0.01);
+    imu_ang_vel[i] = imu_se3_vel[i];
+    imu_acc[i] = imu_se3_acc[i+3] + local_grav[i];
+  }
+
+  Eigen::Matrix<double, 3, 1> ang_vel;
+  ang_vel<<imu_se3_vel[0], imu_se3_vel[1], imu_se3_vel[2];
+  sejong::Vect3 global_ang_vel = Rot * ang_vel;
+  Eigen::Quaterniond quat(Rot);
+
+  bool b_printout(false);
+  if(b_printout){
+    printf("imu info: \n");
+    std::cout<<imu_se3_vel<<std::endl;
+    std::cout<<imu_se3_acc<<std::endl;
+    std::cout<<imu_frame<<std::endl;
+
+    sejong::pretty_print(imu_ang_vel, "imu ang vel");
+    sejong::pretty_print(imu_acc, "imu_acc");
+
+    printf("global ang vel\n");
+    std::cout<<global_ang_vel<<std::endl;
+
+    printf("quat global:\n");
+    std::cout<<quat.w()<<std::endl;
+    std::cout<<quat.vec()<<std::endl;
+  }
+  interface_->global_ori_ = quat;
 }
