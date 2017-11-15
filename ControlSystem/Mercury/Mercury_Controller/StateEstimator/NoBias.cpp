@@ -92,13 +92,14 @@ void NoBias::setSensorData(const std::vector<double> & acc,
     h_[i+3] = local_acc[i];
   }
   y_ = s_ - h_;
-  sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
-  sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
+  // sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
+  // sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
 
   Eigen::Matrix3d a_g_skew; a_g_skew.setZero();
-  a_g_skew(0, 1) = -(h_[2] + 9.81);   a_g_skew(0, 2) = h_[1];
-  a_g_skew(1, 0) = (h_[2] + 9.81);   a_g_skew(1, 2) = -h_[0];
-  a_g_skew(2, 0) = -h_[1];   a_g_skew(2, 1) = h_[0];
+  sejong::Vect3 state_acc = x_.segment(3,3);
+  a_g_skew(0, 1) = -(state_acc[2] + 9.81);   a_g_skew(0, 2) = state_acc[1];
+  a_g_skew(1, 0) = (state_acc[2] + 9.81);   a_g_skew(1, 2) = -state_acc[0];
+  a_g_skew(2, 0) = -state_acc[1];   a_g_skew(2, 1) = state_acc[0];
 
   H_.setZero();
   H_.block<3,3>(0,3) = RotMtx.transpose();
@@ -116,18 +117,17 @@ void NoBias::setSensorData(const std::vector<double> & acc,
   sejong::Matrix K = P_pred_ * H_.transpose() * Sinv;
 
   sejong::Vector delta = K*y_;
-  x_pred_.head(3) += delta.head(3);
-  x_pred_.tail(3) += delta.tail(3);
+  x_pred_ += delta.head(6);
 
-  sejong::Vect3 delta_ori = delta.segment(3,3);
+  sejong::Vect3 delta_ori = delta.tail(3);
   sejong::Quaternion quat_delta;
   sejong::convert(delta_ori, quat_delta);
   ori_pred_ = sejong::QuatMultiply(quat_delta, ori_pred_);
 
-  sejong::pretty_print(x_, std::cout, "x");
+  // sejong::pretty_print(x_, std::cout, "x");
   // sejong::pretty_print(S, std::cout, "S");
   // sejong::pretty_print(K, std::cout, "K");
-  sejong::pretty_print(delta, std::cout, "delta");
+  // sejong::pretty_print(delta, std::cout, "delta");
   // sejong::pretty_print(ori_pred_, std::cout, "ori updated");
 
   sejong::Matrix eye(DIM_STATE_NO_BIAS, DIM_STATE_NO_BIAS);
