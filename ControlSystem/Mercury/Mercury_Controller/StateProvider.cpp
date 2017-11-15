@@ -44,6 +44,13 @@ StateProvider::StateProvider(): initialized_(false),
 
   data_manager->RegisterData(&CoM_pos_, VECT3, "com_pos", 3);
   data_manager->RegisterData(&CoM_vel_, VECT3, "com_vel", 3);
+
+  data_manager->RegisterData(&imu_acc_inc_, VECT3, "imu_acc_inc", 3);
+  data_manager->RegisterData(&imu_acc_, VECT3, "imu_acc", 3);
+  data_manager->RegisterData(&imu_ang_vel_, VECT3, "imu_ang_vel", 3);
+
+  data_manager->RegisterData(&body_ori_, QUATERNION, "body_ori", 4);
+
 }
 
 

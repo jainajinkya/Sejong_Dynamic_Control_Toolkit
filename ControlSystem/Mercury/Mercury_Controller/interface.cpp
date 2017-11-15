@@ -53,7 +53,9 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
 #if MEASURE_TIME
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span1 = std::chrono::duration_cast< std::chrono::duration<double> >(t2 - t1);
-    std::cout << "[interface] All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
+    if(count_%1000 == 1){
+      std::cout << "[interface] All process took me " << time_span1.count()*1000.0 << "ms."<<std::endl;;
+    }
 #endif
 
     double input(0.);
@@ -77,12 +79,23 @@ void interface::GetCommand(_DEF_SENSOR_DATA_,
   ++count_;
   // When there is sensed time
   StateProvider::GetStateProvider()->curr_time_ = time;
+  if(count_%500== 1){
+    sejong::pretty_print(imu_ang_vel, "imu ang vel");
+    sejong::pretty_print(imu_acc, "imu acc");
+    sejong::Quaternion ori = StateProvider::GetStateProvider()->body_ori_;
+    sejong::pretty_print(ori, std::cout, "estimated_quat");
 
-  if(count_%100== 1){
-    sejong::pretty_print(global_ori_, std::cout, "sim global quat");
-    sejong::pretty_print(StateProvider::GetStateProvider()->body_ori_, std::cout, "estimated_quat");
+    double yaw, pitch, roll;
+    sejong::convert(ori, yaw, pitch, roll);
+    printf("rpy: %f, %f, %f\n", roll, pitch, yaw);
     printf("\n");
   }
+
+  // if(count_%100== 1){
+  //   sejong::pretty_print(global_ori_, std::cout, "sim global quat");
+  //   sejong::pretty_print(StateProvider::GetStateProvider()->body_ori_, std::cout, "estimated_quat");
+  //   printf("\n");
+  // }
 }
 void interface::GetReactionForce(std::vector<sejong::Vect3> & reaction_force ){
   reaction_force.resize(2);

@@ -16,6 +16,9 @@ public:
 
   sejong::Quaternion body_ori_;
   sejong::Vect3 body_ang_vel_;
+  sejong::Vect3 imu_acc_inc_;
+  sejong::Vect3 imu_ang_vel_;
+  sejong::Vect3 imu_acc_;
   // Important!!!!!!!!
   int stance_foot_;
 

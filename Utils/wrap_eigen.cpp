@@ -98,6 +98,12 @@ namespace sejong {
         yaw = ea[0];
         pitch = ea[1];
         roll = ea[2];
+
+        // Vector ea =  mat.eulerAngles(0, 1, 2);
+        // roll = ea[0];
+        // pitch = ea[1];
+        // yaw = ea[2];
+
         // yaw = _bind_half_pi(yaw);
         // pitch = _bind_half_pi(pitch);
         // roll = _bind_half_pi(roll);

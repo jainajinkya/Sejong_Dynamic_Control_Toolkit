@@ -7,10 +7,14 @@ NoAccState::NoAccState():OriEstimator(),
                          x_(DIM_STATE_NO_ACC_STATE - 3),
                          x_pred_(DIM_STATE_NO_ACC_STATE - 3)
 {
-  global_ori_.w() = 1.;
+  // global_ori_.w() = 1.;
+  // global_ori_.x() = 0.;
+  // global_ori_.y() = 0.;
+  // global_ori_.z() = 0.;
+  global_ori_.w() = cos(M_PI/8.);
   global_ori_.x() = 0.;
   global_ori_.y() = 0.;
-  global_ori_.z() = 0.;
+  global_ori_.z() = sin(M_PI/8.);
 
   ori_pred_.w() = 1.;
   ori_pred_.x() = 0.;
@@ -27,9 +31,11 @@ NoAccState::NoAccState():OriEstimator(),
   R_.setIdentity();
   // Velocity
   // Q_.block<3,3>(0,0) *= 1.0;
-  // Q_.block<3,3>(3,3) *= 10.0;
+  Q_.block<3,3>(3,3) *= 0.001;
   // Q_.block<3,3>(6,6) *= 0.1;
-  R_*=5.0;
+  R_*=1.0;
+  R_.block<2,2>(0,0) *=1.;
+  R_.block<2,2>(3,3) *=1.;
 }
 
 
@@ -42,12 +48,17 @@ void NoAccState::EstimatorInitialization(const std::vector<double> & acc,
   global_ori_.y() = 0.;
   global_ori_.z() = 0.;
 
+  // global_ori_.w() = cos(M_PI/8.);
+  // global_ori_.x() = 0.;
+  // global_ori_.y() = 0.;
+  // global_ori_.z() = sin(M_PI/8.);
+
   for(int i(0); i<3; ++i)  global_ang_vel_[i] = ang_vel[i];
 }
 
 void NoAccState::setSensorData(const std::vector<double> & acc,
-                                 const std::vector<double> & acc_inc,
-                                 const std::vector<double> & ang_vel){
+                               const std::vector<double> & acc_inc,
+                               const std::vector<double> & ang_vel){
 
   // Orientation
   sejong::Quaternion delt_quat;
@@ -90,8 +101,6 @@ void NoAccState::setSensorData(const std::vector<double> & acc,
     h_[i+3] = local_acc[i];
   }
   y_ = s_ - h_;
-  sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
-  sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
 
   Eigen::Matrix3d a_g_skew; a_g_skew.setZero();
   sejong::Vect3 state_acc = x_.segment(3,3);
@@ -104,8 +113,6 @@ void NoAccState::setSensorData(const std::vector<double> & acc,
   H_.block<3,3>(0,3) = RotMtx.transpose() * a_g_skew;
   H_.block<3,3>(3,3) = RotMtx.transpose() * a_g_skew;
 
-  // sejong::pretty_print((sejong::Matrix)a_g_skew, std::cout, "ag skew");
-  // sejong::pretty_print((sejong::Matrix)H_, std::cout, "H");
 
   sejong::Matrix S = R_ + H_ * P_pred_ * H_.transpose();
   // sejong::Matrix K = P_pred_ * H_.transpose() * S.inverse();
@@ -124,8 +131,12 @@ void NoAccState::setSensorData(const std::vector<double> & acc,
   // sejong::pretty_print(x_, std::cout, "x");
   // sejong::pretty_print(S, std::cout, "S");
   // sejong::pretty_print(K, std::cout, "K");
-  sejong::pretty_print(delta, std::cout, "delta");
-  sejong::pretty_print(ori_pred_, std::cout, "ori updated");
+  // sejong::pretty_print(delta, std::cout, "delta");
+  // sejong::pretty_print(ori_pred_, std::cout, "ori updated");
+  // sejong::pretty_print((sejong::Vector)s_, std::cout, "s");
+  // sejong::pretty_print((sejong::Vector)h_, std::cout, "h");
+  // sejong::pretty_print((sejong::Matrix)a_g_skew, std::cout, "ag skew");
+  // sejong::pretty_print((sejong::Matrix)H_, std::cout, "H");
 
   sejong::Matrix eye(DIM_STATE_NO_ACC_STATE, DIM_STATE_NO_ACC_STATE);
   eye.setIdentity();

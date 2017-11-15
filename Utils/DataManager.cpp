@@ -84,7 +84,7 @@ void DataManager::SaveDataFromValues(double * data, int st_idx, int data_idx){
         data[st_idx+2] = (*tmp_quat).y();
         data[st_idx+3] = (*tmp_quat).z();
         break;
-    }   
+    }
     case SJ_VEC:
     {
         sejong::Vector * tmp_vec = (sejong::Vector*)data_addr_vec_[data_idx];
