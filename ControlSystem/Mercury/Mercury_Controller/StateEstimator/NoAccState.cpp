@@ -29,13 +29,16 @@ NoAccState::NoAccState():OriEstimator(),
 
   Q_.setIdentity();
   R_.setIdentity();
-  // Velocity
+
+  Q_ *= SERVO_RATE;
   // Q_.block<3,3>(0,0) *= 1.0;
-  Q_.block<3,3>(3,3) *= 0.001;
+  // Q_.block<3,3>(3,3) *= 0.001;
   // Q_.block<3,3>(6,6) *= 0.1;
-  R_*=1.0;
-  R_.block<2,2>(0,0) *=1.;
-  R_.block<2,2>(3,3) *=1.;
+
+  R_ /= SERVO_RATE;
+  // R_*=1.0;
+  // R_.block<2,2>(0,0) *=1.;
+  // R_.block<2,2>(3,3) *=1.;
 }
 
 
