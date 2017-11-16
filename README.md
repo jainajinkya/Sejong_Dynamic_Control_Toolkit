@@ -21,3 +21,45 @@ python -mpip install -U pip
 pip install numpy
 python -mpip install -U matplotlib
 ````
+
+## Compiling The Code
+````
+cd [cloned directory]
+mkdir build
+cd build
+cmake ..
+make -j
+````
+
+## Contributing to the code
+1) Fork the github
+2) Clone from your fork
+3) Add upstream to your local git remote
+
+````git remote -v
+git remote add upstream "other"
+````
+
+4) To merge your fork with upstream:
+````
+git fetch upstream
+git merge upstream/master
+````
+
+5) When committing, push to your fork eg:
+````
+git add --all
+git commit -m "message"
+git push origin master
+````
+
+6) Test the compilation and resolve the conflicts
+````
+cd build
+cmake ..
+make -j
+````
+
+7) In github, do a pull request
+
+
